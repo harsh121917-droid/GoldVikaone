@@ -331,7 +331,7 @@ class _LockScreenViewState extends State<LockScreenView>
                 const SizedBox(height: 22),
 
                 const Text(
-                  'Bharat SQFT',
+                  'Vikaone',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 26,

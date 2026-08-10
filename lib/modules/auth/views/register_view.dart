@@ -274,58 +274,13 @@ class RegisterView extends GetView<AuthController> {
                     ),
 
                     // Register button
-                    Obx(
-                      () => ElevatedButton(
-                        onPressed: controller.isLoading.value
-                            ? null
-                            : () {
-                                if (!formKey.currentState!.validate()) return;
-                                if (!agreedToTerms.value) {
-                                  Get.snackbar(
-                                    'Required',
-                                    'Please agree to Terms & Conditions',
-                                    backgroundColor: AppColors.error,
-                                    colorText: Colors.white,
-                                  );
-                                  return;
-                                }
-                                controller.register(
-                                  name: nameCtrl.text.trim(),
-                                  email: emailCtrl.text.trim(),
-                                  password: passwordCtrl.text,
-                                  phone: phoneCtrl.text.trim(),
-                                );
-                              },
-                        child: controller.isLoading.value
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text('Register'),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Register with OTP instead (skips password entirely)
-                    OutlinedButton(
+                    ElevatedButton(
                       onPressed: () {
-                        if (nameCtrl.text.trim().isEmpty) {
+                        if (!formKey.currentState!.validate()) return;
+                        if (!agreedToTerms.value) {
                           Get.snackbar(
-                            'Name required',
-                            'Enter your name above first',
-                            backgroundColor: AppColors.error,
-                            colorText: Colors.white,
-                          );
-                          return;
-                        }
-                        if (phoneCtrl.text.trim().isEmpty) {
-                          Get.snackbar(
-                            'Phone required',
-                            'Enter your phone number above first',
+                            'Required',
+                            'Please agree to Terms & Conditions',
                             backgroundColor: AppColors.error,
                             colorText: Colors.white,
                           );
@@ -336,38 +291,12 @@ class RegisterView extends GetView<AuthController> {
                             purpose: 'register',
                             name: nameCtrl.text.trim(),
                             email: emailCtrl.text.trim(),
+                            password: passwordCtrl.text,
+                            phoneNumber: phoneCtrl.text.trim(),
                           ),
                         );
                       },
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50),
-                        side: const BorderSide(
-                          color: AppColors.accent,
-                          width: 1.4,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.sms_outlined,
-                            color: AppColors.accent,
-                            size: 18,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Register with OTP instead',
-                            style: TextStyle(
-                              color: AppColors.accent,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: const Text('Register'),
                     ),
                     const SizedBox(height: 20),
 

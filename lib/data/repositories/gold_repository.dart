@@ -8,7 +8,7 @@ class GoldRateModel {
   final double gstPct;
   final DateTime updatedAt;
   final String source;
-  bool get isStale => source != 'goldapi.io';
+  bool get isStale => source != 'gold-api.com';
 
   const GoldRateModel({
     required this.buyRate,
@@ -18,7 +18,7 @@ class GoldRateModel {
     required this.purity,
     required this.gstPct,
     required this.updatedAt,
-    this.source = 'goldapi.io',
+    this.source = 'gold-api.com',
   });
 
   factory GoldRateModel.fromJson(Map<String, dynamic> j) => GoldRateModel(
@@ -29,7 +29,7 @@ class GoldRateModel {
     purity: j['purity'] ?? '24K',
     gstPct: (j['gstPct'] ?? 3.0) * 1.0,
     updatedAt: DateTime.tryParse(j['updatedAt'] ?? '') ?? DateTime.now(),
-    source: j['source'] ?? 'goldapi.io',
+    source: j['source'] ?? 'gold-api.com',
   );
 
   String get formattedBuyRate => '₹${buyRate.toStringAsFixed(2)}/g';
@@ -175,15 +175,49 @@ class GoldRepository {
   static const _base = '/gold';
 
   // 1. Rate (no auth)
-  Future<GoldRateModel> getRate() async {
+  Future<Map<String, dynamic>> getRawRates() async {
     final res = await _dio.get('$_base/rate');
-    final data = res.data['data'] as Map<String, dynamic>;
+    return res.data['data'] as Map<String, dynamic>;
+  }
+
+  Future<GoldRateModel> getRate() async {
+    final data = await getRawRates();
     final gold = (data['gold'] ?? {}) as Map<String, dynamic>;
     return GoldRateModel.fromJson({
       ...gold,
       'updatedAt': data['updatedAt'],
       'source': data['source'],
     });
+  }
+
+  Future<List<Map<String, dynamic>>> getPriceHistory(String symbol, String period) async {
+    final res = await _dio.get('$_base/history', queryParameters: {
+      'symbol': symbol,
+      'period': period,
+    });
+    return List<Map<String, dynamic>>.from(res.data['data']);
+  }
+
+  Future<List<Map<String, dynamic>>> getCoins() async {
+    final res = await _dio.get('/coins');
+    return List<Map<String, dynamic>>.from(res.data['data']);
+  }
+
+  Future<Map<String, dynamic>> redeemCoin({
+    required String coinId,
+    required String addressLine,
+    required String pincode,
+    required String phone,
+    bool redeemDigital = false,
+  }) async {
+    final res = await _dio.post('/coins/redeem', data: {
+      'coinId': coinId,
+      'addressLine': addressLine,
+      'pincode': pincode,
+      'phone': phone,
+      'redeemDigital': redeemDigital,
+    });
+    return res.data;
   }
 
   // 2. Balance
@@ -253,9 +287,10 @@ class GoldRepository {
   }
 
   /// Downloads the PDF invoice bytes for a transaction.
-  Future<List<int>> getTransactionInvoice(String txnId) async {
+  Future<List<int>> getTransactionInvoice(String txnId, {bool isSample = false}) async {
     final res = await _dio.get<List<int>>(
       '$_base/transactions/$txnId/invoice',
+      queryParameters: isSample ? {'sample': 'true'} : null,
       options: Options(responseType: ResponseType.bytes),
     );
     return res.data!;

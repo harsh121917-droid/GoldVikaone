@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:vika1/core/theme/app_colors.dart';
 import 'package:vika1/data/repositories/gold_repository.dart';
+import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 
 class GoldController extends GetxController {
   static GoldController get to => Get.find();
@@ -17,9 +18,16 @@ class GoldController extends GetxController {
   final rateLoading = false.obs;
 
   final rate = Rxn<GoldRateModel>();
+  final rawRates = <String, dynamic>{}.obs;
   final balance = Rxn<GoldBalanceModel>();
   final transactions = <GoldTxnModel>[].obs;
   final errorMsg = ''.obs;
+
+  final priceHistory = <Map<String, dynamic>>[].obs;
+  final historyLoading = false.obs;
+
+  final coins = <Map<String, dynamic>>[].obs;
+  final coinsLoading = false.obs;
 
   @override
   void onInit() {
@@ -29,15 +37,75 @@ class GoldController extends GetxController {
 
   Future<void> loadAll() async {
     isLoading.value = true;
-    await Future.wait([loadRate(), loadBalance(), loadTransactions()]);
+    await Future.wait([
+      loadRate(),
+      loadBalance(),
+      loadTransactions(),
+      loadPriceHistory('1m'),
+      loadCoins(),
+    ]);
     isLoading.value = false;
+  }
+
+  Future<void> loadCoins() async {
+    try {
+      coinsLoading.value = true;
+      coins.value = await _repo.getCoins();
+    } catch (_) {} finally {
+      coinsLoading.value = false;
+    }
+  }
+
+  Future<bool> redeemCoin({
+    required String coinId,
+    required String addressLine,
+    required String pincode,
+    required String phone,
+    bool redeemDigital = false,
+  }) async {
+    try {
+      final res = await _repo.redeemCoin(
+        coinId: coinId,
+        addressLine: addressLine,
+        pincode: pincode,
+        phone: phone,
+        redeemDigital: redeemDigital,
+      );
+      if (res['success'] == true) {
+        // Refresh balance & coins list
+        loadAll();
+        if (Get.isRegistered<WalletController>()) {
+          WalletController.to.loadAll();
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> loadPriceHistory(String period) async {
+    try {
+      historyLoading.value = true;
+      priceHistory.value = await _repo.getPriceHistory('XAU', period);
+    } catch (_) {} finally {
+      historyLoading.value = false;
+    }
   }
 
   // ── 1. Rate ───────────────────────────────────────────────────────────────
   Future<void> loadRate() async {
     try {
       rateLoading.value = true;
-      rate.value = await _repo.getRate();
+      final data = await _repo.getRawRates();
+      rawRates.value = data;
+      final gold = (data['gold'] ?? {}) as Map<String, dynamic>;
+      rate.value = GoldRateModel.fromJson({
+        ...gold,
+        'updatedAt': data['updatedAt'],
+        'source': data['source'],
+      });
     } on DioException catch (e) {
       // Use static fallback if API fails
       errorMsg.value = e.response?.data?['message'] ?? 'Rate unavailable';
@@ -156,6 +224,20 @@ class GoldController extends GetxController {
   double get buyRate => rate.value?.buyRate ?? 7309.0;
   double get sellRate => rate.value?.sellRate ?? 7256.0;
   double get totalGrams => balance.value?.totalGrams ?? 0;
+
+  double get goldPct => rate.value?.changePct ?? 0.0;
+
+  double get silverRate => (rawRates['silver']?['buyRate'] ?? 177.17) * 1.0;
+  double get silverPct => (rawRates['silver']?['changePct'] ?? 0.0) * 1.0;
+
+  double get platinumRate => (rawRates['platinum']?['buyRate'] ?? 5079.50) * 1.0;
+  double get platinumPct => (rawRates['platinum']?['changePct'] ?? 0.0) * 1.0;
+
+  double get palladiumRate => (rawRates['palladium']?['buyRate'] ?? 3980.07) * 1.0;
+  double get palladiumPct => (rawRates['palladium']?['changePct'] ?? 0.0) * 1.0;
+
+  double get copperRate => (rawRates['copper']?['buyRate'] ?? 1.32) * 1.0;
+  double get copperPct => (rawRates['copper']?['changePct'] ?? 0.0) * 1.0;
 
   double gramsForAmount(double amt) => amt / buyRate;
   double amountForGrams(double grams) => grams * buyRate;

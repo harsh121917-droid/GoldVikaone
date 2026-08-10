@@ -4,10 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:vika1/modules/home/controllers/main_shell_controller.dart';
 import 'package:vika1/modules/digi_gold/views/digi_gold_view.dart';
-import 'package:vika1/modules/silver/views/my_silver_view.dart';
+import 'package:vika1/modules/profile/views/rewards_view.dart';
 import 'package:vika1/modules/wallet/views/wallet_view.dart';
 import 'package:vika1/modules/gold_scheme/views/gold_schemes_view.dart';
 import 'package:vika1/modules/profile/views/profile_view.dart';
+import 'package:vika1/modules/jewellery/views/jewellery_view.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 
@@ -24,9 +25,9 @@ class MainShellView extends GetView<MainShellController> {
           index: controller.tabIndex.value,
           children: const [
             DigiGoldView(),
-            MySilverView(),
-            WalletView(),
             GoldSchemesView(),
+            JewelleryView(),
+            RewardsView(),
             ProfileView(),
           ],
         ),
@@ -52,9 +53,9 @@ class _NI {
 
 const _items = [
   _NI(Icons.home_rounded, 'Home'),
-  _NI(Icons.circle_outlined, 'Silver'),
-  _NI(Icons.account_balance_wallet_outlined, 'Wallet'),
   _NI(Icons.workspace_premium_outlined, 'Schemes'),
+  _NI(Icons.grid_view_rounded, 'Jewellery'),
+  _NI(Icons.emoji_events_outlined, 'Rewards'),
   _NI(Icons.person_outline_rounded, 'Profile'),
 ];
 
@@ -452,24 +453,24 @@ class _AppDrawer extends StatelessWidget {
                             },
                           ),
                           _DrawerTile(
-                            icon: Icons.circle_outlined,
-                            label: 'Silver',
+                            icon: Icons.workspace_premium_outlined,
+                            label: 'Schemes',
                             onTap: () {
                               shell.changeTab(1);
                               Get.back();
                             },
                           ),
                           _DrawerTile(
-                            icon: Icons.account_balance_wallet_outlined,
-                            label: 'Wallet',
+                            icon: Icons.grid_view_rounded,
+                            label: 'Jewellery',
                             onTap: () {
                               shell.changeTab(2);
                               Get.back();
                             },
                           ),
                           _DrawerTile(
-                            icon: Icons.workspace_premium_outlined,
-                            label: 'Schemes',
+                            icon: Icons.emoji_events_outlined,
+                            label: 'Rewards',
                             onTap: () {
                               shell.changeTab(3);
                               Get.back();

@@ -30,6 +30,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = Get.find<AuthService>();
+    final lock = Get.find<LockService>();
 
     return Obx(
       () => GetMaterialApp(
@@ -40,7 +41,9 @@ class MainApp extends StatelessWidget {
         themeMode: ThemeController.to.isDark.value
             ? ThemeMode.dark
             : ThemeMode.light,
-        initialRoute: auth.isLoggedIn ? AppRoutes.home : AppRoutes.login,
+        initialRoute: !auth.isLoggedIn
+            ? AppRoutes.login
+            : (lock.pinActive.value ? AppRoutes.lockScreen : AppRoutes.home),
         getPages: appPages,
       ),
     );

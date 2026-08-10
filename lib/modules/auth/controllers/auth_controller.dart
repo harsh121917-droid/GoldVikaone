@@ -36,10 +36,11 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<void> register({
+  Future<bool> register({
     required String name,
     required String email,
     required String password,
+    required String otpRecordId,
     String? phone,
   }) async {
     try {
@@ -50,12 +51,16 @@ class AuthController extends GetxController {
         email: email,
         password: password,
         phone: phone,
+        otpRecordId: otpRecordId,
       );
       _afterAuth();
+      return true;
     } on DioException catch (e) {
       errorMsg.value = e.response?.data?['message'] ?? 'Registration failed.';
+      return false;
     } catch (e) {
       errorMsg.value = 'Something went wrong.';
+      return false;
     } finally {
       isLoading.value = false;
     }
@@ -122,9 +127,26 @@ class AuthController extends GetxController {
     }
   }
 
+  Future<bool> updateProfile({String? name, String? email}) async {
+    try {
+      isLoading.value = true;
+      errorMsg.value = '';
+      user.value = await _auth.updateProfile(name: name, email: email);
+      return true;
+    } on DioException catch (e) {
+      errorMsg.value = e.response?.data?['message'] ?? 'Failed to update profile.';
+      return false;
+    } catch (e) {
+      errorMsg.value = 'Something went wrong.';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   void logout() {
     _auth.logout();
-    // Keep passcode — user will need it if they log back in
+    LockService.to.disableLock();
     Get.offAllNamed(AppRoutes.login);
   }
 }

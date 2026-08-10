@@ -7,6 +7,7 @@ class KycModel {
   final String state;
   final String pincode;
   final String panNumber;
+  final String? aadhaarNumber;
   final String? panImageUrl;
   final String? aadhaarFrontUrl;
   final String? aadhaarBackUrl;
@@ -26,6 +27,7 @@ class KycModel {
     required this.state,
     required this.pincode,
     required this.panNumber,
+    this.aadhaarNumber,
     this.panImageUrl,
     this.aadhaarFrontUrl,
     this.aadhaarBackUrl,
@@ -46,6 +48,7 @@ class KycModel {
         state: j['address']?['state'] ?? '',
         pincode: j['address']?['pincode'] ?? '',
         panNumber: j['panNumber'] ?? '',
+        aadhaarNumber: j['aadhaarNumber'],
         panImageUrl: j['panImage']?['url'],
         aadhaarFrontUrl: j['aadhaarFront']?['url'],
         aadhaarBackUrl: j['aadhaarBack']?['url'],

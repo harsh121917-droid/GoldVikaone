@@ -50,10 +50,19 @@ class _T {
 /// For register, [name] must be provided by the caller (collected on the
 /// register form before navigating here) since the backend requires it.
 class PhoneOtpView extends StatefulWidget {
-  const PhoneOtpView({super.key, required this.purpose, this.name, this.email});
+  const PhoneOtpView({
+    super.key,
+    required this.purpose,
+    this.name,
+    this.email,
+    this.password,
+    this.phoneNumber,
+  });
   final String purpose; // "register" | "login"
   final String? name;
   final String? email;
+  final String? password;
+  final String? phoneNumber;
 
   @override
   State<PhoneOtpView> createState() => _PhoneOtpViewState();
@@ -71,6 +80,17 @@ class _PhoneOtpViewState extends State<PhoneOtpView> {
   String? _error;
   int _cooldown = 0;
   Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.phoneNumber != null && widget.phoneNumber!.isNotEmpty) {
+      _phoneCtrl.text = widget.phoneNumber!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _sendOtp();
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -133,12 +153,20 @@ class _PhoneOtpViewState extends State<PhoneOtpView> {
       );
       final auth = Get.find<AuthController>();
       final ok = _isRegister
-          ? await auth.registerWithOtp(
-              name: widget.name ?? '',
-              phone: _phone,
-              otpRecordId: otpRecordId,
-              email: widget.email,
-            )
+          ? (widget.password != null && widget.password!.isNotEmpty
+              ? await auth.register(
+                  name: widget.name ?? '',
+                  email: widget.email ?? '',
+                  password: widget.password!,
+                  phone: _phone,
+                  otpRecordId: otpRecordId,
+                )
+              : await auth.registerWithOtp(
+                  name: widget.name ?? '',
+                  phone: _phone,
+                  otpRecordId: otpRecordId,
+                  email: widget.email,
+                ))
           : await auth.loginWithOtp(phone: _phone, otpRecordId: otpRecordId);
 
       if (!ok) {

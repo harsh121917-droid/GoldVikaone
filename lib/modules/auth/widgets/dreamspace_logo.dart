@@ -9,15 +9,15 @@ class DreamSpaceLogo extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(width: 44, height: 44, child: CustomPaint(painter: _LogoPainter())),
+        SizedBox(width: 44, height: 44, child: Image.asset('assets/images/jar_img.png')),
         const SizedBox(width: 10),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: const [
-            Text('DreamSpace', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.3, height: 1)),
+            Text('Vikaone', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.3, height: 1)),
             SizedBox(height: 2),
-            Text('REAL ESTATE', style: TextStyle(color: AppColors.textSecondary, fontSize: 9, fontWeight: FontWeight.w600, letterSpacing: 2.5)),
+            Text('Gold Silver', style: TextStyle(color: AppColors.textSecondary, fontSize: 9, fontWeight: FontWeight.w600, letterSpacing: 2.5)),
           ],
         ),
       ],

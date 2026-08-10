@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:vika1/data/repositories/silver_repository.dart';
+import 'package:vika1/modules/invoice/views/invoice_viewer_view.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 
 class SilverTransactionDetailView extends StatefulWidget {
@@ -28,9 +29,10 @@ class _SilverTransactionDetailViewState
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/invoice-${widget.txn.id}.pdf');
       await file.writeAsBytes(bytes);
-      await Share.shareXFiles([
-        XFile(file.path, mimeType: 'application/pdf'),
-      ], text: 'Silver transaction invoice');
+      Get.to(() => InvoiceViewerView(
+        filePath: file.path,
+        title: 'Silver Invoice',
+      ));
     } catch (e) {
       Get.snackbar(
         'Failed',

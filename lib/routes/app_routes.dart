@@ -15,6 +15,8 @@ import 'package:vika1/modules/lock/views/security_settings_view.dart';
 import 'package:vika1/modules/digi_gold/bindings/digi_gold_binding.dart';
 import 'package:vika1/modules/digi_gold/views/digi_gold_view.dart';
 import 'package:vika1/modules/digi_gold/views/my_gold_view.dart';
+import 'package:vika1/modules/digi_gold/views/gift_view.dart';
+import 'package:vika1/modules/digi_gold/views/coin_detail_view.dart';
 
 // Buy Gold
 import 'package:vika1/modules/buy_gold/bindings/buy_gold_binding.dart';
@@ -46,6 +48,10 @@ import '../modules/wallet/views/bank_accounts_view.dart';
 import '../modules/wallet/views/add_bank_account_view.dart';
 import '../modules/wallet/controllers/wallet_controller.dart';
 
+import 'package:vika1/modules/profile/views/transactions_view.dart';
+import 'package:vika1/modules/profile/views/rewards_view.dart';
+import 'package:vika1/modules/profile/views/policy_view.dart';
+
 abstract class AppRoutes {
   static const login = '/login';
   static const register = '/register';
@@ -56,6 +62,8 @@ abstract class AppRoutes {
   static const passcodeSetup = '/passcode-setup';
   static const lockScreen = '/lock';
   static const security = '/security';
+  static const rewards = '/profile/rewards';
+  static const policy = '/policy';
 
   static const digiGold = '/digi-gold';
   static const digiGoldSavings = '/digi-gold/savings';
@@ -63,6 +71,8 @@ abstract class AppRoutes {
   static const sellGold = '/digi-gold/sell';
   static const buyGold = '/digi-gold/buy';
   static const myGold = '/digi-gold/my-gold';
+  static const gift = '/digi-gold/gift';
+  static const coinDetail = '/digi-gold/coin-detail';
 
   static const buySilver = '/silver/buy';
   static const sellSilver = '/silver/sell';
@@ -98,6 +108,9 @@ final appPages = [
   GetPage(name: AppRoutes.passcodeSetup, page: () => const PasscodeSetupView()),
   GetPage(name: AppRoutes.lockScreen, page: () => const LockScreenView()),
   GetPage(name: AppRoutes.security, page: () => const SecuritySettingsView()),
+  GetPage(name: AppRoutes.transactions, page: () => const TransactionsView()),
+  GetPage(name: AppRoutes.rewards, page: () => const RewardsView()),
+  GetPage(name: AppRoutes.policy, page: () => const PolicyView()),
 
   // ── Digi Gold (home tab + my gold) ──────────────────────────────────────
   GetPage(
@@ -109,6 +122,14 @@ final appPages = [
     name: AppRoutes.myGold,
     page: () => const MyGoldView(),
     binding: DigiGoldBinding(),
+  ),
+  GetPage(
+    name: AppRoutes.gift,
+    page: () => const GiftView(),
+  ),
+  GetPage(
+    name: AppRoutes.coinDetail,
+    page: () => const CoinDetailView(),
   ),
 
   // ── Buy Gold ─────────────────────────────────────────────────────────────

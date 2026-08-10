@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:vika1/modules/silver/controllers/silver_controller.dart';
-import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:vika1/modules/silver/controllers/silver_controller.dart';
+import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
+import 'package:vika1/modules/profile/views/rewards_view.dart';
+import 'package:vika1/modules/kyc/controllers/kyc_controller.dart';
 
 // ─── Static data (replace with API) ──────────────────────────────────────────
 
@@ -15,11 +17,20 @@ class BuySilverView extends StatefulWidget {
 
 class _BuySilverViewState extends State<BuySilverView> {
   static const double _GST_PCT = 3.0;
-  static const double _MIN_AMT = 100.0;
+  static const double _MIN_AMT = 50.0;
   static const double _MAX_AMT = 100000.0;
   bool _byAmount = true;
   double _slider = 1000;
+  int _redeemedPoints = 0;
   final _ctrl = TextEditingController(text: '1000');
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Get.isRegistered<PointsController>()) {
+      Get.put(PointsController());
+    }
+  }
 
   double get _total => _byAmount
       ? (double.tryParse(_ctrl.text) ?? 0)
@@ -27,15 +38,20 @@ class _BuySilverViewState extends State<BuySilverView> {
             SilverController.to.buyRate *
             (1 + _GST_PCT / 100);
 
+  double get _redeemVal => _redeemedPoints * 0.1;
+
+  double get _payableTotal => _total;
+
   double get _amount => _total / (1 + _GST_PCT / 100); // silver value (pre-GST)
 
-  double get _grams => _amount / SilverController.to.buyRate;
+  double get _extraGrams => _redeemVal / SilverController.to.buyRate;
+  double get _grams => (_amount / SilverController.to.buyRate) + _extraGrams;
 
   double get _gst => _total - _amount;
   double get _walletBal =>
       WalletController.to.wallet.value?.availableBalance ?? 0;
-  bool get _hasEnoughBalance => _walletBal >= _total;
-  bool get _valid => _amount >= 100.0 && _hasEnoughBalance;
+  bool get _hasEnoughBalance => _walletBal >= _payableTotal;
+  bool get _valid => _total > 0;
 
   void _setAmt(double amt) => setState(() {
     _byAmount = true;
@@ -574,6 +590,24 @@ class _BuySilverViewState extends State<BuySilverView> {
                         tp,
                         dark: dark,
                       ),
+                      if (_redeemedPoints > 0) ...[
+                        const SizedBox(height: 8),
+                        _CalcRow(
+                          '  ↳ Base Weight',
+                          '${(_amount / SilverController.to.buyRate).toStringAsFixed(4)} g',
+                          ts,
+                          tp,
+                          dark: dark,
+                        ),
+                        const SizedBox(height: 8),
+                        _CalcRow(
+                          '  ↳ Points Added',
+                          '+${_extraGrams.toStringAsFixed(4)} g',
+                          const Color(0xFF2ecc71),
+                          const Color(0xFF2ecc71),
+                          dark: dark,
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       Divider(height: 1, color: border),
                       const SizedBox(height: 8),
@@ -710,6 +744,150 @@ class _BuySilverViewState extends State<BuySilverView> {
                   ),
                 ],
                 const SizedBox(height: 12),
+
+                // ── Reward Points Redemption Section ──────────────────────
+                Obx(() {
+                  final pc = PointsController.to;
+                  final availPoints = pc.points.value;
+                  if (availPoints <= 0) return const SizedBox.shrink();
+
+                  final List<int> pointOptions = [0];
+                  for (int val in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000]) {
+                    if (val <= availPoints) {
+                      pointOptions.add(val);
+                    }
+                  }
+                  if (availPoints > 0 && !pointOptions.contains(availPoints)) {
+                    pointOptions.add(availPoints);
+                  }
+                  pointOptions.sort();
+
+                  final List<DropdownMenuItem<int>> dropdownItems = pointOptions.map((pts) {
+                    if (pts == 0) {
+                      return const DropdownMenuItem<int>(
+                        value: 0,
+                        child: Text(
+                          "Do not redeem points",
+                          style: TextStyle(fontSize: 13),
+                        ),
+                      );
+                    }
+                    final extraVal = pts * 0.1;
+                    final extraWt = extraVal / SilverController.to.buyRate;
+                    return DropdownMenuItem<int>(
+                      value: pts,
+                      child: Text(
+                        "Redeem $pts pts (Adds +${extraWt.toStringAsFixed(4)}g)",
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    );
+                  }).toList();
+
+                  if (_redeemedPoints > availPoints) {
+                    _redeemedPoints = 0;
+                  }
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: _redeemedPoints > 0
+                            ? const Color(0xFF8A95A5)
+                            : border.withOpacity(0.35),
+                        width: _redeemedPoints > 0 ? 1.5 : 1.2,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF8A95A5).withOpacity(0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.emoji_events_outlined,
+                                color: Color(0xFF8A95A5),
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Redeem Reward Points',
+                                    style: TextStyle(
+                                      color: tp,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Available: $availPoints pts (₹${(availPoints * 0.1).toStringAsFixed(2)})',
+                                    style: TextStyle(
+                                      color: ts,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Theme(
+                          data: Theme.of(context).copyWith(
+                            canvasColor: cardBg,
+                          ),
+                          child: DropdownButtonFormField<int>(
+                            value: _redeemedPoints,
+                            items: dropdownItems,
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: ts.withOpacity(0.2),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: ts.withOpacity(0.2),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF8A95A5),
+                                ),
+                              ),
+                            ),
+                            style: TextStyle(
+                              color: tp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            onChanged: (val) {
+                              setState(() {
+                                _redeemedPoints = val ?? 0;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
                 const SizedBox(height: 12),
 
                 // Safety strip
@@ -800,21 +978,54 @@ class _BuySilverViewState extends State<BuySilverView> {
                       onTap: _valid && !WalletController.to.isBuying.value
                           ? () async {
                               HapticFeedback.mediumImpact();
+
+                              if (_total < 50.0) {
+                                Get.snackbar(
+                                  "Invalid Amount",
+                                  "Minimum purchase is ₹50",
+                                  backgroundColor: const Color(0xFFE05A47),
+                                  colorText: Colors.white,
+                                  snackPosition: SnackPosition.BOTTOM,
+                                );
+                                return;
+                              }
+
+                              if (!_hasEnoughBalance) {
+                                Get.snackbar(
+                                  "Insufficient Balance",
+                                  "Wallet has ₹${_walletBal.toStringAsFixed(2)}, need ₹${_total.toStringAsFixed(2)}.",
+                                  backgroundColor: const Color(0xFFE05A47),
+                                  colorText: Colors.white,
+                                  snackPosition: SnackPosition.BOTTOM,
+                                );
+                                return;
+                              }
+
+                              final kycCtrl = Get.isRegistered<KycController>()
+                                  ? Get.find<KycController>()
+                                  : Get.put(KycController());
+                              if (kycCtrl.kycStatus.value != "approved") {
+                                Get.snackbar(
+                                  "KYC Required",
+                                  "Please complete your KYC to buy silver.",
+                                  backgroundColor: const Color(0xFFE05A47),
+                                  colorText: Colors.white,
+                                  snackPosition: SnackPosition.BOTTOM,
+                                );
+                                return;
+                              }
+
+                              final pointsToRedeem = _redeemedPoints;
                               final ok = await WalletController.to.buySilver(
                                 amount: _amount,
+                                pointsRedeemed: pointsToRedeem > 0 ? pointsToRedeem : null,
                               );
-                              if (ok) Get.back();
-                            }
-                          : (_amount >= 100.0 && !_hasEnoughBalance)
-                          ? () {
-                              HapticFeedback.mediumImpact();
-                              Get.snackbar(
-                                'Insufficient Balance',
-                                'Wallet has ₹${_walletBal.toStringAsFixed(2)}, need ₹${_total.toStringAsFixed(2)}. Add money first.',
-                                backgroundColor: const Color(0xFFe74c3c),
-                                colorText: Colors.white,
-                                snackPosition: SnackPosition.BOTTOM,
-                              );
+                              if (ok) {
+                                if (pointsToRedeem > 0) {
+                                  PointsController.to.redeemPoints(pointsToRedeem, 'Silver Purchase');
+                                }
+                                Get.back();
+                              }
                             }
                           : null,
                       child: AnimatedContainer(
@@ -870,10 +1081,10 @@ class _BuySilverViewState extends State<BuySilverView> {
                                         ? 'Processing...'
                                         : _valid
                                         ? 'Buy Silver Securely'
-                                        : (_amount >= 100.0 &&
+                                        : (_total >= 50.0 &&
                                               !_hasEnoughBalance)
                                         ? 'Insufficient Balance'
-                                        : 'Min ₹${100.0.toInt()}',
+                                        : 'Min ₹${50.0.toInt()}',
                                     style: TextStyle(
                                       color: _valid
                                           ? const Color(0xFF2A2E33)

@@ -159,12 +159,14 @@ class WalletRepository {
   Future<Map<String, dynamic>> buyGoldFromWallet({
     double? amount,
     double? grams,
+    int? pointsRedeemed,
   }) async {
     final res = await _dio.post(
       '$_w/buy-gold',
       data: {
         if (amount != null) 'amountInRupees': amount,
         if (grams != null) 'grams': grams,
+        if (pointsRedeemed != null) 'pointsRedeemed': pointsRedeemed,
       },
     );
     return res.data['data'] as Map<String, dynamic>;
@@ -178,12 +180,14 @@ class WalletRepository {
   Future<Map<String, dynamic>> buySilverFromWallet({
     double? amount,
     double? grams,
+    int? pointsRedeemed,
   }) async {
     final res = await _dio.post(
       '$_w/buy-silver',
       data: {
         if (amount != null) 'amountInRupees': amount,
         if (grams != null) 'grams': grams,
+        if (pointsRedeemed != null) 'pointsRedeemed': pointsRedeemed,
       },
     );
     return res.data['data'] as Map<String, dynamic>;

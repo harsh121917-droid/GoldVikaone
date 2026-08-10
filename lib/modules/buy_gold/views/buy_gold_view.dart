@@ -3,12 +3,19 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:vika1/modules/digi_gold/controllers/digi_gold_controller.dart';
 import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
+import 'package:vika1/routes/app_routes.dart';
+import 'package:vika1/modules/profile/utils/policy_texts.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
+import 'package:vika1/modules/kyc/controllers/kyc_controller.dart';
+
+import 'package:vika1/modules/profile/views/rewards_view.dart';
+
+// Alias for quick reference
+const _termsContent = PolicyTexts.terms;
+
 
 // ─── Design tokens (same identity as home) ───────────────────────────────────
 const _gold = Color(0xFFD4A017);
-const _goldLight = Color(0xFFFFD700);
-const _success = Color(0xFF2ecc71);
 const _danger = Color(0xFFE05A47);
 
 class _T {
@@ -33,7 +40,7 @@ class _T {
           subBg: Color(0xFF0A140D),
         )
       : const _T(
-          bg: Color(0xFFF7F4EE),
+          bg: Color(0xFFF9F9FB),
           card: Colors.white,
           primary: Color(0xFF0B3D2E),
           ink: Color(0xFF1A2B22),
@@ -51,8 +58,19 @@ class BuyGoldView extends StatefulWidget {
 
 class _BuyGoldViewState extends State<BuyGoldView> {
   bool _byAmount = true;
+  bool _showBreakup = true;
+  bool _agreedToTerms = false;
+  int _redeemedPoints = 0;
   final _ctrl = TextEditingController(text: '1000');
   static const double _GST_PCT = 3.0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Get.isRegistered<PointsController>()) {
+      Get.put(PointsController());
+    }
+  }
 
   double get _total => _byAmount
       ? (double.tryParse(_ctrl.text) ?? 0)
@@ -60,13 +78,18 @@ class _BuyGoldViewState extends State<BuyGoldView> {
             GoldController.to.buyRate *
             (1 + _GST_PCT / 100);
 
+  double get _redeemVal => _redeemedPoints * 0.1;
+
+  double get _payableTotal => _total;
+
   double get _amount => _total / (1 + _GST_PCT / 100); // gold value (pre-GST)
-  double get _grams => _amount / GoldController.to.buyRate;
+  double get _extraGrams => _redeemVal / GoldController.to.buyRate;
+  double get _grams => (_amount / GoldController.to.buyRate) + _extraGrams;
   double get _gst => _total - _amount;
   double get _walletBal =>
       WalletController.to.wallet.value?.availableBalance ?? 0;
-  bool get _hasEnoughBalance => _walletBal >= _total;
-  bool get _valid => _amount >= 100.0 && _hasEnoughBalance;
+  bool get _hasEnoughBalance => _walletBal >= _payableTotal;
+  bool get _valid => _total > 0;
 
   void _setAmt(double amt) => setState(() {
     _byAmount = true;
@@ -75,8 +98,21 @@ class _BuyGoldViewState extends State<BuyGoldView> {
 
   void _setGrams(double grams) => setState(() {
     _byAmount = false;
-    _ctrl.text = grams.toStringAsFixed(3);
+    _ctrl.text = grams.toStringAsFixed(4);
   });
+
+  String _fmtUpdated(DateTime? dt) {
+    if (dt == null) return 'Rate unavailable';
+    final now = DateTime.now();
+    final sameDay =
+        dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final ampm = dt.hour < 12 ? 'AM' : 'PM';
+    final time = '$h:${dt.minute.toString().padLeft(2, '0')} $ampm';
+    return sameDay
+        ? 'Last Updated: today, $time'
+        : 'Last Updated: ${dt.day}/${dt.month}, $time';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,23 +123,28 @@ class _BuyGoldViewState extends State<BuyGoldView> {
       return Scaffold(
         backgroundColor: t.bg,
         body: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          child: Column(
+            children: [
+              // ── Premium App Bar ──────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
                   children: [
                     GestureDetector(
                       onTap: () => Get.back(),
                       child: Container(
-                        width: 44,
-                        height: 44,
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
                           color: t.card,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: t.cardBorder),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Icon(
                           Icons.chevron_left_rounded,
@@ -112,780 +153,1282 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Buy Gold',
-                            style: TextStyle(
-                              color: t.primary,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                            ),
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          'Buy Gold',
+                          style: TextStyle(
+                            color: Color(0xFF0B3D2E),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
                           ),
-                          Text(
-                            '24K · 99.99% Pure',
-                            style: TextStyle(color: t.inkMuted, fontSize: 12),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _gold.withOpacity(0.5)),
+                        color: t.card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: t.inkMuted.withOpacity(0.2)),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: [
+                        children: const [
                           Icon(
-                            Icons.notifications_none_rounded,
-                            color: _gold,
-                            size: 15,
+                            Icons.show_chart_rounded,
+                            color: Color(0xFF0B3D2E),
+                            size: 14,
                           ),
-                          SizedBox(width: 5),
+                          SizedBox(width: 4),
                           Text(
-                            'Price Alert',
+                            'Live Rate',
                             style: TextStyle(
-                              color: _gold,
+                              color: Color(0xFF0B3D2E),
                               fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // ── Current rate ────────────────────────────────────────
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: t.subBg,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: t.cardBorder),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: t.primary,
-                          borderRadius: BorderRadius.circular(11),
-                        ),
-                        child: const Icon(
-                          Icons.show_chart_rounded,
-                          color: _gold,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Current Gold Rate (24K)',
-                              style: TextStyle(color: t.inkMuted, fontSize: 11),
-                            ),
-                            const SizedBox(height: 2),
-                            Obx(() {
-                              final loaded =
-                                  GoldController.to.rate.value != null;
-                              if (!loaded &&
-                                  GoldController.to.rateLoading.value) {
-                                return Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 11,
-                                      height: 11,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: t.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Loading...',
-                                      style: TextStyle(
-                                        color: t.inkMuted,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }
-                              if (!loaded) {
-                                return GestureDetector(
-                                  onTap: () => GoldController.to.loadRate(),
-                                  child: const Row(
-                                    children: [
-                                      Icon(
-                                        Icons.refresh_rounded,
-                                        size: 13,
-                                        color: _danger,
-                                      ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'Tap to retry',
-                                        style: TextStyle(
-                                          color: _danger,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
-                              return Text(
-                                '₹${GoldController.to.buyRate.toStringAsFixed(2)}/g',
-                                style: TextStyle(
-                                  color: t.ink,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                      ),
-                      Obx(() {
-                        final chg =
-                            GoldController.to.rate.value?.change24h ?? 0;
-                        final pct =
-                            GoldController.to.rate.value?.changePct ?? 0;
-                        final isUp = chg >= 0;
-                        final c = isUp ? _success : _danger;
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: c.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                isUp
-                                    ? Icons.trending_up_rounded
-                                    : Icons.trending_down_rounded,
-                                color: c,
-                                size: 12,
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                '${isUp ? '+' : ''}₹${chg.toStringAsFixed(2)} (${pct.toStringAsFixed(2)}%)',
-                                style: TextStyle(
-                                  color: c,
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                Container(
-                  height: 46,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: t.subBg,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    children: [
-                      _ToggleBtn(
-                        'By Amount',
-                        _byAmount,
-                        t,
-                        () => setState(() {
-                          _byAmount = true;
-                          _ctrl.text = '1000';
-                        }),
-                      ),
-                      _ToggleBtn(
-                        'By Weight',
-                        !_byAmount,
-                        t,
-                        () => setState(() {
-                          _byAmount = false;
-                          _ctrl.text = '0.100';
-                        }),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: t.subBg,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: t.cardBorder),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        _byAmount ? '₹' : 'g',
-                        style: TextStyle(
-                          color: t.inkMuted,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _ctrl,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          onChanged: (_) => setState(() {}),
-                          style: TextStyle(
-                            color: t.ink,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w900,
-                          ),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            isDense: true,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                Row(
-                  children:
-                      (_byAmount ? [500, 1000, 2000, 5000] : [1, 2, 5, 10]).map(
-                        (v) {
-                          final active = _byAmount
-                              ? _ctrl.text == '$v'
-                              : double.tryParse(_ctrl.text) == v.toDouble();
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              child: GestureDetector(
-                                onTap: () => _byAmount
-                                    ? _setAmt(v.toDouble())
-                                    : _setGrams(v.toDouble()),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 150),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: active
-                                        ? _gold.withOpacity(0.12)
-                                        : t.card,
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                      color: active ? _gold : t.cardBorder,
-                                      width: active ? 1.4 : 1,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    _byAmount ? '+ ₹$v' : '+ ${v}g',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: active ? _gold : t.ink,
-                                      fontSize: 13,
-                                      fontWeight: active
-                                          ? FontWeight.w800
-                                          : FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ).toList(),
-                ),
-                const SizedBox(height: 20),
-
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: t.card,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: t.cardBorder),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 54,
-                            height: 54,
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: t.subBg,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Image.asset(
-                              'assets/images/jar_img.png',
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'You will get',
-                                  style: TextStyle(
-                                    color: t.inkMuted,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      _grams.toStringAsFixed(4),
-                                      style: TextStyle(
-                                        color: t.primary,
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 4),
-                                      child: Text(
-                                        'g',
-                                        style: TextStyle(
-                                          color: t.primary,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Text(
-                                  '(24K Gold · 99.99% Pure)',
-                                  style: TextStyle(
-                                    color: t.inkMuted,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _success.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              children: [
-                                const Icon(
-                                  Icons.verified_user_rounded,
-                                  color: _success,
-                                  size: 16,
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '100% Safe\n& Secure',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: _success,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Divider(color: t.inkMuted.withOpacity(0.15), height: 1),
-                      const SizedBox(height: 14),
-                      _row('Gold Value', '₹${_amount.toStringAsFixed(2)}', t),
-                      const SizedBox(height: 10),
-                      _row(
-                        'GST (${_GST_PCT.toInt()}%)',
-                        '₹${_gst.toStringAsFixed(2)}',
-                        t,
-                      ),
-                      const SizedBox(height: 12),
-                      Divider(color: t.inkMuted.withOpacity(0.15), height: 1),
-                      const SizedBox(height: 12),
-                      _row(
-                        'Total Amount',
-                        '₹${_total.toStringAsFixed(2)}',
-                        t,
-                        bold: true,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                Text(
-                  'Paying From',
-                  style: TextStyle(
-                    color: t.primary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: _hasEnoughBalance
-                        ? _success.withOpacity(dark ? 0.10 : 0.06)
-                        : _danger.withOpacity(dark ? 0.10 : 0.06),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: (_hasEnoughBalance ? _success : _danger)
-                          .withOpacity(0.35),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF3B82F6).withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFF3B82F6).withOpacity(0.3),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.account_balance_wallet_rounded,
-                          color: Color(0xFF3B82F6),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'App Wallet',
-                              style: TextStyle(
-                                color: t.ink,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Text(
-                              'Available Balance: ₹${_walletBal.toStringAsFixed(2)}',
-                              style: TextStyle(color: t.inkMuted, fontSize: 11),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        _hasEnoughBalance
-                            ? Icons.check_circle_rounded
-                            : Icons.error_outline_rounded,
-                        color: _hasEnoughBalance ? _success : _danger,
-                        size: 22,
-                      ),
-                    ],
-                  ),
-                ),
-                if (!_hasEnoughBalance) ...[
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () => Get.toNamed('/wallet'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _gold.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: _gold.withOpacity(0.3)),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.add_circle_outline_rounded,
-                            color: _gold,
-                            size: 16,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            'Add Money to Wallet',
-                            style: TextStyle(
-                              color: _gold,
-                              fontSize: 13,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                ],
-                const SizedBox(height: 16),
-
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: _success.withOpacity(dark ? 0.08 : 0.06),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.shield_outlined,
-                        color: _success,
-                        size: 20,
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: t.card,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: t.inkMuted.withOpacity(0.2)),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Your gold is 100% insured and stored in secure vaults.',
-                          style: TextStyle(color: _success, fontSize: 12),
+                      child: const Center(
+                        child: Icon(
+                          Icons.card_giftcard_rounded,
+                          color: Color(0xFF0B3D2E),
+                          size: 16,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                Row(
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total Payable',
-                          style: TextStyle(color: t.inkMuted, fontSize: 11),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '₹${_total.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            color: t.ink,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        Text(
-                          '(Incl. taxes)',
-                          style: TextStyle(color: t.inkMuted, fontSize: 10),
-                        ),
-                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: _valid && !WalletController.to.isBuying.value
-                            ? () async {
-                                HapticFeedback.mediumImpact();
-                                final ok = await WalletController.to.buyGold(
-                                  amount: _amount,
-                                );
-                                if (ok) Get.back();
-                              }
-                            : null,
-                        child: Container(
-                          height: 56,
-                          decoration: BoxDecoration(
-                            gradient: _valid
-                                ? const LinearGradient(
-                                    colors: [_gold, _goldLight],
-                                  )
-                                : null,
-                            color: _valid ? null : _gold.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: _valid
-                                ? [
-                                    BoxShadow(
-                                      color: _gold.withOpacity(0.4),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 5),
-                                    ),
-                                  ]
-                                : null,
+                  ],
+                ),
+              ),
+
+              // ── Scrollable Body ──────────────────────────────────────────
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── Live Gold Rate Banner ──────────────────────────────────
+                      Container(
+                        width: double.infinity,
+                        height: 140,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          image: const DecorationImage(
+                            image: AssetImage('assets/images/gold banner.png'),
+                            fit: BoxFit.cover,
                           ),
-                          child: Center(
-                            child: WalletController.to.isBuying.value
-                                ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          color: Colors.black.withOpacity(0.2), // gentle overlay
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Live Gold Price (24K)',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    '₹ ${GoldController.to.buyRate.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFD700), // bright gold
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w900,
                                     ),
-                                  )
-                                : Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.lock_outline_rounded,
-                                            color: _valid
-                                                ? const Color(0xFF3D2B00)
-                                                : Colors.white38,
-                                            size: 16,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            _valid
-                                                ? 'Buy Gold Securely'
-                                                : (_amount >= 100.0
-                                                      ? 'Insufficient Balance'
-                                                      : 'Min ₹100'),
-                                            style: TextStyle(
-                                              color: _valid
-                                                  ? const Color(0xFF3D2B00)
-                                                  : Colors.white38,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                          ),
-                                        ],
+                                  ),
+                                  Text(
+                                    ' /g',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.85),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Obx(() {
+                                final chg = GoldController.to.rate.value?.change24h ?? 0;
+                                final pct = GoldController.to.rate.value?.changePct ?? 0;
+                                final isUp = chg >= 0;
+                                final c = isUp ? const Color(0xFF2ecc71) : _danger;
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                                      color: c,
+                                      size: 12,
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      '${pct.abs().toStringAsFixed(2)}% (Today)',
+                                      style: TextStyle(
+                                        color: c,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                      Text(
-                                        'Wallet Balance: ₹${_walletBal.toStringAsFixed(0)}',
+                                    ),
+                                  ],
+                                );
+                              }),
+                              const Spacer(),
+                              Obx(() {
+                                final rateVal = GoldController.to.rate.value;
+                                return Row(
+                                  children: [
+                                    Text(
+                                      _fmtUpdated(rateVal?.updatedAt),
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.65),
+                                        fontSize: 9,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    GestureDetector(
+                                      onTap: () => GoldController.to.loadRate(),
+                                      child: Icon(
+                                        Icons.refresh_rounded,
+                                        color: Colors.white.withOpacity(0.65),
+                                        size: 11,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // ── "You are buying" Switch ───────────────────────────────
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Image.asset(
+                                'assets/images/gold_coin.png',
+                                width: 22,
+                                height: 22,
+                                errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.monetization_on_outlined,
+                                  color: _gold,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'You are buying',
+                                style: TextStyle(
+                                  color: t.ink,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: t.subBg,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0B3D2E),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Image.asset(
+                                        'assets/images/gold_coin.png',
+                                        width: 14,
+                                        height: 14,
+                                        errorBuilder: (_, __, ___) => const Icon(Icons.circle, color: _gold, size: 10),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Text(
+                                        'Gold',
                                         style: TextStyle(
-                                          color:
-                                              (_valid
-                                                      ? const Color(0xFF3D2B00)
-                                                      : Colors.white38)
-                                                  .withOpacity(0.7),
-                                          fontSize: 9,
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ],
                                   ),
+                                ),
+                                GestureDetector(
+                                  onTap: () => Get.offNamed(AppRoutes.buySilver),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.transparent,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Image.asset(
+                                          'assets/images/silver_coin.png',
+                                          width: 14,
+                                          height: 14,
+                                          errorBuilder: (_, __, ___) => const Icon(Icons.circle, color: Colors.grey, size: 10),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Silver',
+                                          style: TextStyle(
+                                            color: t.inkMuted,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+
+                      // ── Enter Amount Card ──────────────────────────────────────
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _byAmount ? 'Enter Amount' : 'Enter Weight',
+                            style: TextStyle(
+                              color: t.ink,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                if (_byAmount) {
+                                  _byAmount = false;
+                                  _ctrl.text = _grams > 0 ? _grams.toStringAsFixed(4) : '0.1405';
+                                } else {
+                                  _byAmount = true;
+                                  _ctrl.text = _total > 0 ? _total.toStringAsFixed(0) : '1000';
+                                }
+                              });
+                            },
+                            child: Text(
+                              _byAmount ? 'Or Enter Weight' : 'Or Enter Amount',
+                              style: const TextStyle(
+                                color: _gold,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: t.card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: t.inkMuted.withOpacity(0.15)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  _byAmount ? '₹' : '',
+                                  style: TextStyle(
+                                    color: t.ink,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _ctrl,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    onChanged: (_) => setState(() {}),
+                                    style: TextStyle(
+                                      color: t.ink,
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                ),
+                                if (!_byAmount)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: Text(
+                                      'g',
+                                      style: TextStyle(
+                                        color: t.ink,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                GestureDetector(
+                                  onTap: () {
+                                    // Max sets a reasonable ceiling, e.g. wallet balance or 10,000
+                                    setState(() {
+                                      if (_byAmount) {
+                                        _ctrl.text = _walletBal > 0 ? _walletBal.toStringAsFixed(0) : '10000';
+                                      } else {
+                                        final maxGrams = (_walletBal > 0 ? _walletBal : 10000) / GoldController.to.buyRate;
+                                        _ctrl.text = maxGrams.toStringAsFixed(4);
+                                      }
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFF9E6),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: _gold.withOpacity(0.5)),
+                                    ),
+                                    child: const Text(
+                                      'Max',
+                                      style: TextStyle(
+                                        color: _gold,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _byAmount
+                                  ? '= ${_grams.toStringAsFixed(4)} g'
+                                  : '= ₹${_total.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                color: _gold,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Preset chips row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: (_byAmount ? [500.0, 1000.0, 2000.0, 5000.0] : [0.1, 0.5, 1.0, 2.0]).map((v) {
+                          final label = _byAmount ? '₹${v.toInt()}' : '${v}g';
+                          final active = _byAmount
+                              ? (double.tryParse(_ctrl.text) == v)
+                              : (double.tryParse(_ctrl.text) == v);
+                          return Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 3),
+                              child: GestureDetector(
+                                onTap: () => _byAmount ? _setAmt(v) : _setGrams(v),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: active ? const Color(0xFFFFF9E6) : t.card,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: active ? _gold : t.inkMuted.withOpacity(0.15),
+                                      width: active ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    label,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: active ? _gold : t.inkMuted,
+                                      fontSize: 12,
+                                      fontWeight: active ? FontWeight.bold : FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // ── Payment Method Section ───────────────────────────────
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Payment Method',
+                            style: TextStyle(
+                              color: t.ink,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF9E6), // yellow/cream tint
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: _gold, width: 1.5),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0B3D2E).withOpacity(0.08),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.account_balance_wallet_outlined,
+                                    color: Color(0xFF0B3D2E),
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Wallet Balance',
+                                        style: TextStyle(
+                                          color: t.ink,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Available: ₹${_walletBal.toStringAsFixed(2)}',
+                                        style: TextStyle(
+                                          color: t.inkMuted,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  width: 20,
+                                  height: 20,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: _gold, width: 2),
+                                  ),
+                                  child: Center(
+                                    child: Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF0B3D2E),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!_hasEnoughBalance) ...[
+                            const SizedBox(height: 10),
+                            GestureDetector(
+                              onTap: () => Get.toNamed('/wallet'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: _danger.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: _danger.withOpacity(0.3)),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.add_circle_outline_rounded,
+                                      color: _danger,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Insufficient Balance. Add Money (Need ₹${(_payableTotal - _walletBal).toStringAsFixed(2)})',
+                                      style: const TextStyle(
+                                        color: _danger,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // ── Reward Points Redemption Section ──────────────────────
+                      Obx(() {
+                        final pc = PointsController.to;
+                        final availPoints = pc.points.value;
+                        if (availPoints <= 0) return const SizedBox.shrink();
+
+                        final List<int> pointOptions = [0];
+                        for (int val in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000]) {
+                          if (val <= availPoints) {
+                            pointOptions.add(val);
+                          }
+                        }
+                        if (availPoints > 0 && !pointOptions.contains(availPoints)) {
+                          pointOptions.add(availPoints);
+                        }
+                        pointOptions.sort();
+
+                        final List<DropdownMenuItem<int>> dropdownItems = pointOptions.map((pts) {
+                          if (pts == 0) {
+                            return const DropdownMenuItem<int>(
+                              value: 0,
+                              child: Text(
+                                "Do not redeem points",
+                                style: TextStyle(fontSize: 13),
+                              ),
+                            );
+                          }
+                          final extraVal = pts * 0.1;
+                          final extraWt = extraVal / GoldController.to.buyRate;
+                          return DropdownMenuItem<int>(
+                            value: pts,
+                            child: Text(
+                              "Redeem $pts pts (Adds +${extraWt.toStringAsFixed(4)}g)",
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          );
+                        }).toList();
+
+                        if (_redeemedPoints > availPoints) {
+                          _redeemedPoints = 0;
+                        }
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 20),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: t.card,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _redeemedPoints > 0
+                                  ? _gold.withOpacity(0.5)
+                                  : t.inkMuted.withOpacity(0.15),
+                              width: _redeemedPoints > 0 ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: _gold.withOpacity(0.12),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.emoji_events_outlined,
+                                      color: _gold,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Redeem Reward Points',
+                                          style: TextStyle(
+                                            color: t.ink,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Available: $availPoints pts (₹${(availPoints * 0.1).toStringAsFixed(2)})',
+                                          style: TextStyle(
+                                            color: t.inkMuted,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Theme(
+                                data: Theme.of(context).copyWith(
+                                  canvasColor: t.card,
+                                ),
+                                child: DropdownButtonFormField<int>(
+                                  value: _redeemedPoints,
+                                  items: dropdownItems,
+                                  decoration: InputDecoration(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: t.inkMuted.withOpacity(0.2),
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: t.inkMuted.withOpacity(0.2),
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: const BorderSide(
+                                        color: _gold,
+                                      ),
+                                    ),
+                                  ),
+                                  style: TextStyle(
+                                    color: t.ink,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _redeemedPoints = val ?? 0;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+
+                      // ── You Will Pay Breakdown Card ──────────────────────────
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: t.card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: t.inkMuted.withOpacity(0.15)),
+                        ),
+                        child: Column(
+                          children: [
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => setState(() => _showBreakup = !_showBreakup),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'You will pay',
+                                          style: TextStyle(
+                                            color: t.inkMuted,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '₹${_payableTotal.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                            color: Color(0xFF0B3D2E),
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _showBreakup ? 'Hide Breakup' : 'View Breakup',
+                                        style: const TextStyle(
+                                          color: Color(0xFF0B3D2E),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Icon(
+                                        _showBreakup
+                                            ? Icons.keyboard_arrow_up_rounded
+                                            : Icons.keyboard_arrow_down_rounded,
+                                        color: const Color(0xFF0B3D2E),
+                                        size: 16,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (_showBreakup) ...[
+                              const SizedBox(height: 12),
+                              Divider(color: t.inkMuted.withOpacity(0.12), height: 1),
+                              const SizedBox(height: 12),
+                              _breakupRow('Gold Price (24K)', '₹${GoldController.to.buyRate.toStringAsFixed(2)} /g', t),
+                              const SizedBox(height: 8),
+                              _breakupRow('Weight', '${_grams.toStringAsFixed(4)} g', t),
+                              if (_redeemedPoints > 0) ...[
+                                const SizedBox(height: 8),
+                                _breakupRow('  ↳ Base Weight', '${(_amount / GoldController.to.buyRate).toStringAsFixed(4)} g', t),
+                                const SizedBox(height: 8),
+                                _breakupRow('  ↳ Points Added', '+${_extraGrams.toStringAsFixed(4)} g', t, isGreen: true),
+                              ],
+                              const SizedBox(height: 8),
+                              _breakupRow('Making Charges', 'FREE', t, isGreen: true),
+                              const SizedBox(height: 8),
+                              _breakupRow('GST (3%)', '₹${_gst.toStringAsFixed(2)}', t),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── Secure Gold Strip ──────────────────────────────────────
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: t.card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: t.inkMuted.withOpacity(0.15)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD4A017).withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.shield_outlined,
+                                color: Color(0xFFD4A017),
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '100% Secure Gold',
+                                    style: TextStyle(
+                                      color: t.ink,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    'Your gold is stored in secure vaults and 100% insured.',
+                                    style: TextStyle(
+                                      color: t.inkMuted,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: t.inkMuted,
+                              size: 18,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── Fixed Bottom Actions ─────────────────────────────────────
+              Container(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+                decoration: BoxDecoration(
+                  color: t.card,
+                  border: Border(
+                    top: BorderSide(
+                      color: t.inkMuted.withOpacity(0.15),
+                    ),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Terms & Conditions Checkbox ──────────────────────────
+                    GestureDetector(
+                      onTap: () => setState(() => _agreedToTerms = !_agreedToTerms),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: _agreedToTerms
+                                    ? const Color(0xFF0B3D2E)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(5),
+                                border: Border.all(
+                                  color: _agreedToTerms
+                                      ? const Color(0xFF0B3D2E)
+                                      : t.inkMuted.withOpacity(0.5),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: _agreedToTerms
+                                  ? const Icon(
+                                      Icons.check_rounded,
+                                      color: Colors.white,
+                                      size: 14,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: RichText(
+                                text: TextSpan(
+                                  style: TextStyle(
+                                    color: t.inkMuted,
+                                    fontSize: 11.5,
+                                  ),
+                                  children: [
+                                    const TextSpan(text: 'I agree to the '),
+                                    WidgetSpan(
+                                      alignment: PlaceholderAlignment.middle,
+                                      child: GestureDetector(
+                                        onTap: () => Get.toNamed(
+                                          '/policy',
+                                          arguments: {
+                                            'title': 'Terms & Conditions',
+                                            'content': _termsContent,
+                                          },
+                                        ),
+                                        child: const Text(
+                                          'Terms & Conditions',
+                                          style: TextStyle(
+                                            color: Color(0xFF0B3D2E),
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.bold,
+                                            decoration: TextDecoration.underline,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const TextSpan(text: ' of this purchase'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 18),
+                    const SizedBox(height: 10),
+                    GestureDetector(
+                      onTap: _valid && _agreedToTerms && !WalletController.to.isBuying.value
+                          ? () async {
+                              HapticFeedback.mediumImpact();
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _trust(Icons.verified_user_outlined, 'Safe', t),
-                    _trust(Icons.gpp_good_outlined, 'Secure', t),
-                    _trust(Icons.groups_outlined, 'Trusted by 1M+ users', t),
+                              if (_total < 50.0) {
+                                Get.snackbar(
+                                  "Invalid Amount",
+                                  "Minimum purchase is ₹50",
+                                  backgroundColor: const Color(0xFFE05A47),
+                                  colorText: Colors.white,
+                                  snackPosition: SnackPosition.BOTTOM,
+                                );
+                                return;
+                              }
+
+                              if (!_hasEnoughBalance) {
+                                Get.snackbar(
+                                  "Insufficient Balance",
+                                  "Wallet has ₹${_walletBal.toStringAsFixed(2)}, need ₹${_total.toStringAsFixed(2)}.",
+                                  backgroundColor: const Color(0xFFE05A47),
+                                  colorText: Colors.white,
+                                  snackPosition: SnackPosition.BOTTOM,
+                                );
+                                return;
+                              }
+                              
+                              final kycCtrl = Get.isRegistered<KycController>()
+                                  ? Get.find<KycController>()
+                                  : Get.put(KycController());
+                              if (kycCtrl.kycStatus.value != "approved") {
+                                Get.snackbar(
+                                  "KYC Required",
+                                  "Please complete your KYC to buy gold.",
+                                  backgroundColor: const Color(0xFFE05A47),
+                                  colorText: Colors.white,
+                                  snackPosition: SnackPosition.BOTTOM,
+                                );
+                                return;
+                              }
+
+                              final pointsToRedeem = _redeemedPoints;
+                              final ok = await WalletController.to.buyGold(
+                                amount: _amount,
+                                pointsRedeemed: pointsToRedeem > 0 ? pointsToRedeem : null,
+                              );
+                              if (ok) {
+                                if (pointsToRedeem > 0) {
+                                  PointsController.to.redeemPoints(pointsToRedeem, 'Gold Purchase');
+                                }
+                                _showSuccessDialog(_grams, _payableTotal);
+                              }
+                            }
+                          : null,
+                      child: Container(
+                        height: 54,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                           color: (_valid && _agreedToTerms) ? const Color(0xFF0B3D2E) : const Color(0xFF0B3D2E).withOpacity(0.4),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: WalletController.to.isBuying.value
+                            ? const Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: const [
+                                      Icon(
+                                        Icons.lock_outline_rounded,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Buy Gold Now',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    '₹${_payableTotal.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFD700), // gold text
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Trust elements row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _trustBadge(Icons.verified_outlined, '24K 99.99% Purity', '100% Hallmarked', t),
+                        _trustBadge(Icons.lock_outline, 'Secure Vault', 'Insured & Safe', t),
+                        _trustBadge(Icons.swap_horiz_rounded, 'Easy Buy & Sell', 'Anytime, Anywhere', t),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       );
     });
   }
 
-  Widget _row(String label, String value, _T t, {bool bold = false}) => Row(
+  Widget _breakupRow(String label, String value, _T t, {bool isGreen = false}) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
       Text(
         label,
         style: TextStyle(
-          color: bold ? t.ink : t.inkMuted,
-          fontSize: bold ? 15 : 13,
-          fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
+          color: t.inkMuted,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
         ),
       ),
       Text(
         value,
         style: TextStyle(
-          color: bold ? t.primary : t.ink,
-          fontSize: bold ? 17 : 13,
-          fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
+          color: isGreen ? const Color(0xFF2ecc71) : t.ink,
+          fontSize: 12,
+          fontWeight: isGreen ? FontWeight.w800 : FontWeight.w700,
         ),
       ),
     ],
   );
 
-  Widget _trust(IconData icon, String label, _T t) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(icon, color: t.primary, size: 14),
-      const SizedBox(width: 5),
-      Text(label, style: TextStyle(color: t.inkMuted, fontSize: 11)),
-    ],
-  );
-}
-
-class _ToggleBtn extends StatelessWidget {
-  const _ToggleBtn(this.label, this.active, this.t, this.onTap);
-  final String label;
-  final bool active;
-  final _T t;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) => Expanded(
-    child: GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        height: double.infinity,
-        decoration: BoxDecoration(
-          color: active ? _gold : Colors.transparent,
-          borderRadius: BorderRadius.circular(11),
+  Widget _trustBadge(IconData icon, String title, String sub, _T t) => Expanded(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: t.inkMuted.withOpacity(0.06),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: const Color(0xFF0B3D2E), size: 14),
         ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: active ? const Color(0xFF3D2B00) : t.inkMuted,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
+        const SizedBox(height: 4),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: t.ink,
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
           ),
         ),
-      ),
+        Text(
+          sub,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: t.inkMuted,
+            fontSize: 8,
+          ),
+        ),
+      ],
     ),
+  );
+
+  void _showSuccessDialog(double grams, double totalPaid) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: '',
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
+      transitionBuilder: (context, anim1, anim2, child) {
+        final scaleCurve = CurvedAnimation(parent: anim1, curve: Curves.easeOutBack);
+        final opacityCurve = CurvedAnimation(parent: anim1, curve: Curves.easeOut);
+        
+        final dark = ThemeController.to.isDark.value;
+        final t = _T.of(dark);
+
+        return FadeTransition(
+          opacity: opacityCurve,
+          child: ScaleTransition(
+            scale: scaleCurve,
+            child: AlertDialog(
+              backgroundColor: t.card,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              contentPadding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2ecc71).withOpacity(0.12),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      Image.asset(
+                        'assets/images/gold_coin.png',
+                        width: 50,
+                        height: 50,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.monetization_on_rounded,
+                          color: _gold,
+                          size: 50,
+                        ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF2ecc71),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Gold Purchased Successfully!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: const Color(0xFF0B3D2E),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your digital gold will credit to your account shortly.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: t.inkMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: t.subBg,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: t.inkMuted.withOpacity(0.1)),
+                    ),
+                    child: Column(
+                      children: [
+                        _dialogRow('Asset Type', '24K Gold', t),
+                        const SizedBox(height: 8),
+                        _dialogRow('Weight Credited', '${grams.toStringAsFixed(4)} g', t, isHighlight: true),
+                        const SizedBox(height: 8),
+                        _dialogRow('Total Amount', '₹${totalPaid.toStringAsFixed(2)}', t),
+                        const SizedBox(height: 8),
+                        _dialogRow('Paid Via', 'Wallet Balance', t),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      Get.back();
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0B3D2E),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Done',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _dialogRow(String label, String val, _T t, {bool isHighlight = false}) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(
+        label,
+        style: TextStyle(
+          color: t.inkMuted,
+          fontSize: 12,
+        ),
+      ),
+      Text(
+        val,
+        style: TextStyle(
+          color: isHighlight ? const Color(0xFF0B3D2E) : t.ink,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ],
   );
 }

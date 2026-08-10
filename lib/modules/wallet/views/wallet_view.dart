@@ -104,11 +104,29 @@ class WalletView extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      // ── Hero ────────────────────────────────────────────────
+                      // ── Hero Card (Fintech metallic design) ───────────────────
                       Container(
-                        color: dark ? const Color(0xFF0E1626) : Colors.white,
-                        padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+                        margin: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: dark
+                                ? const [Color(0xFF1E293B), Color(0xFF0F172A)]
+                                : const [Color(0xFF2C3E50), Color(0xFF1E2B38)],
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.18),
+                              blurRadius: 14,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -116,164 +134,110 @@ class WalletView extends StatelessWidget {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
+                                    const Text(
                                       'Available Balance',
-                                      style: TextStyle(color: ts, fontSize: 13),
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 6),
                                     Obx(() {
-                                      final avail =
-                                          ctrl.wallet.value?.availableBalance ??
-                                          0;
-                                      return Stack(
-                                        clipBehavior: Clip.none,
-                                        children: [
-                                          Transform.translate(
-                                            offset: const Offset(2, 3),
-                                            child: Text(
-                                              '₹${avail.toStringAsFixed(2)}',
-                                              style: TextStyle(
-                                                color: const Color(
-                                                  0xFFD4A017,
-                                                ).withOpacity(0.22),
-                                                fontSize: 34,
-                                                fontWeight: FontWeight.w900,
-                                                letterSpacing: -1,
-                                              ),
-                                            ),
-                                          ),
-                                          Text(
-                                            '₹${avail.toStringAsFixed(2)}',
-                                            style: const TextStyle(
-                                              color: Color(0xFFD4A017),
-                                              fontSize: 34,
-                                              fontWeight: FontWeight.w900,
-                                              letterSpacing: -1,
-                                            ),
-                                          ),
-                                        ],
+                                      final avail = ctrl.wallet.value?.availableBalance ?? 0;
+                                      return Text(
+                                        '₹${avail.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          color: Color(0xFFFFD700),
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: -0.5,
+                                        ),
                                       );
                                     }),
                                   ],
                                 ),
                                 Container(
-                                  width: 60,
-                                  height: 60,
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFFD4A017),
-                                        Color(0xFFFFD700),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
+                                    color: Colors.white.withOpacity(0.1),
                                     shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(
-                                          0xFFD4A017,
-                                        ).withOpacity(0.4),
-                                        blurRadius: 16,
-                                      ),
-                                    ],
                                   ),
                                   child: const Icon(
                                     Icons.account_balance_wallet_rounded,
-                                    color: Color(0xFF3D2B00),
-                                    size: 28,
+                                    color: Color(0xFFFFD700),
+                                    size: 24,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 14),
-
-                            // Locked balance
-                            Obx(() {
-                              final locked =
-                                  ctrl.wallet.value?.lockedBalance ?? 0;
-                              if (locked <= 0) return const SizedBox.shrink();
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 9,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFFF39C12,
-                                  ).withOpacity(0.10),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: const Color(
-                                      0xFFF39C12,
-                                    ).withOpacity(0.3),
-                                  ),
-                                ),
-                                child: Row(
+                            const SizedBox(height: 20),
+                            
+                            // Glassmorphic stats row
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.06),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                              ),
+                              child: Obx(() {
+                                final w = ctrl.wallet.value;
+                                return Row(
                                   children: [
-                                    const Icon(
-                                      Icons.lock_clock_outlined,
-                                      color: Color(0xFFF39C12),
-                                      size: 15,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '₹${locked.toStringAsFixed(2)} locked — releasing within 24h',
-                                        style: const TextStyle(
-                                          color: Color(0xFFF39C12),
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
+                                    _statSubCol('Added', '₹${(w?.totalAdded ?? 0).toStringAsFixed(0)}', const Color(0xFF2ecc71)),
+                                    _statDivider(),
+                                    _statSubCol('Withdrawn', '₹${(w?.totalWithdrawn ?? 0).toStringAsFixed(0)}', const Color(0xFF60A5FA)),
+                                    _statDivider(),
+                                    _statSubCol('Total Balance', '₹${(w?.balance ?? 0).toStringAsFixed(0)}', const Color(0xFFFFD700)),
                                   ],
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Locked Balance Banner (if any)
+                      Obx(() {
+                        final locked = ctrl.wallet.value?.lockedBalance ?? 0;
+                        if (locked <= 0) return const SizedBox.shrink();
+                        return Container(
+                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF39C12).withOpacity(0.10),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFF39C12).withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.lock_clock_outlined, color: Color(0xFFF39C12), size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '₹${locked.toStringAsFixed(2)} locked — releasing within 24h',
+                                  style: const TextStyle(color: Color(0xFFF39C12), fontSize: 12, fontWeight: FontWeight.w600),
                                 ),
-                              );
-                            }),
-                            const SizedBox(height: 16),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
 
-                            // Stats row
-                            Obx(() {
-                              final w = ctrl.wallet.value;
-                              return Row(
-                                children: [
-                                  _StatChip(
-                                    '₹${(w?.totalAdded ?? 0).toStringAsFixed(0)}',
-                                    'Added',
-                                    const Color(0xFF2ecc71),
-                                    dark,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  _StatChip(
-                                    '₹${(w?.totalWithdrawn ?? 0).toStringAsFixed(0)}',
-                                    'Withdrawn',
-                                    const Color(0xFF3B82F6),
-                                    dark,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  _StatChip(
-                                    '₹${(w?.balance ?? 0).toStringAsFixed(0)}',
-                                    'Total Bal',
-                                    const Color(0xFFD4A017),
-                                    dark,
-                                  ),
-                                ],
-                              );
-                            }),
-                            const SizedBox(height: 22),
-
-                            // Action buttons
+                      // ── Action Buttons 2x2 Grid ─────────────────────────────
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          children: [
                             Row(
                               children: [
                                 Expanded(
                                   child: _ActionBtn(
                                     icon: Icons.add_rounded,
                                     label: 'Add Money',
-                                    gradient: const [
-                                      Color(0xFF2ecc71),
-                                      Color(0xFF27ae60),
-                                    ],
-                                    glowColor: const Color(0xFF2ecc71),
+                                    gradient: const [Color(0xFF10B981), Color(0xFF059669)],
+                                    glowColor: const Color(0xFF10B981),
                                     onTap: () => Get.bottomSheet(
                                       _AddMoneySheet(dark: dark, ctrl: ctrl),
                                       isScrollControlled: true,
@@ -281,15 +245,12 @@ class WalletView extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
+                                const SizedBox(width: 12),
                                 Expanded(
                                   child: _ActionBtn(
                                     icon: Icons.arrow_upward_rounded,
                                     label: 'Withdraw',
-                                    gradient: const [
-                                      Color(0xFF3B82F6),
-                                      Color(0xFF60A5FA),
-                                    ],
+                                    gradient: const [Color(0xFF3B82F6), Color(0xFF2563EB)],
                                     glowColor: const Color(0xFF3B82F6),
                                     onTap: () => Get.bottomSheet(
                                       _WithdrawSheet(dark: dark, ctrl: ctrl),
@@ -298,17 +259,28 @@ class WalletView extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
                                 Expanded(
                                   child: _ActionBtn(
                                     icon: Icons.shopping_bag_outlined,
                                     label: 'Buy Gold',
-                                    gradient: const [
-                                      Color(0xFFD4A017),
-                                      Color(0xFFFFD700),
-                                    ],
+                                    gradient: const [Color(0xFFD4A017), Color(0xFFB58910)],
                                     glowColor: const Color(0xFFD4A017),
                                     onTap: () => Get.toNamed(AppRoutes.buyGold),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _ActionBtn(
+                                    icon: Icons.shopping_bag_outlined,
+                                    label: 'Buy Silver',
+                                    gradient: const [Color(0xFF8A95A5), Color(0xFF6B7A8C)],
+                                    glowColor: const Color(0xFF8A95A5),
+                                    onTap: () => Get.toNamed(AppRoutes.buySilver),
                                   ),
                                 ),
                               ],
@@ -316,7 +288,7 @@ class WalletView extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
 
                       // ── Transaction history ──────────────────────────────────
                       Padding(
@@ -380,6 +352,36 @@ class WalletView extends StatelessWidget {
       );
     });
   }
+
+  Widget _statSubCol(String label, String value, Color color) => Expanded(
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _statDivider() => Container(
+        width: 1,
+        height: 24,
+        color: Colors.white.withOpacity(0.12),
+      );
 }
 
 // ─── Add Money Sheet ──────────────────────────────────────────────────────────
@@ -1160,41 +1162,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-class _StatChip extends StatelessWidget {
-  const _StatChip(this.val, this.lbl, this.color, this.dark);
-  final String val, lbl;
-  final Color color;
-  final bool dark;
-  @override
-  Widget build(BuildContext context) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withOpacity(dark ? 0.12 : 0.07),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.25)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            val,
-            style: TextStyle(
-              color: color,
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            lbl,
-            style: TextStyle(color: color.withOpacity(0.7), fontSize: 9),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    ),
-  );
-}
+
 
 class _ActionBtn extends StatelessWidget {
   const _ActionBtn({

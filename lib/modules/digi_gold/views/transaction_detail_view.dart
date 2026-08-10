@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:vika1/data/repositories/gold_repository.dart';
+import 'package:vika1/modules/invoice/views/invoice_viewer_view.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 
 class TransactionDetailView extends StatefulWidget {
@@ -26,9 +27,10 @@ class _TransactionDetailViewState extends State<TransactionDetailView> {
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/invoice-${widget.txn.id}.pdf');
       await file.writeAsBytes(bytes);
-      await Share.shareXFiles([
-        XFile(file.path, mimeType: 'application/pdf'),
-      ], text: 'Gold transaction invoice');
+      Get.to(() => InvoiceViewerView(
+        filePath: file.path,
+        title: 'Gold Invoice',
+      ));
     } catch (e) {
       Get.snackbar(
         'Failed',

@@ -30,6 +30,7 @@ class AuthService {
     required String name,
     required String email,
     required String password,
+    required String otpRecordId,
     String? phone,
   }) async {
     final res = await _dio.post(
@@ -39,6 +40,7 @@ class AuthService {
         'email': email,
         'password': password,
         'phone': phone,
+        'otpRecordId': otpRecordId,
       },
     );
     _saveAuth(res.data);
@@ -71,6 +73,21 @@ class AuthService {
     final res = await _dio.post(
       '/auth/login-phone',
       data: {'phone': phone, 'otpRecordId': otpRecordId},
+    );
+    _saveAuth(res.data);
+    return UserModel.fromJson(res.data['user']);
+  }
+
+  Future<UserModel> updateProfile({
+    String? name,
+    String? email,
+  }) async {
+    final res = await _dio.patch(
+      '/auth/update-profile',
+      data: {
+        if (name != null) 'name': name,
+        if (email != null) 'email': email,
+      },
     );
     _saveAuth(res.data);
     return UserModel.fromJson(res.data['user']);

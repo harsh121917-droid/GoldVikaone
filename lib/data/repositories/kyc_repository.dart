@@ -53,4 +53,54 @@ class KycRepository {
     final res = await _dio.post(ApiConstants.kycSubmit, data: formData);
     return res.data;
   }
+
+  Future<Map<String, dynamic>> initiateDigio() async {
+    final res = await _dio.post('/kyc/digio/initiate');
+    return res.data;
+  }
+
+  Future<Map<String, dynamic>> verifyDigio(
+    String kycId, {
+    String? panNumber,
+    String? aadhaarNumber,
+  }) async {
+    final res = await _dio.post('/kyc/digio/verify/$kycId', data: {
+      if (panNumber != null) 'panNumber': panNumber,
+      if (aadhaarNumber != null) 'aadhaarNumber': aadhaarNumber,
+    });
+    return res.data;
+  }
+
+  Future<Map<String, dynamic>> initiateCashfreeOtp(String aadhaarNumber) async {
+    final res = await _dio.post('/kyc/cashfree/otp', data: {
+      'aadhaarNumber': aadhaarNumber,
+    });
+    return res.data;
+  }
+
+  Future<Map<String, dynamic>> verifyCashfreeOtp({
+    required String otp,
+    required String refId,
+    required String aadhaarNumber,
+    String? panNumber,
+  }) async {
+    final res = await _dio.post('/kyc/cashfree/verify', data: {
+      'otp': otp,
+      'refId': refId,
+      'aadhaarNumber': aadhaarNumber,
+      if (panNumber != null) 'panNumber': panNumber,
+    });
+    return res.data;
+  }
+
+  Future<Map<String, dynamic>> verifyCashfreePan({
+    required String pan,
+    required String name,
+  }) async {
+    final res = await _dio.post('/kyc/cashfree/pan', data: {
+      'pan': pan,
+      'name': name,
+    });
+    return res.data;
+  }
 }

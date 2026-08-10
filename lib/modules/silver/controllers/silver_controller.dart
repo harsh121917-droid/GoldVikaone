@@ -18,6 +18,9 @@ class SilverController extends GetxController {
   final transactions = <SilverTxnModel>[].obs;
   final errorMsg = ''.obs;
 
+  final priceHistory = <Map<String, dynamic>>[].obs;
+  final historyLoading = false.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -26,8 +29,22 @@ class SilverController extends GetxController {
 
   Future<void> loadAll() async {
     isLoading.value = true;
-    await Future.wait([loadRate(), loadBalance(), loadTransactions()]);
+    await Future.wait([
+      loadRate(),
+      loadBalance(),
+      loadTransactions(),
+      loadPriceHistory('1m'),
+    ]);
     isLoading.value = false;
+  }
+
+  Future<void> loadPriceHistory(String period) async {
+    try {
+      historyLoading.value = true;
+      priceHistory.value = await _repo.getPriceHistory('XAG', period);
+    } catch (_) {} finally {
+      historyLoading.value = false;
+    }
   }
 
   // ── 1. Rate ───────────────────────────────────────────────────────────────

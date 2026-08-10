@@ -6,6 +6,7 @@ import 'package:vika1/core/services/auth_service.dart';
 import 'package:vika1/data/repositories/wallet_repository.dart';
 import 'package:vika1/modules/digi_gold/controllers/digi_gold_controller.dart';
 import 'package:vika1/modules/silver/controllers/silver_controller.dart';
+import 'package:vika1/modules/profile/views/rewards_view.dart';
 
 class WalletController extends GetxController {
   static WalletController get to => Get.find();
@@ -74,7 +75,7 @@ class WalletController extends GetxController {
         'amount': data['order']['amount'],
         'currency': 'INR',
         'order_id': data['order']['id'],
-        'name': 'Bharat SQFT Wallet',
+        'name': 'Payvika',
         'description': 'Add ₹${amount.toStringAsFixed(0)} to wallet',
         'prefill': {'name': user?.name ?? '', 'email': user?.email ?? ''},
         'theme': {'color': '#D4A017'},
@@ -141,12 +142,13 @@ class WalletController extends GetxController {
   void _onExternalWallet(ExternalWalletResponse r) {}
 
   // ── 3. Buy Gold from Wallet ────────────────────────────────────────────────
-  Future<bool> buyGold({double? amount, double? grams}) async {
+  Future<bool> buyGold({double? amount, double? grams, int? pointsRedeemed}) async {
     try {
       isBuying.value = true;
-      final data = await _repo.buyGoldFromWallet(amount: amount, grams: grams);
+      final data = await _repo.buyGoldFromWallet(amount: amount, grams: grams, pointsRedeemed: pointsRedeemed);
       await loadWallet();
       if (Get.isRegistered<GoldController>()) await GoldController.to.loadAll();
+      if (Get.isRegistered<PointsController>()) await PointsController.to.loadAll();
       Get.snackbar(
         'Gold Purchased! 🥇',
         '${(data['grams'] ?? 0).toStringAsFixed(4)}g added to your account',
@@ -199,16 +201,20 @@ class WalletController extends GetxController {
   }
 
   // ── 4b. Buy Silver → Wallet ────────────────────────────────────────────────
-  Future<bool> buySilver({double? amount, double? grams}) async {
+  Future<bool> buySilver({double? amount, double? grams, int? pointsRedeemed}) async {
     try {
       isBuying.value = true;
       final data = await _repo.buySilverFromWallet(
         amount: amount,
         grams: grams,
+        pointsRedeemed: pointsRedeemed,
       );
       await loadWallet();
       if (Get.isRegistered<SilverController>()) {
         await SilverController.to.loadAll();
+      }
+      if (Get.isRegistered<PointsController>()) {
+        await PointsController.to.loadAll();
       }
       Get.snackbar(
         'Silver Purchased! 🥈',

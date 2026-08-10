@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -8,6 +9,7 @@ import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 import '../../../modules/auth/controllers/auth_controller.dart';
 import '../../home/controllers/main_shell_controller.dart';
+import '../../jewellery/controllers/jewellery_controller.dart';
 import 'package:vika1/data/repositories/gold_repository.dart';
 import 'package:vika1/data/repositories/silver_repository.dart';
 import 'package:vika1/modules/silver_sip/views/silver_transaction_detail_view.dart';
@@ -163,6 +165,16 @@ class _DigiGoldViewState extends State<DigiGoldView>
                 _PromoBanner(t: t),
                 const SizedBox(height: 20),
                 _SipPromoCard(t: t),
+                const SizedBox(height: 20),
+                _DeliveryBanner(
+                  t: t,
+                  onTap: () {
+                    Get.find<MainShellController>().changeTab(2);
+                    if (Get.isRegistered<JewelleryController>()) {
+                      JewelleryController.to.selectCategory('Coins');
+                    }
+                  },
+                ),
                 const SizedBox(height: 20),
                 _RecentTransactionsSection(t: t),
                 const SizedBox(height: 100),
@@ -723,10 +735,7 @@ class _QuickActions extends StatelessWidget {
                   ),
                   const SizedBox(height: 15),
                   ListTile(
-                    leading: const Icon(
-                      Icons.diamond_outlined,
-                      color: _gold,
-                    ),
+                    leading: const Icon(Icons.diamond_outlined, color: _gold),
                     title: Text('Sell Gold', style: TextStyle(color: t.ink)),
                     onTap: () {
                       Get.back();
@@ -775,10 +784,7 @@ class _QuickActions extends StatelessWidget {
                   ),
                   const SizedBox(height: 15),
                   ListTile(
-                    leading: const Icon(
-                      Icons.diamond_outlined,
-                      color: _gold,
-                    ),
+                    leading: const Icon(Icons.diamond_outlined, color: _gold),
                     title: Text('Gold SIP', style: TextStyle(color: t.ink)),
                     onTap: () {
                       Get.back();
@@ -938,9 +944,51 @@ class _QuickActions extends StatelessWidget {
 }
 
 // ─── Live Market Rates ────────────────────────────────────────────────────────
-class _LiveRates extends StatelessWidget {
+class _LiveRates extends StatefulWidget {
   const _LiveRates({required this.t});
   final _T t;
+
+  @override
+  State<_LiveRates> createState() => _LiveRatesState();
+}
+
+class _LiveRatesState extends State<_LiveRates> {
+  final ScrollController _scrollController = ScrollController();
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startAutoScroll();
+    });
+  }
+
+  void _startAutoScroll() {
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (_scrollController.hasClients) {
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final currentScroll = _scrollController.position.pixels;
+        // Each card is 150 width + 10 padding = 160 step
+        var targetScroll = currentScroll + 160.0;
+        if (targetScroll >= maxScroll + 20.0) {
+          targetScroll = 0.0;
+        }
+        _scrollController.animateTo(
+          targetScroll,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -955,7 +1003,7 @@ class _LiveRates extends StatelessWidget {
               Text(
                 'Live Market Rates',
                 style: TextStyle(
-                  color: t.ink,
+                  color: widget.t.ink,
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                 ),
@@ -973,10 +1021,17 @@ class _LiveRates extends StatelessWidget {
                         updated != null
                             ? 'Updated ${updated.day}/${updated.month}, ${updated.hour}:${updated.minute.toString().padLeft(2, '0')}'
                             : 'Tap to refresh',
-                        style: TextStyle(color: t.inkMuted, fontSize: 10.5),
+                        style: TextStyle(
+                          color: widget.t.inkMuted,
+                          fontSize: 10.5,
+                        ),
                       ),
                       const SizedBox(width: 4),
-                      Icon(Icons.refresh_rounded, color: t.inkMuted, size: 14),
+                      Icon(
+                        Icons.refresh_rounded,
+                        color: widget.t.inkMuted,
+                        size: 14,
+                      ),
                     ],
                   );
                 }),
@@ -984,30 +1039,74 @@ class _LiveRates extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _rateCard(
-                  'Gold (24K)',
-                  () => GoldController.to.buyRate,
-                  () => GoldController.to.rate.value?.changePct ?? 0,
-                  _gold,
-                  Icons.workspace_premium_rounded,
-                  t,
+          SizedBox(
+            height: 90,
+            child: ListView(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              children: [
+                SizedBox(
+                  width: 150,
+                  child: _rateCard(
+                    'Gold (24K)',
+                    () => GoldController.to.buyRate,
+                    () => GoldController.to.goldPct,
+                    _gold,
+                    Icons.workspace_premium_rounded,
+                    widget.t,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _rateCard(
-                  'Silver (999)',
-                  () => SilverController.to.buyRate,
-                  () => SilverController.to.rate.value?.changePct ?? 0,
-                  _silver,
-                  Icons.circle_outlined,
-                  t,
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 150,
+                  child: _rateCard(
+                    'Silver (999)',
+                    () => GoldController.to.silverRate,
+                    () => GoldController.to.silverPct,
+                    _silver,
+                    Icons.circle_outlined,
+                    widget.t,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 150,
+                  child: _rateCard(
+                    'Platinum (950)',
+                    () => GoldController.to.platinumRate,
+                    () => GoldController.to.platinumPct,
+                    const Color(0xFFE5E8EB),
+                    Icons.stars_rounded,
+                    widget.t,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 150,
+                  child: _rateCard(
+                    'Palladium',
+                    () => GoldController.to.palladiumRate,
+                    () => GoldController.to.palladiumPct,
+                    const Color(0xFF8A95A5),
+                    Icons.blur_on_rounded,
+                    widget.t,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 150,
+                  child: _rateCard(
+                    'Copper',
+                    () => GoldController.to.copperRate,
+                    () => GoldController.to.copperPct,
+                    const Color(0xFFD35400),
+                    Icons.radio_button_checked_rounded,
+                    widget.t,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1026,7 +1125,7 @@ class _LiveRates extends StatelessWidget {
     final isUp = p >= 0;
     final c = isUp ? _success : _danger;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: t.card,
         borderRadius: BorderRadius.circular(16),
@@ -1034,52 +1133,55 @@ class _LiveRates extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: accent, size: 15),
-              ),
-              const SizedBox(width: 8),
+              Icon(icon, color: accent, size: 15),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   label,
-                  style: TextStyle(color: t.inkMuted, fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: t.ink,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
+              ),
+              Icon(
+                isUp ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                color: c,
+                size: 13,
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            '₹${rate().toStringAsFixed(2)} /g',
-            style: TextStyle(
-              color: t.ink,
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 1),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Icon(
-                isUp
-                    ? Icons.arrow_drop_up_rounded
-                    : Icons.arrow_drop_down_rounded,
-                color: c,
-                size: 16,
+              Expanded(
+                child: Text(
+                  '₹${rate().toStringAsFixed(2)}/g',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: t.ink,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
+              const SizedBox(width: 4),
               Text(
-                '${p.abs().toStringAsFixed(2)}%',
+                '${isUp ? '+' : ''}${p.abs().toStringAsFixed(2)}%',
                 style: TextStyle(
                   color: c,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 10.0,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
@@ -1097,80 +1199,127 @@ class _PromoBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = ThemeController.to.isDark.value;
+    final bannerBg = dark ? const Color(0xFF072E20) : const Color(0xFF0A4D34);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         width: double.infinity,
-        clipBehavior: Clip.antiAlias,
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF0B3D2E), Color(0xFF14563F)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: bannerBg,
           borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Start Small,',
+              'Introducing Gold & Silver',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
               ),
             ),
+            const SizedBox(height: 2),
             const Text(
-              'Save Big.',
+              'by vikaOne',
               style: TextStyle(
                 color: _gold,
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
+                letterSpacing: -0.4,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             const Text(
-              'Invest in Gold & Silver\nand secure your future.',
+              'Buy real Gold & Silver directly at exchange prices. Get doorstep delivery of pure gold at home.',
               style: TextStyle(
-                color: Colors.white60,
-                fontSize: 12,
+                color: Colors.white70,
+                fontSize: 11.5,
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () => Get.toNamed(AppRoutes.goldSchemes),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [_gold, _goldLight]),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Invest Now',
-                      style: TextStyle(
-                        color: Color(0xFF3D2B00),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Get.toNamed(AppRoutes.goldSchemes),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [_gold, _goldLight],
                       ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _gold.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      color: Color(0xFF3D2B00),
-                      size: 15,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Text(
+                          'Invest Now',
+                          style: TextStyle(
+                            color: Color(0xFF3D2B00),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        SizedBox(width: 6),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Color(0xFF3D2B00),
+                          size: 14,
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withOpacity(0.12)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.verified_user_rounded, color: _gold, size: 13),
+                      SizedBox(width: 6),
+                      Text(
+                        '999 Certified Purity',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1623,5 +1772,209 @@ class _RecentTransactionsSection extends StatelessWidget {
     final m = dt.minute.toString().padLeft(2, '0');
     final ampm = dt.hour < 12 ? 'AM' : 'PM';
     return '$h:$m $ampm';
+  }
+}
+
+class _DeliveryBanner extends StatelessWidget {
+  const _DeliveryBanner({required this.t, required this.onTap});
+  final _T t;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = ThemeController.to.isDark.value;
+    final bgColors = dark
+        ? [const Color(0xFF0C1D15), const Color(0xFF050E0A)]
+        : [const Color(0xFFEAE6DC), const Color(0xFFF7F4EE)];
+    final textColor = dark ? Colors.white : const Color(0xFF1A2B22);
+    final textSubColor = dark ? Colors.white70 : const Color(0xFF6B7A72);
+    final bannerBorder = dark
+        ? Border.all(color: const Color(0xFF1E3D30))
+        : Border.all(color: const Color(0xFFD4C8B3));
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: bgColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: bannerBorder,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(dark ? 0.25 : 0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -30,
+              top: -30,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(
+                    0xFFD4A017,
+                  ).withOpacity(dark ? 0.06 : 0.03),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(22),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Chip
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD4A017).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(0xFFD4A017).withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(
+                                Icons.local_shipping_outlined,
+                                color: Color(0xFFD4A017),
+                                size: 13,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'PHYSICAL DELIVERY',
+                                style: TextStyle(
+                                  color: Color(0xFFD4A017),
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Doorstep Gold Delivery',
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Convert your digital savings into 999.9 pure certified physical coins safely delivered to your home.',
+                          style: TextStyle(
+                            color: textSubColor,
+                            fontSize: 11.5,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: onTap,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFD4A017), Color(0xFFF3C343)],
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFFD4A017,
+                                  ).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Text(
+                                  'Get Delivery',
+                                  style: TextStyle(
+                                    color: Color(0xFF3D2B00),
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                SizedBox(width: 6),
+                                Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Color(0xFF3D2B00),
+                                  size: 14,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      color: const Color(
+                        0xFFD4A017,
+                      ).withOpacity(dark ? 0.08 : 0.05),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(
+                          0xFFD4A017,
+                        ).withOpacity(dark ? 0.15 : 0.08),
+                      ),
+                    ),
+                    child: Center(
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(
+                            Icons.all_inbox_rounded,
+                            color: const Color(0xFFD4A017).withOpacity(0.3),
+                            size: 40,
+                          ),
+                          const Icon(
+                            Icons.local_shipping_rounded,
+                            color: Color(0xFFD4A017),
+                            size: 26,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

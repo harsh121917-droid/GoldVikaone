@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:vika1/modules/silver/controllers/silver_controller.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -54,11 +55,9 @@ class MySilverView extends StatefulWidget {
 
 class _MySilverViewState extends State<MySilverView>
     with SingleTickerProviderStateMixin {
-  int _tabIdx = 0; // 0=1M 1=3M 2=6M 3=1Y 4=All
+  int _tabIdx = 2; // Default to 1M
   bool _hideAmt = false;
-  final _tabs = ['1M', '3M', '6M', '1Y', 'All'];
-  List<double> get _chartData =>
-      [_chart1M, _chart3M, _chart6M, _chart1Y, _chart1Y][_tabIdx];
+  final _tabs = ['1D', '1W', '1M', '1Y'];
 
   @override
   Widget build(BuildContext context) {
@@ -368,6 +367,7 @@ class _MySilverViewState extends State<MySilverView>
                             onTap: () {
                               HapticFeedback.selectionClick();
                               setState(() => _tabIdx = e.key);
+                              SilverController.to.loadPriceHistory(_tabs[e.key].toLowerCase());
                             },
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 180),
@@ -419,20 +419,14 @@ class _MySilverViewState extends State<MySilverView>
                     ),
                     const SizedBox(height: 16),
                     // Chart
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 350),
-                      child: SizedBox(
-                        key: ValueKey(_tabIdx),
-                        height: 140,
-                        width: double.infinity,
-                        child: CustomPaint(
-                          painter: _SilverChartPainter(
-                            data: _chartData,
-                            dark: dark,
-                          ),
-                        ),
-                      ),
-                    ),
+                    Obx(() => _SpotPriceChart(
+                          history: SilverController.to.priceHistory,
+                          isLoading: SilverController.to.historyLoading.value,
+                          themeColor: const Color(0xFF8A95A5),
+                          bgColor: bg,
+                          inkColor: tp,
+                          inkMutedColor: ts,
+                        )),
                     const SizedBox(height: 8),
                     // X-axis labels
                     Row(
@@ -974,4 +968,124 @@ class _VDivider extends StatelessWidget {
     height: 36,
     color: dark ? const Color(0xFF1A2B45) : const Color(0xFFE8DFC8),
   );
+}
+
+class _SpotPriceChart extends StatelessWidget {
+  final List<Map<String, dynamic>> history;
+  final bool isLoading;
+  final Color themeColor;
+  final Color bgColor;
+  final Color inkColor;
+  final Color inkMutedColor;
+
+  const _SpotPriceChart({
+    required this.history,
+    required this.isLoading,
+    required this.themeColor,
+    required this.bgColor,
+    required this.inkColor,
+    required this.inkMutedColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return const SizedBox(
+        height: 140,
+        child: Center(child: CircularProgressIndicator(color: Color(0xFF8A95A5))),
+      );
+    }
+
+    if (history.isEmpty) {
+      return SizedBox(
+        height: 140,
+        child: Center(
+          child: Text(
+            'No price data available.',
+            style: TextStyle(color: inkMutedColor, fontSize: 12),
+          ),
+        ),
+      );
+    }
+
+    final prices = history.map((e) => (e['price'] as num).toDouble()).toList();
+    final minPrice = prices.reduce((a, b) => a < b ? a : b);
+    final maxPrice = prices.reduce((a, b) => a > b ? a : b);
+    final priceRange = maxPrice - minPrice;
+
+    final yMin = minPrice - (priceRange * 0.05);
+    final yMax = maxPrice + (priceRange * 0.05);
+
+    final spots = <FlSpot>[];
+    for (int i = 0; i < history.length; i++) {
+      spots.add(FlSpot(i.toDouble(), prices[i]));
+    }
+
+    return SizedBox(
+      height: 140,
+      width: double.infinity,
+      child: LineChart(
+        LineChartData(
+          gridData: const FlGridData(show: false),
+          titlesData: const FlTitlesData(
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          borderData: FlBorderData(show: false),
+          minX: 0,
+          maxX: (history.length - 1).toDouble(),
+          minY: yMin,
+          maxY: yMax,
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipColor: (spot) => bgColor.withOpacity(0.95),
+              tooltipBorder: BorderSide(color: themeColor.withOpacity(0.5)),
+              getTooltipItems: (touchedSpots) {
+                return touchedSpots.map((spot) {
+                  final index = spot.x.toInt();
+                  if (index >= 0 && index < history.length) {
+                    final dateStr = history[index]['date'] as String;
+                    final dt = DateTime.parse(dateStr);
+                    final formattedDate = "${dt.day}/${dt.month} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+                    return LineTooltipItem(
+                      '₹${spot.y.toStringAsFixed(2)}\n$formattedDate',
+                      TextStyle(
+                        color: inkColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  }
+                  return null;
+                }).toList();
+              },
+            ),
+          ),
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              color: themeColor,
+              barWidth: 3,
+              isStrokeCapRound: true,
+              dotData: const FlDotData(show: false),
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    themeColor.withOpacity(0.22),
+                    themeColor.withOpacity(0.0),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

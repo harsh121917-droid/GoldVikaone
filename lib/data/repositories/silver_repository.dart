@@ -8,7 +8,7 @@ class SilverRateModel {
   final double gstPct;
   final DateTime updatedAt;
   final String source;
-  bool get isStale => source != 'goldapi.io';
+  bool get isStale => source != 'gold-api.com';
 
   const SilverRateModel({
     required this.buyRate,
@@ -18,7 +18,7 @@ class SilverRateModel {
     required this.purity,
     required this.gstPct,
     required this.updatedAt,
-    this.source = 'goldapi.io',
+    this.source = 'gold-api.com',
   });
 
   factory SilverRateModel.fromJson(Map<String, dynamic> j) => SilverRateModel(
@@ -29,7 +29,7 @@ class SilverRateModel {
     purity: j['purity'] ?? '999',
     gstPct: (j['gstPct'] ?? 3.0) * 1.0,
     updatedAt: DateTime.tryParse(j['updatedAt'] ?? '') ?? DateTime.now(),
-    source: j['source'] ?? 'goldapi.io',
+    source: j['source'] ?? 'gold-api.com',
   );
 
   String get formattedBuyRate => '₹${buyRate.toStringAsFixed(2)}/g';
@@ -152,6 +152,14 @@ class SilverRepository {
     });
   }
 
+  Future<List<Map<String, dynamic>>> getPriceHistory(String symbol, String period) async {
+    final res = await _dio.get('$_rateBase/history', queryParameters: {
+      'symbol': symbol,
+      'period': period,
+    });
+    return List<Map<String, dynamic>>.from(res.data['data']);
+  }
+
   // 2. Balance
   Future<SilverBalanceModel> getBalance() async {
     final res = await _dio.get('$_base/balance');
@@ -178,9 +186,10 @@ class SilverRepository {
   }
 
   /// Downloads the PDF invoice bytes for a transaction.
-  Future<List<int>> getTransactionInvoice(String txnId) async {
+  Future<List<int>> getTransactionInvoice(String txnId, {bool isSample = false}) async {
     final res = await _dio.get<List<int>>(
       '$_base/transactions/$txnId/invoice',
+      queryParameters: isSample ? {'sample': 'true'} : null,
       options: Options(responseType: ResponseType.bytes),
     );
     return res.data!;

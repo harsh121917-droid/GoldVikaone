@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:vika1/routes/app_routes.dart';
 import 'package:vika1/modules/digi_gold/controllers/digi_gold_controller.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
@@ -49,8 +50,8 @@ class MyGoldView extends StatefulWidget {
 }
 
 class _MyGoldViewState extends State<MyGoldView> {
-  int _periodIdx = 0; // 0=1M 1=3M 2=6M 3=1Y 4=All
-  static const _periods = ['1M', '3M', '6M', '1Y', 'All'];
+  int _periodIdx = 2; // Default to 1M
+  static const _periods = ['1D', '1W', '1M', '1Y'];
 
   @override
   Widget build(BuildContext context) {
@@ -378,7 +379,10 @@ class _MyGoldViewState extends State<MyGoldView> {
                               children: List.generate(_periods.length, (i) {
                                 final active = i == _periodIdx;
                                 return GestureDetector(
-                                  onTap: () => setState(() => _periodIdx = i),
+                                  onTap: () {
+                                    setState(() => _periodIdx = i);
+                                    GoldController.to.loadPriceHistory(_periods[i].toLowerCase());
+                                  },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8,
@@ -442,7 +446,12 @@ class _MyGoldViewState extends State<MyGoldView> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _GrowthChart(t: t),
+                      Obx(() => _SpotPriceChart(
+                            history: GoldController.to.priceHistory,
+                            isLoading: GoldController.to.historyLoading.value,
+                            themeColor: _gold,
+                            t: t,
+                          )),
                     ],
                   ),
                 ),
@@ -869,4 +878,120 @@ class _ChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ChartPainter old) => old.points != points;
+}
+
+class _SpotPriceChart extends StatelessWidget {
+  final List<Map<String, dynamic>> history;
+  final bool isLoading;
+  final Color themeColor;
+  final _T t;
+
+  const _SpotPriceChart({
+    required this.history,
+    required this.isLoading,
+    required this.themeColor,
+    required this.t,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return const SizedBox(
+        height: 140,
+        child: Center(child: CircularProgressIndicator(color: _gold)),
+      );
+    }
+
+    if (history.isEmpty) {
+      return SizedBox(
+        height: 140,
+        child: Center(
+          child: Text(
+            'No price data available.',
+            style: TextStyle(color: t.inkMuted, fontSize: 12),
+          ),
+        ),
+      );
+    }
+
+    final prices = history.map((e) => (e['price'] as num).toDouble()).toList();
+    final minPrice = prices.reduce((a, b) => a < b ? a : b);
+    final maxPrice = prices.reduce((a, b) => a > b ? a : b);
+    final priceRange = maxPrice - minPrice;
+
+    final yMin = minPrice - (priceRange * 0.05);
+    final yMax = maxPrice + (priceRange * 0.05);
+
+    final spots = <FlSpot>[];
+    for (int i = 0; i < history.length; i++) {
+      spots.add(FlSpot(i.toDouble(), prices[i]));
+    }
+
+    return SizedBox(
+      height: 140,
+      width: double.infinity,
+      child: LineChart(
+        LineChartData(
+          gridData: const FlGridData(show: false),
+          titlesData: const FlTitlesData(
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          borderData: FlBorderData(show: false),
+          minX: 0,
+          maxX: (history.length - 1).toDouble(),
+          minY: yMin,
+          maxY: yMax,
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipColor: (spot) => t.bg.withOpacity(0.95),
+              tooltipBorder: BorderSide(color: themeColor.withOpacity(0.5)),
+              getTooltipItems: (touchedSpots) {
+                return touchedSpots.map((spot) {
+                  final index = spot.x.toInt();
+                  if (index >= 0 && index < history.length) {
+                    final dateStr = history[index]['date'] as String;
+                    final dt = DateTime.parse(dateStr);
+                    final formattedDate = "${dt.day}/${dt.month} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+                    return LineTooltipItem(
+                      '₹${spot.y.toStringAsFixed(2)}\n$formattedDate',
+                      TextStyle(
+                        color: t.ink,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  }
+                  return null;
+                }).toList();
+              },
+            ),
+          ),
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              color: themeColor,
+              barWidth: 3,
+              isStrokeCapRound: true,
+              dotData: const FlDotData(show: false),
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    themeColor.withOpacity(0.22),
+                    themeColor.withOpacity(0.0),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
