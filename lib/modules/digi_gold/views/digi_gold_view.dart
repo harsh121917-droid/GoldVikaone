@@ -689,12 +689,22 @@ class _SilverHeroCard extends StatelessWidget {
 }
 
 // ─── Quick Actions ────────────────────────────────────────────────────────────
-class _QuickActions extends StatelessWidget {
+// ─── Quick Actions ────────────────────────────────────────────────────────────
+class _QuickActions extends StatefulWidget {
   const _QuickActions({required this.t});
   final _T t;
 
   @override
+  State<_QuickActions> createState() => _QuickActionsState();
+}
+
+class _QuickActionsState extends State<_QuickActions> {
+  bool _isExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final t = widget.t;
+
     final row1 = [
       (
         Icons.shopping_bag_outlined,
@@ -709,53 +719,10 @@ class _QuickActions extends StatelessWidget {
         () => Get.toNamed(AppRoutes.buySilver),
       ),
       (
-        Icons.swap_horizontal_circle_outlined,
-        'Sell',
-        const Color(0xFF2ecc71),
-        () {
-          Get.bottomSheet(
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: t.card,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Sell Assets',
-                    style: TextStyle(
-                      color: t.ink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  ListTile(
-                    leading: const Icon(Icons.diamond_outlined, color: _gold),
-                    title: Text('Sell Gold', style: TextStyle(color: t.ink)),
-                    onTap: () {
-                      Get.back();
-                      Get.toNamed(AppRoutes.sellGold);
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.hexagon_outlined, color: _silver),
-                    title: Text('Sell Silver', style: TextStyle(color: t.ink)),
-                    onTap: () {
-                      Get.back();
-                      Get.toNamed(AppRoutes.sellSilver);
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                ],
-              ),
-            ),
-          );
-        },
+        Icons.history_rounded,
+        'Transactions',
+        Colors.blue,
+        () => Get.toNamed(AppRoutes.transactions),
       ),
       (
         Icons.calendar_month_outlined,
@@ -829,10 +796,53 @@ class _QuickActions extends StatelessWidget {
         () => Get.toNamed(AppRoutes.wallet),
       ),
       (
-        Icons.history_rounded,
-        'Transactions',
-        Colors.blue,
-        () => Get.toNamed(AppRoutes.transactions),
+        Icons.swap_horizontal_circle_outlined,
+        'Sell',
+        const Color(0xFF2ecc71),
+        () {
+          Get.bottomSheet(
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: t.card,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Sell Assets',
+                    style: TextStyle(
+                      color: t.ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  ListTile(
+                    leading: const Icon(Icons.diamond_outlined, color: _gold),
+                    title: Text('Sell Gold', style: TextStyle(color: t.ink)),
+                    onTap: () {
+                      Get.back();
+                      Get.toNamed(AppRoutes.sellGold);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.hexagon_outlined, color: _silver),
+                    title: Text('Sell Silver', style: TextStyle(color: t.ink)),
+                    onTap: () {
+                      Get.back();
+                      Get.toNamed(AppRoutes.sellSilver);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
+          );
+        },
       ),
       (
         Icons.trending_up_rounded,
@@ -891,12 +901,46 @@ class _QuickActions extends StatelessWidget {
                 .map((it) => _buildItem(it.$1, it.$2, it.$3, it.$4))
                 .toList(),
           ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: row2
-                .map((it) => _buildItem(it.$1, it.$2, it.$3, it.$4))
-                .toList(),
+          if (_isExpanded) ...[
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: row2
+                  .map((it) => _buildItem(it.$1, it.$2, it.$3, it.$4))
+                  .toList(),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Divider(color: t.inkMuted.withOpacity(0.1), height: 1),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              setState(() {
+                _isExpanded = !_isExpanded;
+              });
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _isExpanded ? 'Show Less' : 'Show More',
+                  style: TextStyle(
+                    color: t.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  _isExpanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  color: t.primary,
+                  size: 16,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -928,7 +972,7 @@ class _QuickActions extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: t.ink,
+                color: widget.t.ink,
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
               ),

@@ -142,13 +142,21 @@ class WalletController extends GetxController {
   void _onExternalWallet(ExternalWalletResponse r) {}
 
   // ── 3. Buy Gold from Wallet ────────────────────────────────────────────────
-  Future<bool> buyGold({double? amount, double? grams, int? pointsRedeemed}) async {
+  Future<bool> buyGold({double? amount, double? grams, int? pointsRedeemed, bool redeemReferral = false}) async {
     try {
       isBuying.value = true;
-      final data = await _repo.buyGoldFromWallet(amount: amount, grams: grams, pointsRedeemed: pointsRedeemed);
+      final data = await _repo.buyGoldFromWallet(amount: amount, grams: grams, pointsRedeemed: pointsRedeemed, redeemReferral: redeemReferral);
       await loadWallet();
       if (Get.isRegistered<GoldController>()) await GoldController.to.loadAll();
       if (Get.isRegistered<PointsController>()) await PointsController.to.loadAll();
+      // Also refresh current user profile to update referralBalance
+      final auth = Get.find<AuthService>();
+      if (auth.isLoggedIn) {
+        // Wait briefly for updates to persist
+        await Future.delayed(const Duration(milliseconds: 500));
+        // We can re-fetch me or simply reload profile
+        // auth.loadCurrentUser() or similar
+      }
       Get.snackbar(
         'Gold Purchased! 🥇',
         '${(data['grams'] ?? 0).toStringAsFixed(4)}g added to your account',

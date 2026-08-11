@@ -57,12 +57,14 @@ class PhoneOtpView extends StatefulWidget {
     this.email,
     this.password,
     this.phoneNumber,
+    this.referralCode,
   });
   final String purpose; // "register" | "login"
   final String? name;
   final String? email;
   final String? password;
   final String? phoneNumber;
+  final String? referralCode;
 
   @override
   State<PhoneOtpView> createState() => _PhoneOtpViewState();
@@ -160,12 +162,14 @@ class _PhoneOtpViewState extends State<PhoneOtpView> {
                   password: widget.password!,
                   phone: _phone,
                   otpRecordId: otpRecordId,
+                  referralCode: widget.referralCode,
                 )
               : await auth.registerWithOtp(
                   name: widget.name ?? '',
                   phone: _phone,
                   otpRecordId: otpRecordId,
                   email: widget.email,
+                  referralCode: widget.referralCode,
                 ))
           : await auth.loginWithOtp(phone: _phone, otpRecordId: otpRecordId);
 

@@ -77,18 +77,19 @@ class PointsController extends GetxController {
 
   Future<void> loadBalance() async {
     try {
-      final res = await _dio.get('/reward/balance');
+      final res = await _dio.get('/rewards/balance');
       if (res.data['success'] == true) {
         points.value = (res.data['data']['rewardPoints'] as num).toInt();
+        final serverSpins = res.data['data']['spinsLeft'] as int?;
         final canSpin = res.data['data']['canSpin'] as bool;
-        spinsLeft.value = canSpin ? 3 : 0;
+        spinsLeft.value = serverSpins ?? (canSpin ? 3 : 0);
       }
     } catch (_) {}
   }
 
   Future<void> loadHistory() async {
     try {
-      final res = await _dio.get('/reward/history');
+      final res = await _dio.get('/rewards/history');
       if (res.data['success'] == true) {
         final list = res.data['data'] as List;
         pointTransactions.value = list.map((item) {
@@ -123,7 +124,7 @@ class PointsController extends GetxController {
 
   void addPoints(int val, String source) async {
     try {
-      await _dio.post('/reward/spin', data: {'pointsWinner': val});
+      await _dio.post('/rewards/spin', data: {'pointsWinner': val});
       loadAll();
     } catch (_) {
       points.value += val;
@@ -182,6 +183,7 @@ class _RewardsViewState extends State<RewardsView>
   bool _isSpinning = false;
   double _currentAngle = 0.0;
   int _lastTickWedge = -1;
+  int _winningWedgeIndex = 0;
 
   @override
   void initState() {
@@ -190,6 +192,8 @@ class _RewardsViewState extends State<RewardsView>
     if (!Get.isRegistered<PointsController>()) {
       Get.put(PointsController());
     }
+    // Refresh rewards balance and history on entry
+    PointsController.to.loadAll();
 
     _spinCtrl = AnimationController(
       vsync: this,
@@ -240,6 +244,8 @@ class _RewardsViewState extends State<RewardsView>
       final nonJackpotWedges = [0, 1, 3, 4, 5, 6, 7];
       targetWedge = nonJackpotWedges[Random().nextInt(nonJackpotWedges.length)];
     }
+    _winningWedgeIndex = targetWedge;
+
     // Standard polar coordinates pointer is at 270 degrees (1.5 * pi)
     // localAngle = (1.5 * pi - targetAngle) % (2 * pi)
     // To land on targetWedge, we want targetAngle to make localAngle hit targetWedge * (2*pi/Segments) + half_wedge (for centering)
@@ -263,12 +269,7 @@ class _RewardsViewState extends State<RewardsView>
   }
 
   void _onSpinComplete() {
-    // Solve winning index using localized coordinates
-    final wedgeAngle = 2 * pi / _segments.length;
-    final localAngle = (1.5 * pi - _currentAngle) % (2 * pi);
-    final winningIndex = (localAngle / wedgeAngle).floor() % _segments.length;
-
-    final win = _segments[winningIndex];
+    final win = _segments[_winningWedgeIndex];
     final pointsWon = win['value'] as int;
 
     if (pointsWon > 0) {
@@ -540,24 +541,6 @@ class _RewardsViewState extends State<RewardsView>
               ),
             ),
 
-            if (pc.spinsLeft.value <= 0) ...[
-              const SizedBox(height: 16),
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.mediumImpact();
-                  pc.resetSpins();
-                },
-                child: Text(
-                  'Reset Spins (Demo Mode)',
-                  style: TextStyle(
-                    color: t.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
-            ],
             const SizedBox(height: 36),
 
             // ── Refer & Earn Section ──

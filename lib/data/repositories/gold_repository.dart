@@ -230,12 +230,14 @@ class GoldRepository {
   Future<GoldBuyInitiateResult> initiateBuy({
     double? amountInRupees,
     double? grams,
+    bool redeemReferral = false,
   }) async {
     final res = await _dio.post(
       '$_base/buy/initiate',
       data: {
         if (amountInRupees != null) 'amountInRupees': amountInRupees,
         if (grams != null) 'grams': grams,
+        'redeemReferral': redeemReferral,
       },
     );
     return GoldBuyInitiateResult.fromJson(res.data['data']);

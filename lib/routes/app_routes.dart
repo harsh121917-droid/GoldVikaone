@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:vika1/modules/update/views/app_update_view.dart';
 import 'package:vika1/modules/home/bindings/home_binding.dart';
 import 'package:vika1/modules/home/views/main_shell_view.dart';
 import 'package:vika1/modules/auth/bindings/auth_binding.dart';
@@ -82,9 +83,24 @@ abstract class AppRoutes {
   static const wallet = '/wallet';
   static const bankAccounts = '/wallet/banks';
   static const addBankAccount = '/wallet/banks/add';
+  static const update = '/update';
 }
 
 final appPages = [
+  GetPage(
+    name: AppRoutes.update,
+    page: () => AppUpdateView(
+      newVersion: Get.arguments?['newVersion'] ?? '1.0.0',
+      changelog: List<String>.from(Get.arguments?['changelog'] ?? [
+        'Premium Jewellery & Coins Catalog',
+        'Direct Razorpay payments',
+        'Calibrated Indian market rates',
+        'Faster bottom navigation switching'
+      ]),
+      isForceUpdate: Get.arguments?['isForceUpdate'] ?? false,
+      onUpdatePressed: Get.arguments?['onUpdatePressed'] ?? () {},
+    ),
+  ),
   GetPage(
     name: AppRoutes.login,
     page: () => const LoginView(),

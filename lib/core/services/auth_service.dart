@@ -32,6 +32,7 @@ class AuthService {
     required String password,
     required String otpRecordId,
     String? phone,
+    String? referralCode,
   }) async {
     final res = await _dio.post(
       ApiConstants.register,
@@ -41,6 +42,7 @@ class AuthService {
         'password': password,
         'phone': phone,
         'otpRecordId': otpRecordId,
+        if (referralCode != null && referralCode.isNotEmpty) 'referralCode': referralCode,
       },
     );
     _saveAuth(res.data);
@@ -52,6 +54,7 @@ class AuthService {
     required String phone,
     required String otpRecordId,
     String? email,
+    String? referralCode,
   }) async {
     final res = await _dio.post(
       '/auth/register-phone',
@@ -60,6 +63,7 @@ class AuthService {
         'phone': phone,
         'otpRecordId': otpRecordId,
         if (email != null && email.isNotEmpty) 'email': email,
+        if (referralCode != null && referralCode.isNotEmpty) 'referralCode': referralCode,
       },
     );
     _saveAuth(res.data);
@@ -91,6 +95,14 @@ class AuthService {
     );
     _saveAuth(res.data);
     return UserModel.fromJson(res.data['user']);
+  }
+
+  Future<UserModel> refreshUser() async {
+    final res = await _dio.get('/auth/me');
+    if (res.data['success'] == true) {
+      _box.write(StorageKeys.user, res.data['user']);
+    }
+    return currentUser!;
   }
 
   void logout() {

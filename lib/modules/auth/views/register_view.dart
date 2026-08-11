@@ -19,6 +19,7 @@ class RegisterView extends GetView<AuthController> {
     final phoneCtrl = TextEditingController();
     final passwordCtrl = TextEditingController();
     final confirmPassCtrl = TextEditingController();
+    final referralCodeCtrl = TextEditingController();
     final agreedToTerms = false.obs;
     final size = MediaQuery.sizeOf(context);
 
@@ -184,6 +185,12 @@ class RegisterView extends GetView<AuthController> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 12),
+                    AuthTextField(
+                      hint: 'Referral Code (Optional)',
+                      prefixIcon: Icons.card_giftcard_rounded,
+                      controller: referralCodeCtrl,
+                    ),
                     const SizedBox(height: 16),
 
                     // Terms checkbox
@@ -293,6 +300,7 @@ class RegisterView extends GetView<AuthController> {
                             email: emailCtrl.text.trim(),
                             password: passwordCtrl.text,
                             phoneNumber: phoneCtrl.text.trim(),
+                            referralCode: referralCodeCtrl.text.trim(),
                           ),
                         );
                       },

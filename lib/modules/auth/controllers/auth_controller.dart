@@ -16,6 +16,15 @@ class AuthController extends GetxController {
   void onInit() {
     super.onInit();
     user.value = _auth.currentUser;
+    if (isLoggedIn) {
+      fetchCurrentUser();
+    }
+  }
+
+  Future<void> fetchCurrentUser() async {
+    try {
+      user.value = await _auth.refreshUser();
+    } catch (_) {}
   }
 
   bool get isLoggedIn => _auth.isLoggedIn;
@@ -42,6 +51,7 @@ class AuthController extends GetxController {
     required String password,
     required String otpRecordId,
     String? phone,
+    String? referralCode,
   }) async {
     try {
       isLoading.value = true;
@@ -52,6 +62,7 @@ class AuthController extends GetxController {
         password: password,
         phone: phone,
         otpRecordId: otpRecordId,
+        referralCode: referralCode,
       );
       _afterAuth();
       return true;
@@ -74,6 +85,7 @@ class AuthController extends GetxController {
     required String phone,
     required String otpRecordId,
     String? email,
+    String? referralCode,
   }) async {
     try {
       isLoading.value = true;
@@ -82,6 +94,7 @@ class AuthController extends GetxController {
         phone: phone,
         otpRecordId: otpRecordId,
         email: email,
+        referralCode: referralCode,
       );
       _afterAuth();
       return true;

@@ -128,11 +128,12 @@ class GoldController extends GetxController {
   Future<GoldBuyInitiateResult?> initiateBuy({
     double? amount,
     double? grams,
+    bool redeemReferral = false,
   }) async {
     try {
       isBuying.value = true;
       errorMsg.value = '';
-      return await _repo.initiateBuy(amountInRupees: amount, grams: grams);
+      return await _repo.initiateBuy(amountInRupees: amount, grams: grams, redeemReferral: redeemReferral);
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] ?? 'Failed to create order';
       Get.snackbar(
