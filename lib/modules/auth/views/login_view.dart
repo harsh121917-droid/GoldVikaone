@@ -128,7 +128,7 @@ class LoginView extends GetView<AuthController> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: GestureDetector(
-                        onTap: () {}, // TODO: forgot password
+                        onTap: () => Get.toNamed(AppRoutes.forgotPassword),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

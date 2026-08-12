@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import '../constants/storage_keys.dart';
-
 class LockService extends GetxService {
   static LockService get to => Get.find();
 

@@ -966,15 +966,12 @@ class _EnrollSchemeSheetState extends State<EnrollSchemeSheet> {
       final bal = WalletController.to.wallet.value?.availableBalance ?? 0;
       if (bal < _amount) {
         final shortfall = _amount - bal;
-        await WalletController.to.addMoney(shortfall);
-        await Future.delayed(const Duration(seconds: 2));
-        await WalletController.to.loadWallet();
-        final newBal = WalletController.to.wallet.value?.availableBalance ?? 0;
-        if (newBal < _amount) {
+        final success = await WalletController.to.addMoney(shortfall);
+        if (!success) {
           Get.snackbar(
             'Complete Payment',
-            'Finish adding money in the Razorpay window, then tap "Pay First Installment" again.',
-            backgroundColor: const Color(0xFF3B82F6),
+            'Wallet top-up failed or cancelled. Please complete payment to pay the first installment.',
+            backgroundColor: const Color(0xFFe74c3c),
             colorText: Colors.white,
             snackPosition: SnackPosition.BOTTOM,
           );

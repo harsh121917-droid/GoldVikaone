@@ -32,7 +32,7 @@ class RegisterView extends GetView<AuthController> {
           children: [
             // ── Hero Section ──────────────────────────────────────────────
             SizedBox(
-              height: size.height * 0.34,
+              height: size.height * 0.32,
               width: double.infinity,
               child: Stack(
                 fit: StackFit.expand,
@@ -59,7 +59,7 @@ class RegisterView extends GetView<AuthController> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
-                        vertical: 16,
+                        vertical: 6,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,7 +85,7 @@ class RegisterView extends GetView<AuthController> {
                               height: 1.5,
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 4),
                         ],
                       ),
                     ),

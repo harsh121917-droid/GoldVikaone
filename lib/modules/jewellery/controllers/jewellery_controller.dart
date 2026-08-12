@@ -4,6 +4,7 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../../data/repositories/jewellery_repository.dart';
 import '../../digi_gold/controllers/digi_gold_controller.dart';
 import '../../silver/controllers/silver_controller.dart';
+import '../../auth/controllers/auth_controller.dart';
 import '../../wallet/controllers/wallet_controller.dart';
 
 class JewelleryController extends GetxController {
@@ -19,6 +20,7 @@ class JewelleryController extends GetxController {
 
   final categories = <Map<String, dynamic>>[].obs;
   final products = <Map<String, dynamic>>[].obs;
+  final _allProducts = <Map<String, dynamic>>[].obs;
 
   final selectedCategory = 'All'.obs;
   final selectedMetal = 'all'.obs; // all, gold, silver
@@ -64,40 +66,92 @@ class JewelleryController extends GetxController {
   Future<void> fetchProducts() async {
     try {
       final res = await _repo.fetchProducts(
-        category: selectedCategory.value,
-        metalType: selectedMetal.value,
-        search: searchQuery.value,
-        sort: selectedSort.value,
+        category: 'All',
+        metalType: 'all',
+        search: '',
+        sort: 'popular',
       );
       if (res.isNotEmpty) {
-        products.value = res;
+        _allProducts.value = res;
       } else {
         // Fallback default items if API returned empty
-        products.value = _getDefaultProducts();
+        _allProducts.value = _getDefaultProducts();
       }
     } catch (_) {
-      products.value = _getDefaultProducts();
+      _allProducts.value = _getDefaultProducts();
     }
+    applyFilters();
+  }
+
+  void applyFilters() {
+    var filtered = List<Map<String, dynamic>>.from(_allProducts);
+
+    // Filter by category
+    if (selectedCategory.value != 'All') {
+      filtered = filtered.where((p) => p['category'] == selectedCategory.value).toList();
+    }
+
+    // Filter by metal type
+    if (selectedMetal.value != 'all') {
+      filtered = filtered.where((p) => (p['metalType'] ?? '').toString().toLowerCase() == selectedMetal.value.toLowerCase()).toList();
+    }
+
+    // Filter by search query
+    if (searchQuery.value.isNotEmpty) {
+      final query = searchQuery.value.toLowerCase();
+      filtered = filtered.where((p) {
+        final name = (p['name'] ?? '').toString().toLowerCase();
+        final desc = (p['description'] ?? '').toString().toLowerCase();
+        return name.contains(query) || desc.contains(query);
+      }).toList();
+    }
+
+    // Sort
+    if (selectedSort.value == 'popular') {
+      filtered.sort((a, b) {
+        final aPop = a['isPopular'] == true ? 1 : 0;
+        final bPop = b['isPopular'] == true ? 1 : 0;
+        return bPop.compareTo(aPop); // Popular first
+      });
+    } else if (selectedSort.value == 'price_low_high') {
+      filtered.sort((a, b) => calculateProductPrice(a).compareTo(calculateProductPrice(b)));
+    } else if (selectedSort.value == 'price_high_low') {
+      filtered.sort((a, b) => calculateProductPrice(b).compareTo(calculateProductPrice(a)));
+    } else if (selectedSort.value == 'weight_low_high') {
+      filtered.sort((a, b) {
+        final aW = (a['weightGrams'] ?? 0.0) is num ? (a['weightGrams'] as num).toDouble() : double.tryParse(a['weightGrams'].toString()) ?? 0.0;
+        final bW = (b['weightGrams'] ?? 0.0) is num ? (b['weightGrams'] as num).toDouble() : double.tryParse(b['weightGrams'].toString()) ?? 0.0;
+        return aW.compareTo(bW);
+      });
+    } else if (selectedSort.value == 'weight_high_low') {
+      filtered.sort((a, b) {
+        final aW = (a['weightGrams'] ?? 0.0) is num ? (a['weightGrams'] as num).toDouble() : double.tryParse(a['weightGrams'].toString()) ?? 0.0;
+        final bW = (b['weightGrams'] ?? 0.0) is num ? (b['weightGrams'] as num).toDouble() : double.tryParse(b['weightGrams'].toString()) ?? 0.0;
+        return bW.compareTo(aW);
+      });
+    }
+
+    products.value = filtered;
   }
 
   void selectCategory(String cat) {
     selectedCategory.value = cat;
-    fetchProducts();
+    applyFilters();
   }
 
   void selectMetal(String metal) {
     selectedMetal.value = metal;
-    fetchProducts();
+    applyFilters();
   }
 
   void setSort(String sort) {
     selectedSort.value = sort;
-    fetchProducts();
+    applyFilters();
   }
 
   void setSearch(String query) {
     searchQuery.value = query;
-    fetchProducts();
+    applyFilters();
   }
 
   // Calculate product price based on live rates
@@ -160,6 +214,9 @@ class JewelleryController extends GetxController {
         final amountInPaise = ((res['amount'] as num).toDouble() * 100).toInt();
         final keyId = res['keyId'] ?? 'rzp_test_dummy';
 
+        final user = Get.isRegistered<AuthController>()
+            ? Get.find<AuthController>().user.value
+            : null;
         final options = {
           'key': keyId,
           'amount': amountInPaise,
@@ -167,8 +224,9 @@ class JewelleryController extends GetxController {
           'description': 'Making charges & GST payment for ${item['name']}',
           'order_id': _pendingOrderId,
           'prefill': {
-            'contact': '',
-            'email': '',
+            'name': user?.name ?? '',
+            'contact': user?.phone ?? '',
+            'email': user?.email ?? '',
           },
           'theme': {'color': '#D4A017'}
         };
@@ -340,12 +398,6 @@ class JewelleryController extends GetxController {
       },
     ];
 
-    if (selectedCategory.value != 'All') {
-      return list.where((p) => p['category'] == selectedCategory.value).toList();
-    }
-    if (selectedMetal.value != 'all') {
-      return list.where((p) => p['metalType'] == selectedMetal.value).toList();
-    }
     return list;
   }
 }

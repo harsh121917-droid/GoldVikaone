@@ -73,10 +73,15 @@ class AuthService {
   Future<UserModel> loginWithOtp({
     required String phone,
     required String otpRecordId,
+    String? email,
   }) async {
     final res = await _dio.post(
       '/auth/login-phone',
-      data: {'phone': phone, 'otpRecordId': otpRecordId},
+      data: {
+        'phone': phone,
+        'otpRecordId': otpRecordId,
+        if (email != null) 'email': email,
+      },
     );
     _saveAuth(res.data);
     return UserModel.fromJson(res.data['user']);
@@ -108,6 +113,34 @@ class AuthService {
   void logout() {
     _box.remove(StorageKeys.token);
     _box.remove(StorageKeys.user);
+  }
+
+  Future<bool> resetPassword({
+    required String phone,
+    required String otpRecordId,
+    required String newPassword,
+    String? email,
+  }) async {
+    final res = await _dio.post(
+      '/auth/reset-password',
+      data: {
+        'phone': phone,
+        'otpRecordId': otpRecordId,
+        'newPassword': newPassword,
+        if (email != null) 'email': email,
+      },
+    );
+    return res.data['success'] == true;
+  }
+
+  Future<Map<String, dynamic>> initiateForgotPassword({
+    required String email,
+  }) async {
+    final res = await _dio.post(
+      '/auth/forgot-password/initiate',
+      data: {'email': email},
+    );
+    return Map<String, dynamic>.from(res.data);
   }
 
   void _saveAuth(Map data) {

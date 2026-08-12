@@ -54,18 +54,12 @@ class _SchemeDetailViewState extends State<SchemeDetailView> {
       if (shortfall > 0) {
         // Not enough wallet balance — top up via real Razorpay checkout first,
         // then complete the installment once the payment succeeds.
-        await WalletController.to.addMoney(shortfall);
-        // addMoney() opens Razorpay and returns immediately (async callback
-        // handles success) — give it a moment then check balance before
-        // attempting the installment automatically.
-        await Future.delayed(const Duration(seconds: 2));
-        await WalletController.to.loadWallet();
-        final bal = WalletController.to.wallet.value?.availableBalance ?? 0;
-        if (bal < (_e!.monthlyAmount)) {
+        final success = await WalletController.to.addMoney(shortfall);
+        if (!success) {
           Get.snackbar(
             'Complete Payment',
-            'Finish adding money in the Razorpay window, then tap "Pay Installment" again.',
-            backgroundColor: const Color(0xFF3B82F6),
+            'Wallet top-up failed or cancelled. Please complete payment to pay the installment.',
+            backgroundColor: const Color(0xFFe74c3c),
             colorText: Colors.white,
             snackPosition: SnackPosition.BOTTOM,
           );

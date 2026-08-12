@@ -43,7 +43,8 @@ class KycView extends GetView<KycController> {
           children: [
             if (status != 'not_submitted')
               _StatusBanner(status: status, kyc: controller.existingKyc.value),
-            if (status == 'approved' && controller.existingKyc.value != null) ...[
+            if (status == 'approved' &&
+                controller.existingKyc.value != null) ...[
               const SizedBox(height: 20),
               _VerifiedDetailsCard(kyc: controller.existingKyc.value!),
             ],
@@ -76,7 +77,11 @@ class KycView extends GetView<KycController> {
                       if (!isPanVerified) ...[
                         Row(
                           children: const [
-                            Icon(Icons.badge_outlined, color: Color(0xFFD4A017), size: 20),
+                            Icon(
+                              Icons.badge_outlined,
+                              color: Color(0xFFD4A017),
+                              size: 20,
+                            ),
                             SizedBox(width: 8),
                             Text(
                               'Instant PAN Verification (Step 1/2)',
@@ -91,7 +96,11 @@ class KycView extends GetView<KycController> {
                         const SizedBox(height: 8),
                         const Text(
                           'Enter your PAN number and name to verify your tax identity instantly.',
-                          style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.3),
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            height: 1.3,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         TextField(
@@ -105,18 +114,27 @@ class KycView extends GetView<KycController> {
                             counterText: '',
                             filled: true,
                             fillColor: Colors.white.withOpacity(0.08),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.15)),
+                              borderSide: BorderSide(
+                                color: Colors.white.withOpacity(0.15),
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.15)),
+                              borderSide: BorderSide(
+                                color: Colors.white.withOpacity(0.15),
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Color(0xFFD4A017)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFD4A017),
+                              ),
                             ),
                           ),
                         ),
@@ -129,24 +147,35 @@ class KycView extends GetView<KycController> {
                             hintStyle: const TextStyle(color: Colors.white38),
                             filled: true,
                             fillColor: Colors.white.withOpacity(0.08),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.15)),
+                              borderSide: BorderSide(
+                                color: Colors.white.withOpacity(0.15),
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.15)),
+                              borderSide: BorderSide(
+                                color: Colors.white.withOpacity(0.15),
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Color(0xFFD4A017)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFD4A017),
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(height: 16),
                         GestureDetector(
-                          onTap: () => controller.isSubmitting.value ? null : controller.verifyPanFlow(),
+                          onTap: () => controller.isSubmitting.value
+                              ? null
+                              : controller.verifyPanFlow(),
                           child: Container(
                             height: 44,
                             width: double.infinity,
@@ -178,7 +207,11 @@ class KycView extends GetView<KycController> {
                       ] else ...[
                         Row(
                           children: const [
-                            Icon(Icons.flash_on_rounded, color: Color(0xFFD4A017), size: 20),
+                            Icon(
+                              Icons.flash_on_rounded,
+                              color: Color(0xFFD4A017),
+                              size: 20,
+                            ),
                             SizedBox(width: 8),
                             Text(
                               'Instant Aadhaar Verification (Step 2/2)',
@@ -195,7 +228,11 @@ class KycView extends GetView<KycController> {
                           isOtpSent
                               ? 'Please enter the 6-digit OTP sent to your Aadhaar-registered mobile number.'
                               : 'Verify your Aadhaar instantly. Safe, paperless, and takes less than a minute.',
-                          style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.3),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            height: 1.3,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         if (!isOtpSent) ...[
@@ -210,18 +247,27 @@ class KycView extends GetView<KycController> {
                               counterText: '',
                               filled: true,
                               fillColor: Colors.white.withOpacity(0.08),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: Colors.white.withOpacity(0.15)),
+                                borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.15),
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: Colors.white.withOpacity(0.15)),
+                                borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.15),
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: Color(0xFFD4A017)),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFD4A017),
+                                ),
                               ),
                             ),
                           ),
@@ -234,20 +280,32 @@ class KycView extends GetView<KycController> {
                                       ? null
                                       : controller.isPanVerified.value = false,
                                   style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: Colors.white38),
+                                    side: const BorderSide(
+                                      color: Colors.white38,
+                                    ),
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
                                   ),
-                                  child: const Text('Back', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                  child: const Text(
+                                    'Back',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: GestureDetector(
-                                  onTap: () => controller.isSubmitting.value ? null : controller.sendCashfreeOtp(),
+                                  onTap: () => controller.isSubmitting.value
+                                      ? null
+                                      : controller.sendCashfreeOtp(),
                                   child: Container(
                                     height: 44,
                                     decoration: BoxDecoration(
@@ -290,18 +348,27 @@ class KycView extends GetView<KycController> {
                               counterText: '',
                               filled: true,
                               fillColor: Colors.white.withOpacity(0.08),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: Colors.white.withOpacity(0.15)),
+                                borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.15),
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: Colors.white.withOpacity(0.15)),
+                                borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.15),
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: Color(0xFFD4A017)),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFD4A017),
+                                ),
                               ),
                             ),
                           ),
@@ -310,7 +377,9 @@ class KycView extends GetView<KycController> {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               GestureDetector(
-                                onTap: () => controller.isSubmitting.value ? null : controller.sendCashfreeOtp(),
+                                onTap: () => controller.isSubmitting.value
+                                    ? null
+                                    : controller.sendCashfreeOtp(),
                                 child: const Text(
                                   'Resend OTP',
                                   style: TextStyle(
@@ -330,22 +399,35 @@ class KycView extends GetView<KycController> {
                                 child: OutlinedButton(
                                   onPressed: () => controller.isSubmitting.value
                                       ? null
-                                      : controller.isCashfreeOtpSent.value = false,
+                                      : controller.isCashfreeOtpSent.value =
+                                            false,
                                   style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: Colors.white38),
+                                    side: const BorderSide(
+                                      color: Colors.white38,
+                                    ),
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
                                   ),
-                                  child: const Text('Back', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                  child: const Text(
+                                    'Back',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: GestureDetector(
-                                  onTap: () => controller.isSubmitting.value ? null : controller.verifyCashfreeOtp(),
+                                  onTap: () => controller.isSubmitting.value
+                                      ? null
+                                      : controller.verifyCashfreeOtp(),
                                   child: Container(
                                     height: 44,
                                     decoration: BoxDecoration(
@@ -433,7 +515,7 @@ class _StatusBanner extends StatelessWidget {
       color = const Color(0xFF2ECC71);
       icon = Icons.verified_rounded;
       title = 'KYC Verified';
-      subtitle = "You're all set to invest in property bricks.";
+      subtitle = "You're all set to invest.";
     } else {
       color = const Color(0xFFE53E3E);
       icon = Icons.cancel_rounded;
@@ -981,13 +1063,18 @@ class _VerifiedDetailsCard extends StatelessWidget {
             'Address',
             '${kyc.addressLine1}, ${kyc.city}, ${kyc.state} - ${kyc.pincode}',
           ),
-          if (kyc.bankAccountNumber != null && kyc.bankAccountNumber!.isNotEmpty) ...[
+          if (kyc.bankAccountNumber != null &&
+              kyc.bankAccountNumber!.isNotEmpty) ...[
             const SizedBox(height: 16),
             const Divider(color: Color(0xFF1E3D30), height: 1),
             const SizedBox(height: 16),
             Row(
               children: const [
-                Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFD4A017), size: 20),
+                Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: Color(0xFFD4A017),
+                  size: 20,
+                ),
                 SizedBox(width: 10),
                 Text(
                   'Payout Bank Details',

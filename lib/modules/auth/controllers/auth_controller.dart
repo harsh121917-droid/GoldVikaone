@@ -110,11 +110,11 @@ class AuthController extends GetxController {
   }
 
   Future<bool> loginWithOtp(
-      {required String phone, required String otpRecordId}) async {
+      {required String phone, required String otpRecordId, String? email}) async {
     try {
       isLoading.value = true;
       user.value =
-          await _auth.loginWithOtp(phone: phone, otpRecordId: otpRecordId);
+          await _auth.loginWithOtp(phone: phone, otpRecordId: otpRecordId, email: email);
       _afterAuth();
       return true;
     } on DioException catch (e) {

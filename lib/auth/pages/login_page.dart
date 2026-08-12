@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get_core/get_core.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:vika1/auth/pages/register_page.dart';
 import 'package:vika1/modules/digi_gold/views/digi_gold_view.dart';
+import 'package:vika1/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/dreamspace_logo.dart';
@@ -173,9 +176,7 @@ class _LoginPageState extends State<LoginPage> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: GestureDetector(
-                        onTap: () {
-                          // TODO: navigate to ForgotPasswordPage
-                        },
+                        onTap: () => Get.toNamed(AppRoutes.forgotPassword),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: const [

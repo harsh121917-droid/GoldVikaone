@@ -105,85 +105,88 @@ class _DigiGoldViewState extends State<DigiGoldView>
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final dark = ThemeController.to.isDark.value;
-      final t = _T.of(dark);
-      return Scaffold(
-        backgroundColor: t.bg,
-        body: RefreshIndicator(
-          onRefresh: () async => _refreshAll(),
-          color: t.primary,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            child: Column(
-              children: [
-                _TopBar(t: t, greeting: _greeting()),
-                const SizedBox(height: 6),
-                SizedBox(
-                  height: 275,
-                  child: PageView(
-                    controller: _heroCtrl,
-                    onPageChanged: (i) => setState(() => _heroIndex = i),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: _GoldHeroCard(t: t),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: _SilverHeroCard(t: t),
-                      ),
-                    ],
+    return SafeArea(
+      top: true,
+      child: Obx(() {
+        final dark = ThemeController.to.isDark.value;
+        final t = _T.of(dark);
+        return Scaffold(
+          backgroundColor: t.bg,
+          body: RefreshIndicator(
+            onRefresh: () async => _refreshAll(),
+            color: t.primary,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              child: Column(
+                children: [
+                  _TopBar(t: t, greeting: _greeting()),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 275,
+                    child: PageView(
+                      controller: _heroCtrl,
+                      onPageChanged: (i) => setState(() => _heroIndex = i),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: _GoldHeroCard(t: t),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: _SilverHeroCard(t: t),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    2,
-                    (i) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: i == _heroIndex ? 20 : 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: i == _heroIndex
-                            ? (i == 0 ? _gold : _silver)
-                            : t.inkMuted.withOpacity(0.25),
-                        borderRadius: BorderRadius.circular(3),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      2,
+                      (i) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: i == _heroIndex ? 20 : 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: i == _heroIndex
+                              ? (i == 0 ? _gold : _silver)
+                              : t.inkMuted.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                _QuickActions(t: t),
-                const SizedBox(height: 20),
-                _LiveRates(t: t),
-                const SizedBox(height: 20),
-                _PromoBanner(t: t),
-                const SizedBox(height: 20),
-                _SipPromoCard(t: t),
-                const SizedBox(height: 20),
-                _DeliveryBanner(
-                  t: t,
-                  onTap: () {
-                    Get.find<MainShellController>().changeTab(2);
-                    if (Get.isRegistered<JewelleryController>()) {
-                      JewelleryController.to.selectCategory('Coins');
-                    }
-                  },
-                ),
-                const SizedBox(height: 20),
-                _RecentTransactionsSection(t: t),
-                const SizedBox(height: 100),
-              ],
+                  const SizedBox(height: 20),
+                  _QuickActions(t: t),
+                  const SizedBox(height: 20),
+                  _LiveRates(t: t),
+                  const SizedBox(height: 20),
+                  _PromoBanner(t: t),
+                  const SizedBox(height: 20),
+                  _SipPromoCard(t: t),
+                  const SizedBox(height: 20),
+                  _DeliveryBanner(
+                    t: t,
+                    onTap: () {
+                      Get.find<MainShellController>().changeTab(2);
+                      if (Get.isRegistered<JewelleryController>()) {
+                        JewelleryController.to.selectCategory('Coins');
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  _RecentTransactionsSection(t: t),
+                  const SizedBox(height: 100),
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    });
+        );
+      }),
+    );
   }
 }
 
@@ -196,7 +199,7 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      padding: const EdgeInsets.fromLTRB(20, 2, 20, 12),
       child: Row(
         children: [
           Expanded(
@@ -777,14 +780,7 @@ class _QuickActionsState extends State<_QuickActions> {
         Icons.redeem_outlined,
         'Gift',
         Colors.orange,
-        () {
-          Get.snackbar(
-            'Coming Soon',
-            'Gift feature is launching soon!',
-            backgroundColor: t.primary,
-            colorText: Colors.white,
-          );
-        },
+        () => Get.toNamed(AppRoutes.gift),
       ),
     ];
 
@@ -867,14 +863,7 @@ class _QuickActionsState extends State<_QuickActions> {
         Icons.share_outlined,
         'Refer & Earn',
         Colors.indigo,
-        () {
-          Get.snackbar(
-            'Coming Soon',
-            'Refer & Earn is launching soon!',
-            backgroundColor: t.primary,
-            colorText: Colors.white,
-          );
-        },
+        () => Get.toNamed(AppRoutes.rewards),
       ),
     ];
 
@@ -1982,8 +1971,8 @@ class _DeliveryBanner extends StatelessWidget {
                   ),
                   const SizedBox(width: 16),
                   Container(
-                    width: 76,
-                    height: 76,
+                    width: 100,
+                    height: 100,
                     decoration: BoxDecoration(
                       color: const Color(
                         0xFFD4A017,
@@ -2002,12 +1991,12 @@ class _DeliveryBanner extends StatelessWidget {
                           Icon(
                             Icons.all_inbox_rounded,
                             color: const Color(0xFFD4A017).withOpacity(0.3),
-                            size: 40,
+                            size: 60,
                           ),
                           const Icon(
                             Icons.local_shipping_rounded,
                             color: Color(0xFFD4A017),
-                            size: 26,
+                            size: 60,
                           ),
                         ],
                       ),

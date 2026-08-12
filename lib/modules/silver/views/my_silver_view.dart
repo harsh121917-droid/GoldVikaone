@@ -57,7 +57,7 @@ class _MySilverViewState extends State<MySilverView>
     with SingleTickerProviderStateMixin {
   int _tabIdx = 2; // Default to 1M
   bool _hideAmt = false;
-  final _tabs = ['1D', '1W', '1M', '1Y'];
+  final _tabs = ['1D', '1W', '1M', '1Y', '3Y', '5Y'];
 
   @override
   Widget build(BuildContext context) {
@@ -397,26 +397,67 @@ class _MySilverViewState extends State<MySilverView>
                     ),
                     const SizedBox(height: 12),
                     // Value + change
-                    Text(
-                      '₹${(SilverController.to.balance.value?.currentValue ?? 0).toStringAsFixed(2)}',
-                      style: TextStyle(
-                        color: tp,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const Text(
-                      '+4.21%',
-                      style: TextStyle(
-                        color: Color(0xFF2ecc71),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      'as on 17 Jul 2025',
-                      style: TextStyle(color: ts, fontSize: 11),
-                    ),
+                    Obx(() {
+                      final history = SilverController.to.priceHistory;
+                      final isLoading = SilverController.to.historyLoading.value;
+                      
+                      double currentPrice = SilverController.to.buyRate;
+                      double changeAmt = 0.0;
+                      double changePct = 0.0;
+                      bool priceIsUp = true;
+                      
+                      if (history.isNotEmpty) {
+                        final lastItem = history.last;
+                        currentPrice = (lastItem['price'] as num).toDouble();
+                        final firstItem = history.first;
+                        final firstPrice = (firstItem['price'] as num).toDouble();
+                        changeAmt = currentPrice - firstPrice;
+                        changePct = firstPrice > 0 ? (changeAmt / firstPrice) * 100 : 0.0;
+                        priceIsUp = changeAmt >= 0;
+                      }
+                      
+                      final chartGainColor = priceIsUp ? const Color(0xFF2ecc71) : const Color(0xFFe74c3c);
+                      
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isLoading ? 'Loading...' : '₹${currentPrice.toStringAsFixed(2)}/g',
+                            style: TextStyle(
+                              color: tp,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          if (!isLoading && history.isNotEmpty)
+                            Row(
+                              children: [
+                                Icon(
+                                  priceIsUp
+                                      ? Icons.arrow_upward_rounded
+                                      : Icons.arrow_downward_rounded,
+                                  color: chartGainColor,
+                                  size: 12,
+                                ),
+                                Text(
+                                  ' ${priceIsUp ? "+" : ""}₹${changeAmt.abs().toStringAsFixed(2)} (${priceIsUp ? "+" : ""}${changePct.toStringAsFixed(2)}% hike in ${_tabs[_tabIdx]})',
+                                  style: TextStyle(
+                                    color: chartGainColor,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'as on ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                                  style: TextStyle(color: ts, fontSize: 11),
+                                ),
+                              ],
+                            ),
+                        ],
+                      );
+                    }),
                     const SizedBox(height: 16),
                     // Chart
                     Obx(() => _SpotPriceChart(

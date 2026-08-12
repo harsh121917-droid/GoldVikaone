@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -26,6 +27,7 @@ class WalletController extends GetxController {
 
   // Pending action after Razorpay
   double? _pendingAddAmt;
+  Completer<bool>? _paymentCompleter;
 
   @override
   void onInit() {
@@ -63,7 +65,8 @@ class WalletController extends GetxController {
   }
 
   // ── 2. Add Money (Razorpay) ────────────────────────────────────────────────
-  Future<void> addMoney(double amount) async {
+  Future<bool> addMoney(double amount) async {
+    _paymentCompleter = Completer<bool>();
     try {
       isAdding.value = true;
       final data = await _repo.initiateAdd(amount);
@@ -77,7 +80,11 @@ class WalletController extends GetxController {
         'order_id': data['order']['id'],
         'name': 'Payvika',
         'description': 'Add ₹${amount.toStringAsFixed(0)} to wallet',
-        'prefill': {'name': user?.name ?? '', 'email': user?.email ?? ''},
+        'prefill': {
+          'name': user?.name ?? '',
+          'email': user?.email ?? '',
+          'contact': user?.phone ?? '',
+        },
         'theme': {'color': '#D4A017'},
       };
       _razorpay.open(options);
@@ -89,9 +96,12 @@ class WalletController extends GetxController {
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
+      _paymentCompleter?.complete(false);
+      _paymentCompleter = null;
     } finally {
       isAdding.value = false;
     }
+    return _paymentCompleter?.future ?? Future.value(false);
   }
 
   // ── Razorpay callbacks ─────────────────────────────────────────────────────
@@ -112,6 +122,7 @@ class WalletController extends GetxController {
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
         );
+        _paymentCompleter?.complete(true);
       } else {
         Get.snackbar(
           'Verification Failed',
@@ -120,12 +131,18 @@ class WalletController extends GetxController {
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
         );
+        _paymentCompleter?.complete(false);
       }
-    } catch (_) {}
+    } catch (_) {
+      _paymentCompleter?.complete(false);
+    }
+    _paymentCompleter = null;
     _pendingAddAmt = null;
   }
 
   void _onPayError(PaymentFailureResponse r) {
+    _paymentCompleter?.complete(false);
+    _paymentCompleter = null;
     _pendingAddAmt = null;
     if (r.code != 0) {
       // 0 = user cancelled
@@ -139,7 +156,10 @@ class WalletController extends GetxController {
     }
   }
 
-  void _onExternalWallet(ExternalWalletResponse r) {}
+  void _onExternalWallet(ExternalWalletResponse r) {
+    _paymentCompleter?.complete(false);
+    _paymentCompleter = null;
+  }
 
   // ── 3. Buy Gold from Wallet ────────────────────────────────────────────────
   Future<bool> buyGold({double? amount, double? grams, int? pointsRedeemed, bool redeemReferral = false}) async {

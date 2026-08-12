@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pinput/pinput.dart';
@@ -164,7 +165,7 @@ class _LoginOtpFlowViewState extends State<LoginOtpFlowView> {
       );
       final auth = Get.find<AuthController>();
       final ok =
-          await auth.loginWithOtp(phone: _phone!, otpRecordId: otpRecordId);
+          await auth.loginWithOtp(phone: _phone!, otpRecordId: otpRecordId, email: _idCtrl.text.trim());
       if (!ok) {
         setState(() => _error = auth.errorMsg.value.isNotEmpty
             ? auth.errorMsg.value
@@ -179,9 +180,22 @@ class _LoginOtpFlowViewState extends State<LoginOtpFlowView> {
   }
 
   String _friendlyError(Object e) {
+    if (e is DioException) {
+      if (e.response != null && e.response!.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data.containsKey('message')) {
+          return data['message'].toString();
+        }
+      }
+      if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+        return "Connection timeout. Please check your internet connection.";
+      }
+      return "Network connection issue. Please try again.";
+    }
+
     final s = e.toString();
     final match = RegExp(r'"message":"([^"]+)"').firstMatch(s);
-    return match?.group(1) ?? 'Something went wrong. Please try again.';
+    return match?.group(1) ?? s.replaceAll('Exception:', '').replaceAll('DioException', '').trim();
   }
 
   String _maskedPhone(String p) =>

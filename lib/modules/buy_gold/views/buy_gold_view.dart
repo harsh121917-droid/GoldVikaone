@@ -80,7 +80,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
             GoldController.to.buyRate *
             (1 + _GST_PCT / 100);
 
-  double get _redeemVal => _redeemedPoints * 0.1;
+  double get _redeemVal => _redeemedPoints * 0.01;
 
   double get _payableTotal => _total;
 
@@ -942,7 +942,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          'Available: $availPoints pts (₹${(availPoints * 0.1).toStringAsFixed(2)})',
+                                          'Available: $availPoints pts (₹${(availPoints * 0.01).toStringAsFixed(2)})',
                                           style: TextStyle(
                                             color: t.inkMuted,
                                             fontSize: 11,

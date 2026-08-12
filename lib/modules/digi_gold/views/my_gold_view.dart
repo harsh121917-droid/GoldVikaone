@@ -51,7 +51,7 @@ class MyGoldView extends StatefulWidget {
 
 class _MyGoldViewState extends State<MyGoldView> {
   int _periodIdx = 2; // Default to 1M
-  static const _periods = ['1D', '1W', '1M', '1Y'];
+  static const _periods = ['1D', '1W', '1M', '1Y', '3Y', '5Y'];
 
   @override
   Widget build(BuildContext context) {
@@ -412,39 +412,67 @@ class _MyGoldViewState extends State<MyGoldView> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      Text(
-                        '₹${(bal?.currentValue ?? 0).toStringAsFixed(2)}',
-                        style: TextStyle(
-                          color: t.ink,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            isUp
-                                ? Icons.arrow_upward_rounded
-                                : Icons.arrow_downward_rounded,
-                            color: gainColor,
-                            size: 12,
-                          ),
-                          Text(
-                            ' ${(bal?.gainLossPct ?? 0).abs().toStringAsFixed(2)}%',
-                            style: TextStyle(
-                              color: gainColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
+                      Obx(() {
+                        final history = GoldController.to.priceHistory;
+                        final isLoading = GoldController.to.historyLoading.value;
+                        
+                        double currentPrice = GoldController.to.rate.value?.buyRate ?? 0.0;
+                        double changeAmt = 0.0;
+                        double changePct = 0.0;
+                        bool priceIsUp = true;
+                        
+                        if (history.isNotEmpty) {
+                          final lastItem = history.last;
+                          currentPrice = (lastItem['price'] as num).toDouble();
+                          final firstItem = history.first;
+                          final firstPrice = (firstItem['price'] as num).toDouble();
+                          changeAmt = currentPrice - firstPrice;
+                          changePct = firstPrice > 0 ? (changeAmt / firstPrice) * 100 : 0.0;
+                          priceIsUp = changeAmt >= 0;
+                        }
+                        
+                        final chartGainColor = priceIsUp ? _success : _danger;
+                        
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isLoading ? 'Loading...' : '₹${currentPrice.toStringAsFixed(2)}/g',
+                              style: TextStyle(
+                                color: t.ink,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'as on ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-                            style: TextStyle(color: t.inkMuted, fontSize: 10),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(height: 4),
+                            if (!isLoading && history.isNotEmpty)
+                              Row(
+                                children: [
+                                  Icon(
+                                    priceIsUp
+                                        ? Icons.arrow_upward_rounded
+                                        : Icons.arrow_downward_rounded,
+                                    color: chartGainColor,
+                                    size: 12,
+                                  ),
+                                  Text(
+                                    ' ${priceIsUp ? "+" : ""}₹${changeAmt.abs().toStringAsFixed(2)} (${priceIsUp ? "+" : ""}${changePct.toStringAsFixed(2)}% hike in ${_periods[_periodIdx]})',
+                                    style: TextStyle(
+                                      color: chartGainColor,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'as on ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                                    style: TextStyle(color: t.inkMuted, fontSize: 10),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        );
+                      }),
                       const SizedBox(height: 12),
                       Obx(() => _SpotPriceChart(
                             history: GoldController.to.priceHistory,

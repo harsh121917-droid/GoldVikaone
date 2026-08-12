@@ -5,11 +5,10 @@ import 'package:vika1/modules/home/views/main_shell_view.dart';
 import 'package:vika1/modules/auth/bindings/auth_binding.dart';
 import 'package:vika1/modules/auth/views/login_view.dart';
 import 'package:vika1/modules/auth/views/register_view.dart';
+import 'package:vika1/modules/auth/views/forgot_password_view.dart';
 import 'package:vika1/modules/kyc/bindings/kyc_binding.dart';
 import 'package:vika1/modules/kyc/views/kyc_view.dart';
-import 'package:vika1/modules/lock/views/passcode_setup_view.dart';
-import 'package:vika1/modules/lock/views/passcode_setup_view.dart'
-    show LockScreenView;
+import 'package:vika1/modules/lock/views/passcode_setup_view.dart' show PasscodeSetupView, LockScreenView;
 import 'package:vika1/modules/lock/views/security_settings_view.dart';
 
 // Digi Gold — home + shared gold state
@@ -56,6 +55,7 @@ import 'package:vika1/modules/profile/views/policy_view.dart';
 abstract class AppRoutes {
   static const login = '/login';
   static const register = '/register';
+  static const forgotPassword = '/forgot-password';
   static const home = '/home';
   static const profile = '/profile';
   static const kyc = '/kyc';
@@ -104,6 +104,11 @@ final appPages = [
   GetPage(
     name: AppRoutes.login,
     page: () => const LoginView(),
+    binding: AuthBinding(),
+  ),
+  GetPage(
+    name: AppRoutes.forgotPassword,
+    page: () => const ForgotPasswordView(),
     binding: AuthBinding(),
   ),
   GetPage(
