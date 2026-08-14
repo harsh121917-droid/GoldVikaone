@@ -1567,8 +1567,8 @@ class _RecentTransactionsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final goldTxns = GoldController.to.transactions;
-      final silverTxns = SilverController.to.transactions;
+      final goldTxns = GoldController.to.transactions.where((t) => t.type != 'sip_buy').toList();
+      final silverTxns = SilverController.to.transactions.where((t) => t.type != 'sip_buy').toList();
 
       // Combine real transactions
       final List<dynamic> combined = [...goldTxns, ...silverTxns];
@@ -1576,47 +1576,64 @@ class _RecentTransactionsSection extends StatelessWidget {
 
       final recent = combined.take(3).toList();
 
-      // Fallback mock data matching the screenshot
-      final List<dynamic> displayTxns = recent.isNotEmpty
-          ? recent
-          : [
-              // Mock gold buy
-              GoldTxnModel(
-                id: 'mock1',
-                type: 'buy',
-                status: 'success',
-                grams: 0.256,
-                ratePerGram: 7123.00,
-                goldValue: 1824.45,
-                gstAmt: 0.0,
-                totalAmt: 1824.45,
-                createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+      final List<dynamic> displayTxns = recent;
+
+      if (displayTxns.isEmpty) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Recent Transactions',
+                style: TextStyle(
+                  color: t.ink,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
-              // Mock silver buy
-              SilverTxnModel(
-                id: 'mock2',
-                type: 'buy',
-                status: 'success',
-                grams: 10.000,
-                ratePerGram: 73.40,
-                silverValue: 734.00,
-                gstAmt: 0.0,
-                totalAmt: 734.00,
-                createdAt: DateTime.now().subtract(const Duration(days: 1)),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: t.card,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: t.cardBorder.withOpacity(0.5)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.history_toggle_off_rounded,
+                      color: t.inkMuted.withOpacity(0.5),
+                      size: 40,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No transactions yet',
+                      style: TextStyle(
+                        color: t.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Your recent purchases & sales will show up here.',
+                      style: TextStyle(
+                        color: t.inkMuted,
+                        fontSize: 11,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
-              // Mock gold sell
-              GoldTxnModel(
-                id: 'mock3',
-                type: 'sell',
-                status: 'success',
-                grams: 0.150,
-                ratePerGram: 7102.00,
-                goldValue: 1065.30,
-                gstAmt: 0.0,
-                totalAmt: 1065.30,
-                createdAt: DateTime.now().subtract(const Duration(days: 2)),
-              ),
-            ];
+            ],
+          ),
+        );
+      }
 
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),

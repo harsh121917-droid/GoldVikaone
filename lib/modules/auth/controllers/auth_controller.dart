@@ -4,6 +4,12 @@ import '../../../core/services/auth_service.dart';
 import '../../../core/services/lock_service.dart';
 import '../../../data/models/user_model.dart';
 import '../../../routes/app_routes.dart';
+import '../../digi_gold/controllers/digi_gold_controller.dart';
+import '../../silver/controllers/silver_controller.dart';
+import '../../wallet/controllers/wallet_controller.dart';
+import '../../jewellery/controllers/jewellery_controller.dart';
+import '../../profile/views/rewards_view.dart';
+import '../../kyc/controllers/kyc_controller.dart';
 
 class AuthController extends GetxController {
   final AuthService _auth = Get.find();
@@ -160,6 +166,15 @@ class AuthController extends GetxController {
   void logout() {
     _auth.logout();
     LockService.to.disableLock();
+    
+    // Clear user cached controller states to make home page reactive and prevent data leaks across sessions
+    if (Get.isRegistered<GoldController>()) Get.delete<GoldController>(force: true);
+    if (Get.isRegistered<SilverController>()) Get.delete<SilverController>(force: true);
+    if (Get.isRegistered<WalletController>()) Get.delete<WalletController>(force: true);
+    if (Get.isRegistered<JewelleryController>()) Get.delete<JewelleryController>(force: true);
+    if (Get.isRegistered<PointsController>()) Get.delete<PointsController>(force: true);
+    if (Get.isRegistered<KycController>()) Get.delete<KycController>(force: true);
+
     Get.offAllNamed(AppRoutes.login);
   }
 }

@@ -18,6 +18,7 @@ class _SchemeDetailViewState extends State<SchemeDetailView> {
   SchemeEnrollmentModel? _e;
   bool _loading = true;
   bool _paying = false;
+  String _paymentMethod = 'wallet'; // 'wallet' or 'razorpay'
 
   @override
   void initState() {
@@ -51,14 +52,30 @@ class _SchemeDetailViewState extends State<SchemeDetailView> {
   Future<void> _payNext({required double shortfall}) async {
     setState(() => _paying = true);
     try {
-      if (shortfall > 0) {
-        // Not enough wallet balance — top up via real Razorpay checkout first,
-        // then complete the installment once the payment succeeds.
-        final success = await WalletController.to.addMoney(shortfall);
+      final monthlyAmount = _e!.monthlyAmount;
+      if (_paymentMethod == 'wallet') {
+        if (shortfall > 0) {
+          // Not enough wallet balance — top up via real Razorpay checkout first,
+          // then complete the installment once the payment succeeds.
+          final success = await WalletController.to.addMoney(shortfall);
+          if (!success) {
+            Get.snackbar(
+              'Complete Payment',
+              'Wallet top-up failed or cancelled. Please complete payment to pay the installment.',
+              backgroundColor: const Color(0xFFe74c3c),
+              colorText: Colors.white,
+              snackPosition: SnackPosition.BOTTOM,
+            );
+            return;
+          }
+        }
+      } else {
+        // Direct pay: First load the exact amount into the wallet via Razorpay
+        final success = await WalletController.to.addMoney(monthlyAmount);
         if (!success) {
           Get.snackbar(
             'Complete Payment',
-            'Wallet top-up failed or cancelled. Please complete payment to pay the installment.',
+            'Direct payment failed or cancelled.',
             backgroundColor: const Color(0xFFe74c3c),
             colorText: Colors.white,
             snackPosition: SnackPosition.BOTTOM,
@@ -274,7 +291,136 @@ class _SchemeDetailViewState extends State<SchemeDetailView> {
         const SizedBox(height: 16),
 
         if (e.status == 'active') ...[
-          if (shortfall > 0)
+          const Text(
+            'Select Payment Method',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _paymentMethod = 'wallet'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _paymentMethod == 'wallet'
+                          ? const Color(0xFFD4A017).withOpacity(0.08)
+                          : cardBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _paymentMethod == 'wallet'
+                            ? const Color(0xFFD4A017)
+                            : border,
+                        width: _paymentMethod == 'wallet' ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.account_balance_wallet_outlined,
+                          color: _paymentMethod == 'wallet'
+                              ? const Color(0xFFD4A017)
+                              : ts,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Wallet',
+                                style: TextStyle(
+                                  color: tp,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Bal: ₹${bal.toStringAsFixed(0)}',
+                                style: TextStyle(
+                                  color: ts,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _paymentMethod = 'razorpay'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _paymentMethod == 'razorpay'
+                          ? const Color(0xFFD4A017).withOpacity(0.08)
+                          : cardBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _paymentMethod == 'razorpay'
+                            ? const Color(0xFFD4A017)
+                            : border,
+                        width: _paymentMethod == 'razorpay' ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.payment_rounded,
+                          color: _paymentMethod == 'razorpay'
+                              ? const Color(0xFFD4A017)
+                              : ts,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Direct Pay',
+                                style: TextStyle(
+                                  color: tp,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'UPI/Card/Net',
+                                style: TextStyle(
+                                  color: ts,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_paymentMethod == 'wallet' && shortfall > 0)
             Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(12),
@@ -325,7 +471,7 @@ class _SchemeDetailViewState extends State<SchemeDetailView> {
                         ),
                       )
                     : Text(
-                        shortfall > 0
+                        _paymentMethod == 'wallet' && shortfall > 0
                             ? 'Add ₹${shortfall.toStringAsFixed(0)} & Pay Installment #${e.installmentsPaid + 1}'
                             : 'Pay Installment #${e.installmentsPaid + 1} — ₹${e.monthlyAmount.toStringAsFixed(0)}',
                         style: const TextStyle(

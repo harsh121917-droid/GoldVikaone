@@ -58,6 +58,7 @@ class BuyGoldView extends StatefulWidget {
 }
 
 class _BuyGoldViewState extends State<BuyGoldView> {
+  bool _isBuyingLocal = false;
   bool _byAmount = true;
   bool _showBreakup = true;
   bool _agreedToTerms = false;
@@ -92,7 +93,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
   double get _walletBal =>
       WalletController.to.wallet.value?.availableBalance ?? 0;
   bool get _hasEnoughBalance => _walletBal >= _payableTotal;
-  bool get _valid => _total > 0;
+  bool get _valid => _total >= 55.0;
 
   void _setAmt(double amt) => setState(() {
     _byAmount = true;
@@ -555,6 +556,18 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                            if (!_valid && _total > 0)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 4),
+                                child: Text(
+                                  'Minimum purchase is ₹55',
+                                  style: TextStyle(
+                                    color: Color(0xFFE05A47),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -1241,14 +1254,14 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                     ),
                     const SizedBox(height: 10),
                     GestureDetector(
-                      onTap: _valid && _agreedToTerms && !WalletController.to.isBuying.value
+                      onTap: _valid && _agreedToTerms && !_isBuyingLocal
                           ? () async {
                               HapticFeedback.mediumImpact();
 
-                              if (_total < 50.0) {
+                              if (_total < 55.0) {
                                 Get.snackbar(
                                   "Invalid Amount",
-                                  "Minimum purchase is ₹50",
+                                  "Minimum purchase is ₹55",
                                   backgroundColor: const Color(0xFFE05A47),
                                   colorText: Colors.white,
                                   snackPosition: SnackPosition.BOTTOM,
@@ -1281,17 +1294,29 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                                 return;
                               }
 
-                              final pointsToRedeem = _redeemedPoints;
-                              final ok = await WalletController.to.buyGold(
-                                amount: _amount,
-                                pointsRedeemed: pointsToRedeem > 0 ? pointsToRedeem : null,
-                                redeemReferral: _redeemReferral,
-                              );
-                              if (ok) {
-                                if (pointsToRedeem > 0) {
-                                  PointsController.to.redeemPoints(pointsToRedeem, 'Gold Purchase');
+                              setState(() {
+                                _isBuyingLocal = true;
+                              });
+
+                              try {
+                                final pointsToRedeem = _redeemedPoints;
+                                final ok = await WalletController.to.buyGold(
+                                  amount: _amount,
+                                  pointsRedeemed: pointsToRedeem > 0 ? pointsToRedeem : null,
+                                  redeemReferral: _redeemReferral,
+                                );
+                                if (ok) {
+                                  if (pointsToRedeem > 0) {
+                                    PointsController.to.redeemPoints(pointsToRedeem, 'Gold Purchase');
+                                  }
+                                  _showSuccessDialog(_grams, _payableTotal);
                                 }
-                                _showSuccessDialog(_grams, _payableTotal);
+                              } finally {
+                                if (mounted) {
+                                  setState(() {
+                                    _isBuyingLocal = false;
+                                  });
+                                }
                               }
                             }
                           : null,
@@ -1299,10 +1324,10 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                         height: 54,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
-                           color: (_valid && _agreedToTerms) ? const Color(0xFF0B3D2E) : const Color(0xFF0B3D2E).withOpacity(0.4),
+                           color: (_valid && _agreedToTerms && !_isBuyingLocal) ? const Color(0xFF0B3D2E) : const Color(0xFF0B3D2E).withOpacity(0.4),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: WalletController.to.isBuying.value
+                        child: _isBuyingLocal
                             ? const Center(
                                 child: SizedBox(
                                   width: 20,
@@ -1520,6 +1545,8 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                         _dialogRow('Asset Type', '24K Gold', t),
                         const SizedBox(height: 8),
                         _dialogRow('Weight Credited', '${grams.toStringAsFixed(4)} g', t, isHighlight: true),
+                        const SizedBox(height: 8),
+                        _dialogRow('Gold Rate (per g)', '₹${GoldController.to.buyRate.toStringAsFixed(2)}', t),
                         const SizedBox(height: 8),
                         _dialogRow('Total Amount', '₹${totalPaid.toStringAsFixed(2)}', t),
                         const SizedBox(height: 8),

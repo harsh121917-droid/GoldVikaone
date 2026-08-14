@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart' show TextEditingController, Color;
+import 'package:flutter/material.dart' ;
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../data/models/kyc_model.dart';
@@ -8,7 +8,9 @@ import '../../../data/repositories/kyc_repository.dart';
 import '../views/digio_kyc_webview.dart';
 
 class KycController extends GetxController {
-  final KycRepository _repo = Get.find();
+  final KycRepository _repo = Get.isRegistered<KycRepository>()
+      ? Get.find<KycRepository>()
+      : Get.put(KycRepository());
   final _picker = ImagePicker();
 
   final isLoading = false.obs;
@@ -107,11 +109,41 @@ class KycController extends GetxController {
   }
 
   Future<void> pickImage(Rx<File?> target) async {
-    final picked = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
+    Get.bottomSheet(
+      Container(
+        color: Get.isDarkMode ? const Color(0xFF0E1626) : Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.camera_alt_outlined, color: Get.isDarkMode ? Colors.white : Colors.black),
+              title: Text('Take Photo', style: TextStyle(color: Get.isDarkMode ? Colors.white : Colors.black)),
+              onTap: () async {
+                Get.back();
+                final picked = await _picker.pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 80,
+                );
+                if (picked != null) target.value = File(picked.path);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library_outlined, color: Get.isDarkMode ? Colors.white : Colors.black),
+              title: Text('Choose from Gallery', style: TextStyle(color: Get.isDarkMode ? Colors.white : Colors.black)),
+              onTap: () async {
+                Get.back();
+                final picked = await _picker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 80,
+                );
+                if (picked != null) target.value = File(picked.path);
+              },
+            ),
+          ],
+        ),
+      ),
     );
-    if (picked != null) target.value = File(picked.path);
   }
 
   // UPDATE setDob

@@ -65,7 +65,7 @@ class TransactionsController extends GetxController {
     try {
       isLoadingGold(true);
       final list = await _goldRepo.getTransactions();
-      goldTxns.value = list;
+      goldTxns.value = list.where((t) => t.type != 'sip_buy').toList();
     } catch (e) {
       // Silently catch network failures
     } finally {
@@ -77,7 +77,7 @@ class TransactionsController extends GetxController {
     try {
       isLoadingSilver(true);
       final list = await _silverRepo.getTransactions();
-      silverTxns.value = list;
+      silverTxns.value = list.where((t) => t.type != 'sip_buy').toList();
     } catch (e) {
       // Silently catch network failures
     } finally {

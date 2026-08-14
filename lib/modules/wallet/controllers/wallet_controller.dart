@@ -33,7 +33,6 @@ class WalletController extends GetxController {
   void onInit() {
     super.onInit();
     _initRazorpay();
-    loadAll();
   }
 
   @override

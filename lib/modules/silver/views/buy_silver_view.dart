@@ -16,8 +16,9 @@ class BuySilverView extends StatefulWidget {
 }
 
 class _BuySilverViewState extends State<BuySilverView> {
+  bool _isBuyingLocal = false;
   static const double _GST_PCT = 3.0;
-  static const double _MIN_AMT = 50.0;
+  static const double _MIN_AMT = 55.0;
   static const double _MAX_AMT = 100000.0;
   bool _byAmount = true;
   double _slider = 1000;
@@ -51,7 +52,7 @@ class _BuySilverViewState extends State<BuySilverView> {
   double get _walletBal =>
       WalletController.to.wallet.value?.availableBalance ?? 0;
   bool get _hasEnoughBalance => _walletBal >= _payableTotal;
-  bool get _valid => _total > 0;
+  bool get _valid => _total >= 55.0;
 
   void _setAmt(double amt) => setState(() {
     _byAmount = true;
@@ -381,9 +382,9 @@ class _BuySilverViewState extends State<BuySilverView> {
                 ),
               ),
               const SizedBox(height: 4),
-              if (!_valid && _amount > 0)
+              if (!_valid && _total > 0)
                 Text(
-                  'Minimum purchase is ₹${100.0.toInt()}',
+                  'Minimum purchase is ₹${_MIN_AMT.toInt()}',
                   style: const TextStyle(
                     color: Color(0xFFe74c3c),
                     fontSize: 12,
@@ -975,14 +976,14 @@ class _BuySilverViewState extends State<BuySilverView> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: GestureDetector(
-                      onTap: _valid && !WalletController.to.isBuying.value
+                      onTap: _valid && !_isBuyingLocal
                           ? () async {
                               HapticFeedback.mediumImpact();
 
-                              if (_total < 50.0) {
+                              if (_total < 55.0) {
                                 Get.snackbar(
                                   "Invalid Amount",
-                                  "Minimum purchase is ₹50",
+                                  "Minimum purchase is ₹55",
                                   backgroundColor: const Color(0xFFE05A47),
                                   colorText: Colors.white,
                                   snackPosition: SnackPosition.BOTTOM,
@@ -1015,16 +1016,28 @@ class _BuySilverViewState extends State<BuySilverView> {
                                 return;
                               }
 
-                              final pointsToRedeem = _redeemedPoints;
-                              final ok = await WalletController.to.buySilver(
-                                amount: _amount,
-                                pointsRedeemed: pointsToRedeem > 0 ? pointsToRedeem : null,
-                              );
-                              if (ok) {
-                                if (pointsToRedeem > 0) {
-                                  PointsController.to.redeemPoints(pointsToRedeem, 'Silver Purchase');
+                              setState(() {
+                                _isBuyingLocal = true;
+                              });
+
+                              try {
+                                final pointsToRedeem = _redeemedPoints;
+                                final ok = await WalletController.to.buySilver(
+                                  amount: _amount,
+                                  pointsRedeemed: pointsToRedeem > 0 ? pointsToRedeem : null,
+                                );
+                                if (ok) {
+                                  if (pointsToRedeem > 0) {
+                                    PointsController.to.redeemPoints(pointsToRedeem, 'Silver Purchase');
+                                  }
+                                  _showSuccessDialog(_grams, _total);
                                 }
-                                Get.back();
+                              } finally {
+                                if (mounted) {
+                                  setState(() {
+                                    _isBuyingLocal = false;
+                                  });
+                                }
                               }
                             }
                           : null,
@@ -1077,11 +1090,11 @@ class _BuySilverViewState extends State<BuySilverView> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    WalletController.to.isBuying.value
+                                    _isBuyingLocal
                                         ? 'Processing...'
                                         : _valid
                                         ? 'Buy Silver Securely'
-                                        : (_total >= 50.0 &&
+                                        : (_total >= 55.0 &&
                                               !_hasEnoughBalance)
                                         ? 'Insufficient Balance'
                                         : 'Min ₹${50.0.toInt()}',
@@ -1137,6 +1150,167 @@ class _BuySilverViewState extends State<BuySilverView> {
       );
     });
   }
+
+  
+  void _showSuccessDialog(double grams, double totalPaid) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: '',
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
+      transitionBuilder: (context, anim1, anim2, child) {
+        final scaleCurve = CurvedAnimation(parent: anim1, curve: Curves.easeOutBack);
+        final opacityCurve = CurvedAnimation(parent: anim1, curve: Curves.easeOut);
+        
+        final dark = ThemeController.to.isDark.value;
+        final bg = dark ? const Color(0xFF060B16) : const Color(0xFFF5F0E8);
+        final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
+        final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
+        final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
+        final subBg = dark ? const Color(0xFF0A0F1E) : const Color(0xFFF8F5EE);
+
+        return FadeTransition(
+          opacity: opacityCurve,
+          child: ScaleTransition(
+            scale: scaleCurve,
+            child: AlertDialog(
+              backgroundColor: cardBg,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              contentPadding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2ecc71).withOpacity(0.12),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const Icon(
+                        Icons.monetization_on_rounded,
+                        color: Color(0xFF8A95A5),
+                        size: 50,
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF2ecc71),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Silver Purchased Successfully!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: tp,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your digital silver will credit to your account shortly.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: ts,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: subBg,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: ts.withOpacity(0.1)),
+                    ),
+                    child: Column(
+                      children: [
+                        _dialogRow('Asset Type', '999 Fine Silver', ts, tp),
+                        const SizedBox(height: 8),
+                        _dialogRow('Weight Credited', '${grams.toStringAsFixed(4)} g', ts, const Color(0xFF2ecc71), isHighlight: true),
+                        const SizedBox(height: 8),
+                        _dialogRow('Silver Rate (per g)', '₹${SilverController.to.buyRate.toStringAsFixed(2)}', ts, tp),
+                        const SizedBox(height: 8),
+                        _dialogRow('Total Amount', '₹${totalPaid.toStringAsFixed(2)}', ts, tp),
+                        const SizedBox(height: 8),
+                        _dialogRow('Paid Via', 'Wallet Balance', ts, tp),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      Get.back();
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8A95A5),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Done',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _dialogRow(String label, String val, Color ts, Color tp, {bool isHighlight = false}) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(
+        label,
+        style: TextStyle(
+          color: ts,
+          fontSize: 12,
+        ),
+      ),
+      Text(
+        val,
+        style: TextStyle(
+          color: isHighlight ? const Color(0xFF2ecc71) : tp,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ],
+  );
 
   Widget _TogBtn(String label, bool active, VoidCallback onTap) => Expanded(
     child: GestureDetector(

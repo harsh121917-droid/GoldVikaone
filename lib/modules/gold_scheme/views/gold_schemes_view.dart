@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:vika1/data/repositories/scheme_repository.dart';
+import 'package:vika1/modules/home/controllers/main_shell_controller.dart';
 import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 import 'package:vika1/modules/digi_gold/controllers/digi_gold_controller.dart';
 import 'package:vika1/modules/silver/controllers/silver_controller.dart';
@@ -79,6 +80,9 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
   void initState() {
     super.initState();
     _load();
+    ever(Get.find<MainShellController>().refreshSchemesEvent, (_) {
+      _load();
+    });
   }
 
   Future<void> _load() async {
@@ -184,20 +188,18 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
             ),
           ],
         ),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator(color: _gold))
-            : _error != null
-                ? _ErrorState(error: _error!, t: t, onRetry: _load)
-                : RefreshIndicator(
-                    onRefresh: _load,
-                    color: _gold,
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(
-                        parent: BouncingScrollPhysics(),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+        body: _error != null
+            ? _ErrorState(error: _error!, t: t, onRetry: _load)
+            : RefreshIndicator(
+                onRefresh: _load,
+                color: _gold,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                           const SizedBox(height: 16),
 
                           // ── Green Schemes Value Banner ──
@@ -252,9 +254,11 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
-                                              _isBalanceVisible
-                                                  ? '₹ ${totalValue.toStringAsFixed(2)}'
-                                                  : '₹ ••••••',
+                                              _loading
+                                                  ? '₹ ••••'
+                                                  : _isBalanceVisible
+                                                      ? '₹ ${totalValue.toStringAsFixed(2)}'
+                                                      : '₹ ••••••',
                                               style: const TextStyle(
                                                 color: Color(0xFFFFD573),
                                                 fontSize: 26,
@@ -278,7 +282,9 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                                                 ),
                                                 const SizedBox(height: 2),
                                                 Text(
-                                                  '${(_my ?? []).length.toString().padLeft(2, '0')}',
+                                                  _loading
+                                                      ? '--'
+                                                      : '${(_my ?? []).length.toString().padLeft(2, '0')}',
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 16,
@@ -307,7 +313,9 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                                                 ),
                                                 const SizedBox(height: 2),
                                                 Text(
-                                                  '₹ ${maturedValue.toStringAsFixed(2)}',
+                                                  _loading
+                                                      ? '₹ ••••'
+                                                      : '₹ ${maturedValue.toStringAsFixed(2)}',
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 16,
@@ -447,20 +455,26 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                           // ── My Schemes List ──
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: (_my ?? []).isEmpty
-                                ? _EmptyMySchemes(t: t)
-                                : Column(
-                                    children: _my!
-                                        .map(
-                                          (e) => _EnrollmentCard(
-                                            e: e,
-                                            t: t,
-                                            dark: dark,
-                                            onChanged: _load,
-                                          ),
-                                        )
-                                        .toList(),
-                                  ),
+                            child: _loading
+                                ? Container(
+                                    padding: const EdgeInsets.all(20),
+                                    alignment: Alignment.center,
+                                    child: const CircularProgressIndicator(color: _gold),
+                                  )
+                                : (_my ?? []).isEmpty
+                                    ? _EmptyMySchemes(t: t)
+                                    : Column(
+                                        children: _my!
+                                            .map(
+                                              (e) => _EnrollmentCard(
+                                                e: e,
+                                                t: t,
+                                                dark: dark,
+                                                onChanged: _load,
+                                              ),
+                                            )
+                                            .toList(),
+                                      ),
                           ),
                           const SizedBox(height: 24),
 
@@ -941,6 +955,7 @@ class EnrollSchemeSheet extends StatefulWidget {
 }
 
 class _EnrollSchemeSheetState extends State<EnrollSchemeSheet> {
+  String _paymentMethod = 'wallet'; // 'wallet' or 'razorpay'
   final _repo = SchemeRepository();
   late final TextEditingController _ctrl;
   bool _submitting = false;
@@ -962,15 +977,29 @@ class _EnrollSchemeSheetState extends State<EnrollSchemeSheet> {
   Future<void> _submit() async {
     setState(() => _submitting = true);
     try {
-      await WalletController.to.loadWallet();
-      final bal = WalletController.to.wallet.value?.availableBalance ?? 0;
-      if (bal < _amount) {
-        final shortfall = _amount - bal;
-        final success = await WalletController.to.addMoney(shortfall);
+      if (_paymentMethod == 'wallet') {
+        await WalletController.to.loadWallet();
+        final bal = WalletController.to.wallet.value?.availableBalance ?? 0;
+        if (bal < _amount) {
+          final shortfall = _amount - bal;
+          final success = await WalletController.to.addMoney(shortfall);
+          if (!success) {
+            Get.snackbar(
+              'Complete Payment',
+              'Wallet top-up failed or cancelled. Please complete payment to pay the first installment.',
+              backgroundColor: const Color(0xFFe74c3c),
+              colorText: Colors.white,
+              snackPosition: SnackPosition.BOTTOM,
+            );
+            return;
+          }
+        }
+      } else {
+        final success = await WalletController.to.addMoney(_amount);
         if (!success) {
           Get.snackbar(
             'Complete Payment',
-            'Wallet top-up failed or cancelled. Please complete payment to pay the first installment.',
+            'Direct payment failed or cancelled.',
             backgroundColor: const Color(0xFFe74c3c),
             colorText: Colors.white,
             snackPosition: SnackPosition.BOTTOM,
@@ -1113,32 +1142,192 @@ class _EnrollSchemeSheetState extends State<EnrollSchemeSheet> {
                   style: const TextStyle(color: _gold, fontSize: 12),
                 ),
                 const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF3B82F6).withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(10),
+                const Text(
+                  'Select Payment Method',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline_rounded,
-                        color: Color(0xFF3B82F6),
-                        size: 16,
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'The first installment is paid now from your wallet (top up via Razorpay if needed). Remaining installments you pay manually each month from "My Schemes".',
-                          style: TextStyle(
-                            color: Color(0xFF3B82F6),
-                            fontSize: 12,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _paymentMethod = 'wallet'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _paymentMethod == 'wallet'
+                                ? const Color(0xFFD4A017).withOpacity(0.08)
+                                : t.card,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _paymentMethod == 'wallet'
+                                  ? const Color(0xFFD4A017)
+                                  : t.cardBorder,
+                              width: _paymentMethod == 'wallet' ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.account_balance_wallet_outlined,
+                                color: _paymentMethod == 'wallet'
+                                    ? const Color(0xFFD4A017)
+                                    : t.inkMuted,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Wallet',
+                                      style: TextStyle(
+                                        color: t.ink,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Obx(() {
+                                      final bal = WalletController.to.wallet.value?.availableBalance ?? 0.0;
+                                      return Text(
+                                        'Bal: ₹${bal.toStringAsFixed(0)}',
+                                        style: TextStyle(
+                                          color: t.inkMuted,
+                                          fontSize: 10,
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _paymentMethod = 'razorpay'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _paymentMethod == 'razorpay'
+                                ? const Color(0xFFD4A017).withOpacity(0.08)
+                                : t.card,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _paymentMethod == 'razorpay'
+                                  ? const Color(0xFFD4A017)
+                                  : t.cardBorder,
+                              width: _paymentMethod == 'razorpay' ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.payment_rounded,
+                                color: _paymentMethod == 'razorpay'
+                                    ? const Color(0xFFD4A017)
+                                    : t.inkMuted,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Direct Pay',
+                                      style: TextStyle(
+                                        color: t.ink,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      'UPI/Card/Net',
+                                      style: TextStyle(
+                                        color: t.inkMuted,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 16),
+                if (_paymentMethod == 'wallet')
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          color: Color(0xFF3B82F6),
+                          size: 16,
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'The first installment is paid now from your wallet (top up via Razorpay if needed). Remaining installments you pay manually each month from "My Schemes".',
+                            style: TextStyle(
+                              color: Color(0xFF3B82F6),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (_paymentMethod == 'razorpay')
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          color: Color(0xFF3B82F6),
+                          size: 16,
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'The first installment will be paid directly via Razorpay checkout. Remaining installments you pay manually each month from "My Schemes".',
+                            style: TextStyle(
+                              color: Color(0xFF3B82F6),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 20),
                 // ── Terms & Conditions Checkbox ──────────────────────────
                 GestureDetector(

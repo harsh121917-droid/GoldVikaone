@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:vika1/modules/home/controllers/main_shell_controller.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 import '../../auth/controllers/auth_controller.dart';
 
@@ -66,7 +67,9 @@ class PointsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadAll();
+    ever(Get.find<MainShellController>().refreshRewardsEvent, (_) {
+      loadAll();
+    });
   }
 
   Future<void> loadAll() async {
@@ -192,7 +195,7 @@ class _RewardsViewState extends State<RewardsView>
     if (!Get.isRegistered<PointsController>()) {
       Get.put(PointsController());
     }
-    // Refresh rewards balance and history on entry
+    // Trigger initial load on creation since tab just loaded
     PointsController.to.loadAll();
 
     _spinCtrl = AnimationController(
@@ -621,30 +624,35 @@ class _RewardsViewState extends State<RewardsView>
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'YOUR REFERRAL CODE',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.5,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'YOUR REFERRAL CODE',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1.5,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  refCode,
-                                  style: TextStyle(
-                                    color: t.ink,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1,
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    refCode,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: t.ink,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 12),
                             GestureDetector(
                               onTap: () {
                                 Clipboard.setData(ClipboardData(text: refCode));

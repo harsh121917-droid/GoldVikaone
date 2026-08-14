@@ -32,7 +32,6 @@ class GoldController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadAll();
   }
 
   Future<void> loadAll() async {

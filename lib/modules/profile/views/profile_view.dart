@@ -751,19 +751,16 @@ class ProfileView extends StatelessWidget {
 
                           try {
                             final repo = GoldRepository();
-                            final txns = await repo.getTransactions(page: 1);
-                            if (txns.isNotEmpty) {
-                              final bytes = await repo.getTransactionInvoice(txns.first.id, isSample: true);
-                              final dir = await getTemporaryDirectory();
-                              final file = File('${dir.path}/invoice-sample.pdf');
-                              await file.writeAsBytes(bytes);
-                              Get.back();
-                              Get.to(() => InvoiceViewerView(
-                                filePath: file.path,
-                                title: 'Sample Invoice',
-                              ));
-                              return;
-                            }
+                            final bytes = await repo.getTransactionInvoice("sample", isSample: true);
+                            final dir = await getTemporaryDirectory();
+                            final file = File('${dir.path}/invoice-sample.pdf');
+                            await file.writeAsBytes(bytes);
+                            Get.back();
+                            Get.to(() => InvoiceViewerView(
+                              filePath: file.path,
+                              title: 'Sample Invoice',
+                            ));
+                            return;
                           } catch (e) {
                             debugPrint("Could not load real transaction for sample: $e");
                           }

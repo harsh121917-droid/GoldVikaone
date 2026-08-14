@@ -12,6 +12,10 @@ class MainShellController extends GetxController {
   final tabIndex = 0.obs;
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
+  final refreshSchemesEvent = 0.obs;
+  final refreshJewelleryEvent = 0.obs;
+  final refreshRewardsEvent = 0.obs;
+
   @override
   void onReady() {
     super.onReady();
@@ -21,7 +25,7 @@ class MainShellController extends GetxController {
 
   Future<void> _checkForUpdate() async {
     try {
-      const currentVersion = '0.10.0';
+      const currentVersion = '0.12.0';
       final dio = ApiClient.instance;
       final res = await dio.get('/app-version');
       if (res.statusCode == 200 && res.data['success'] == true) {
@@ -80,9 +84,16 @@ class MainShellController extends GetxController {
       }
     }
     if (i == 1) {
+      refreshSchemesEvent.value++;
       if (Get.isRegistered<WalletController>()) {
         WalletController.to.loadAll();
       }
+    }
+    if (i == 2) {
+      refreshJewelleryEvent.value++;
+    }
+    if (i == 3) {
+      refreshRewardsEvent.value++;
     }
     if (i == 4) {
       if (Get.isRegistered<WalletController>()) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:vika1/modules/home/controllers/main_shell_controller.dart';
 import '../../../data/repositories/jewellery_repository.dart';
 import '../../digi_gold/controllers/digi_gold_controller.dart';
 import '../../silver/controllers/silver_controller.dart';
@@ -35,7 +36,10 @@ class JewelleryController extends GetxController {
   void onInit() {
     super.onInit();
     _initRazorpay();
-    loadAll();
+    // Fetch jewellery data every time the shell tab is selected/opened
+    ever(Get.find<MainShellController>().refreshJewelleryEvent, (_) {
+      loadAll();
+    });
   }
 
   @override
