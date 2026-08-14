@@ -62,17 +62,50 @@ class _BuyGoldViewState extends State<BuyGoldView> {
   bool _byAmount = true;
   bool _showBreakup = true;
   bool _agreedToTerms = false;
+  bool _userHasEdited = false;
   bool _redeemReferral = false;
   int _redeemedPoints = 0;
-  final _ctrl = TextEditingController(text: '1000');
+  late final TextEditingController _ctrl;
   static const double _GST_PCT = 3.0;
 
   @override
   void initState() {
     super.initState();
+    _ctrl = TextEditingController();
     if (!Get.isRegistered<PointsController>()) {
       Get.put(PointsController());
     }
+    _initDefaultAmount();
+  }
+
+  void _initDefaultAmount() {
+    double initialAmt = 1000.0;
+    if (Get.isRegistered<WalletController>()) {
+      final walletCtrl = WalletController.to;
+      final bal = walletCtrl.wallet.value?.availableBalance;
+      if (bal != null && bal > 0) {
+        initialAmt = bal;
+      }
+
+      // Automatically sync text if wallet balance loads asynchronously
+      once(walletCtrl.wallet, (walletModel) {
+        if (!_userHasEdited && mounted) {
+          final updatedBal = walletModel?.availableBalance;
+          if (updatedBal != null && updatedBal > 0) {
+            setState(() {
+              _ctrl.text = updatedBal.toStringAsFixed(0);
+            });
+          }
+        }
+      });
+    }
+    _ctrl.text = initialAmt.toStringAsFixed(0);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
   }
 
   double get _total => _byAmount
@@ -81,7 +114,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
             GoldController.to.buyRate *
             (1 + _GST_PCT / 100);
 
-  double get _redeemVal => _redeemedPoints * 0.01;
+  double get _redeemVal => _redeemedPoints * 0.1;
 
   double get _payableTotal => _total;
 
@@ -96,11 +129,13 @@ class _BuyGoldViewState extends State<BuyGoldView> {
   bool get _valid => _total >= 55.0;
 
   void _setAmt(double amt) => setState(() {
+    _userHasEdited = true;
     _byAmount = true;
     _ctrl.text = amt.toStringAsFixed(0);
   });
 
   void _setGrams(double grams) => setState(() {
+    _userHasEdited = true;
     _byAmount = false;
     _ctrl.text = grams.toStringAsFixed(4);
   });
@@ -489,7 +524,9 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                                   child: TextField(
                                     controller: _ctrl,
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    onChanged: (_) => setState(() {}),
+                                    onChanged: (_) => setState(() {
+                                      _userHasEdited = true;
+                                    }),
                                     style: TextStyle(
                                       color: t.ink,
                                       fontSize: 28,
@@ -518,6 +555,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                                   onTap: () {
                                     // Max sets a reasonable ceiling, e.g. wallet balance or 10,000
                                     setState(() {
+                                      _userHasEdited = true;
                                       if (_byAmount) {
                                         _ctrl.text = _walletBal > 0 ? _walletBal.toStringAsFixed(0) : '10000';
                                       } else {
@@ -730,11 +768,146 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                       ),
                       const SizedBox(height: 20),
 
+                      // ── Referral Bonus Card ──────────────────────
+                      Builder(builder: (context) {
+                        final userModel = Get.find<AuthService>().currentUser;
+                        final referralBal = userModel?.referralBalance ?? 0.0;
+                        
+                        // Automatically uncheck if amount drops below 1000
+                        if (_total < 1000.0 && _redeemReferral) {
+                          _redeemReferral = false;
+                        }
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: t.card,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _redeemReferral
+                                  ? _gold
+                                  : t.inkMuted.withOpacity(0.15),
+                              width: _redeemReferral ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: _gold.withValues(alpha: 0.12),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.card_giftcard_rounded,
+                                      color: _gold,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Referral Reward Balance',
+                                          style: TextStyle(
+                                            color: t.ink,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Available Reward: ₹${referralBal.toStringAsFixed(2)}',
+                                          style: TextStyle(
+                                            color: t.inkMuted,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (referralBal >= 50.0) ...[
+                                const SizedBox(height: 12),
+                                if (_total >= 1000.0) ...[
+                                  SwitchListTile.adaptive(
+                                    contentPadding: EdgeInsets.zero,
+                                    title: const Text(
+                                      'Redeem ₹50 Reward',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      'Pay ₹${_total.toStringAsFixed(0)}, get ₹${(_total + 50.0).toStringAsFixed(0)} worth of gold!',
+                                      style: TextStyle(
+                                        color: _gold,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    value: _redeemReferral,
+                                    activeColor: _gold,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _redeemReferral = val;
+                                      });
+                                    },
+                                  ),
+                                ] else ...[
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    margin: const EdgeInsets.only(top: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.amber.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.amber.withValues(alpha: 0.25)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.info_outline_rounded, color: Colors.amber, size: 16),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'Minimum purchase of ₹1000 required to redeem your ₹50 reward.',
+                                            style: TextStyle(
+                                              color: t.ink.withValues(alpha: 0.9),
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ] else ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Invite friends using your referral code to earn reward cash!',
+                                  style: TextStyle(
+                                    color: t.inkMuted,
+                                    fontSize: 11,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      }),
+
                       // ── Reward Points Redemption Section ──────────────────────
                       Obx(() {
                         final pc = PointsController.to;
                         final availPoints = pc.points.value;
-                        if (availPoints <= 0) return const SizedBox.shrink();
 
                         final List<int> pointOptions = [0];
                         for (int val in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000]) {
@@ -772,145 +945,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                           _redeemedPoints = 0;
                         }
 
-                        final userModel = Get.find<AuthService>().currentUser;
-                        final referralBal = userModel?.referralBalance ?? 0.0;
-                        
-                        // Automatically uncheck if amount drops below 1000
-                        if (_total < 1000.0 && _redeemReferral) {
-                          _redeemReferral = false;
-                        }
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // ── Referral Bonus Card ──
-                            Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: t.card,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: _redeemReferral
-                                      ? _gold
-                                      : t.inkMuted.withOpacity(0.15),
-                                  width: _redeemReferral ? 1.5 : 1,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: _gold.withValues(alpha: 0.12),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.card_giftcard_rounded,
-                                          color: _gold,
-                                          size: 20,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Referral Reward Balance',
-                                              style: TextStyle(
-                                                color: t.ink,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              'Available Reward: ₹${referralBal.toStringAsFixed(2)}',
-                                              style: TextStyle(
-                                                color: t.inkMuted,
-                                                fontSize: 11,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (referralBal >= 50.0) ...[
-                                    const SizedBox(height: 12),
-                                    if (_total >= 1000.0) ...[
-                                      SwitchListTile.adaptive(
-                                        contentPadding: EdgeInsets.zero,
-                                        title: const Text(
-                                          'Redeem ₹50 Reward',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        subtitle: Text(
-                                          'Pay ₹${_total.toStringAsFixed(0)}, get ₹${(_total + 50.0).toStringAsFixed(0)} worth of gold!',
-                                          style: TextStyle(
-                                            color: _gold,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        value: _redeemReferral,
-                                        activeColor: _gold,
-                                        onChanged: (val) {
-                                          setState(() {
-                                            _redeemReferral = val;
-                                          });
-                                        },
-                                      ),
-                                    ] else ...[
-                                      Container(
-                                        padding: const EdgeInsets.all(10),
-                                        margin: const EdgeInsets.only(top: 8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.amber.withValues(alpha: 0.08),
-                                          borderRadius: BorderRadius.circular(10),
-                                          border: Border.all(color: Colors.amber.withValues(alpha: 0.25)),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            const Icon(Icons.info_outline_rounded, color: Colors.amber, size: 16),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                'Minimum purchase of ₹1000 required to redeem your ₹50 reward.',
-                                                style: TextStyle(
-                                                  color: t.ink.withValues(alpha: 0.9),
-                                                  fontSize: 11,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ] else ...[
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Invite friends using your referral code to earn reward cash!',
-                                      style: TextStyle(
-                                        color: t.inkMuted,
-                                        fontSize: 11,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-
-                            // ── Points Card ──
-                            Container(
+                        return Container(
                           margin: const EdgeInsets.only(bottom: 20),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -955,7 +990,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          'Available: $availPoints pts (₹${(availPoints * 0.01).toStringAsFixed(2)})',
+                                          'Available: $availPoints pts (₹${(availPoints * 0.1).toStringAsFixed(2)})',
                                           style: TextStyle(
                                             color: t.inkMuted,
                                             fontSize: 11,
@@ -967,52 +1002,67 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              Theme(
-                                data: Theme.of(context).copyWith(
-                                  canvasColor: t.card,
-                                ),
-                                child: DropdownButtonFormField<int>(
-                                  value: _redeemedPoints,
-                                  items: dropdownItems,
-                                  decoration: InputDecoration(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide(
-                                        color: t.inkMuted.withOpacity(0.2),
+                              if (availPoints > 0)
+                                Theme(
+                                  data: Theme.of(context).copyWith(
+                                    canvasColor: t.card,
+                                  ),
+                                  child: DropdownButtonFormField<int>(
+                                    value: _redeemedPoints,
+                                    items: dropdownItems,
+                                    decoration: InputDecoration(
+                                      contentPadding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 8),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(
+                                          color: t.inkMuted.withOpacity(0.2),
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(
+                                          color: t.inkMuted.withOpacity(0.2),
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: const BorderSide(
+                                          color: _gold,
+                                        ),
                                       ),
                                     ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide(
-                                        color: t.inkMuted.withOpacity(0.2),
-                                      ),
+                                    style: TextStyle(
+                                      color: t.ink,
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: const BorderSide(
-                                        color: _gold,
-                                      ),
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _redeemedPoints = val ?? 0;
+                                      });
+                                    },
+                                  ),
+                                )
+                              else
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: t.subBg,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: t.inkMuted.withOpacity(0.15)),
+                                  ),
+                                  child: Text(
+                                    'No reward points available yet. Earn points on every purchase!',
+                                    style: TextStyle(
+                                      color: t.inkMuted,
+                                      fontSize: 12,
                                     ),
                                   ),
-                                  style: TextStyle(
-                                    color: t.ink,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  onChanged: (val) {
-                                    setState(() {
-                                      _redeemedPoints = val ?? 0;
-                                    });
-                                  },
                                 ),
-                              ),
                             ],
                           ),
-                        ),
-                      ],
-                    );
-                  }),
+                        );
+                      }),
 
                       // ── You Will Pay Breakdown Card ──────────────────────────
                       Container(
