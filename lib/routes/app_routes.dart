@@ -4,6 +4,7 @@ import 'package:vika1/modules/home/bindings/home_binding.dart';
 import 'package:vika1/modules/home/views/main_shell_view.dart';
 import 'package:vika1/modules/auth/bindings/auth_binding.dart';
 import 'package:vika1/modules/auth/views/login_view.dart';
+import 'package:vika1/modules/auth/views/splash_view.dart';
 import 'package:vika1/modules/auth/views/register_view.dart';
 import 'package:vika1/modules/auth/views/forgot_password_view.dart';
 import 'package:vika1/modules/kyc/bindings/kyc_binding.dart';
@@ -51,8 +52,11 @@ import '../modules/wallet/controllers/wallet_controller.dart';
 import 'package:vika1/modules/profile/views/transactions_view.dart';
 import 'package:vika1/modules/profile/views/rewards_view.dart';
 import 'package:vika1/modules/profile/views/policy_view.dart';
+import 'package:vika1/modules/orders/views/my_orders_view.dart';
 
 abstract class AppRoutes {
+  static const splash = '/splash';
+  static const orders = '/orders';
   static const login = '/login';
   static const register = '/register';
   static const forgotPassword = '/forgot-password';
@@ -87,6 +91,14 @@ abstract class AppRoutes {
 }
 
 final appPages = [
+  GetPage(
+    name: AppRoutes.orders,
+    page: () => const MyOrdersView(),
+  ),
+  GetPage(
+    name: AppRoutes.splash,
+    page: () => const SplashView(),
+  ),
   GetPage(
     name: AppRoutes.update,
     page: () => AppUpdateView(

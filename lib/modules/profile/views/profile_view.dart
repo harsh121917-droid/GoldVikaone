@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -74,7 +74,7 @@ class ProfileView extends StatelessWidget {
           physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
-              // ─── Header & Top App Bar ───
+              // â”€â”€â”€ Header & Top App Bar â”€â”€â”€
               Padding(
                 padding: EdgeInsets.fromLTRB(
                   20,
@@ -121,7 +121,7 @@ class ProfileView extends StatelessWidget {
                 ),
               ),
 
-              // ─── User Profile Card ───
+              // â”€â”€â”€ User Profile Card â”€â”€â”€
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -242,7 +242,7 @@ class ProfileView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // ─── Gold Balance / Value Card ───
+              // â”€â”€â”€ Gold Balance / Value Card â”€â”€â”€
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -330,7 +330,7 @@ class ProfileView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // ─── Wallet Balance Card ───
+              // â”€â”€â”€ Wallet Balance Card â”€â”€â”€
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -415,9 +415,9 @@ class ProfileView extends StatelessWidget {
                           ),
                           elevation: 0,
                           minimumSize: Size
-                              .zero, // ← ADD: stop forced infinite/huge size
+                              .zero, // ← ADD: stop forced infinite/huge size
                           tapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap, // ← ADD
+                              MaterialTapTargetSize.shrinkWrap, // ← ADD
                         ),
                         icon: const Icon(Icons.arrow_forward_rounded, size: 14),
                         label: const Text(
@@ -434,7 +434,7 @@ class ProfileView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // ─── Horizontal Quick Actions Bar ───
+              // â”€â”€â”€ Horizontal Quick Actions Bar â”€â”€â”€
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -480,7 +480,7 @@ class ProfileView extends StatelessWidget {
                               style: TextStyle(color: textPrimary),
                             ),
                             content: Text(
-                              'Connect with our support team at support@vikaone.com or call +91 1800 123 4567.',
+                              'Connect with our support team at info@vikaone.com.',
                               style: TextStyle(color: textSecondary),
                             ),
                             actions: [
@@ -501,7 +501,7 @@ class ProfileView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // ─── Settings Menu Cards List ───
+              // â”€â”€â”€ Settings Menu Cards List â”€â”€â”€
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -745,37 +745,51 @@ class ProfileView extends StatelessWidget {
                         onTap: () async {
                           HapticFeedback.lightImpact();
                           Get.dialog(
-                            const Center(child: CircularProgressIndicator(color: _gold)),
+                            const Center(
+                              child: CircularProgressIndicator(color: _gold),
+                            ),
                             barrierDismissible: false,
                           );
 
                           try {
                             final repo = GoldRepository();
-                            final bytes = await repo.getTransactionInvoice("sample", isSample: true);
+                            final bytes = await repo.getTransactionInvoice(
+                              "sample",
+                              isSample: true,
+                            );
                             final dir = await getTemporaryDirectory();
                             final file = File('${dir.path}/invoice-sample.pdf');
                             await file.writeAsBytes(bytes);
                             Get.back();
-                            Get.to(() => InvoiceViewerView(
-                              filePath: file.path,
-                              title: 'Sample Invoice',
-                            ));
+                            Get.to(
+                              () => InvoiceViewerView(
+                                filePath: file.path,
+                                title: 'Sample Invoice',
+                              ),
+                            );
                             return;
                           } catch (e) {
-                            debugPrint("Could not load real transaction for sample: $e");
+                            debugPrint(
+                              "Could not load real transaction for sample: $e",
+                            );
                           }
 
                           try {
-                            const samplePdfBase64 = 'JVBERi0xLjQKJdPr6gogMSAwIG9iaiA8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PiBlbmRvYmogMiAwIG9iaiA8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PiBlbmRvYmogMyAwIG9iaiA8PC9UeXBlL1BhZ2UvUGFyZW50IDIgMCBSL1Jlc291cmNlczw8L0ZvbnQ8PC9GMTw8L1R5cGUvRm9udC9TdWJ0eXBlL1R5cGUxL0Jhc2VGb250L0hlbHZldGljYT4+Pj4+L01lZGlhQm94WzAgMCA1OTUuMjcgODQxLjg5XS9Db250ZW50cyA0IDAgUj4+IGVuZG9iaiA0IDAgb2JqIDw8L0xlbmd0aCA4NT4+IHN0cmVhbQpCVAovRjEgMjQgVGYKNzAgNzAwIFRkCihHb2xkVmlrYW9uZSAtIFNhbXBsZSBJbnZvaWNlKSBUagovRjEgMTIgVGYKMCAtNDAgVGQKKEhhdmUgYSB3b25kZXJmdWwgZGF5ISkgVGoKRVQKZW5kc3RyZWFtIGVuZG9iaiB4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTUgMDAwMDAgbiAKMDAwMDAwMDA2MCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyNzQgMDAwMDAgbiAKdHJhaWxlciA8PC9TaXplIDUvUm9vdCAxIDAgUj4+CnN0YXJ0eHJlZgogNDEwCiUlRU9GCg==';
+                            const samplePdfBase64 =
+                                'JVBERi0xLjQKJdPr6gogMSAwIG9iaiA8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PiBlbmRvYmogMiAwIG9iaiA8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PiBlbmRvYmogMyAwIG9iaiA8PC9UeXBlL1BhZ2UvUGFyZW50IDIgMCBSL1Jlc291cmNlczw8L0ZvbnQ8PC9GMTw8L1R5cGUvRm9udC9TdWJ0eXBlL1R5cGUxL0Jhc2VGb250L0hlbHZldGljYT4+Pj4+L01lZGlhQm94WzAgMCA1OTUuMjcgODQxLjg5XS9Db250ZW50cyA0IDAgUj4+IGVuZG9iaiA0IDAgb2JqIDw8L0xlbmd0aCA4NT4+IHN0cmVhbQpCVAovRjEgMjQgVGYKNzAgNzAwIFRkCihHb2xkVmlrYW9uZSAtIFNhbXBsZSBJbnZvaWNlKSBUagovRjEgMTIgVGYKMCAtNDAgVGQKKEhhdmUgYSB3b25kZXJmdWwgZGF5ISkgVGoKRVQKZW5kc3RyZWFtIGVuZG9iaiB4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTUgMDAwMDAgbiAKMDAwMDAwMDA2MCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyNzQgMDAwMDAgbiAKdHJhaWxlciA8PC9TaXplIDUvUm9vdCAxIDAgUj4+CnN0YXJ0eHJlZgogNDEwCiUlRU9GCg==';
                             final bytes = base64Decode(samplePdfBase64);
                             final dir = await getTemporaryDirectory();
-                            final file = File('${dir.path}/invoice-sample-fallback.pdf');
+                            final file = File(
+                              '${dir.path}/invoice-sample-fallback.pdf',
+                            );
                             await file.writeAsBytes(bytes);
                             Get.back();
-                            Get.to(() => InvoiceViewerView(
-                              filePath: file.path,
-                              title: 'Sample Invoice',
-                            ));
+                            Get.to(
+                              () => InvoiceViewerView(
+                                filePath: file.path,
+                                title: 'Sample Invoice',
+                              ),
+                            );
                           } catch (e) {
                             Get.back();
                             Get.snackbar(
@@ -788,19 +802,26 @@ class ProfileView extends StatelessWidget {
                         },
                       ),
                       _menuRow(
+                        icon: Icons.local_shipping_outlined,
+                        label: 'My Orders & Tracking',
+                        textPrimary: textPrimary,
+                        borderSide: borderSideColor,
+                        onTap: () => Get.toNamed(AppRoutes.orders),
+                      ),
+                      _menuRow(
                         icon: Icons.lock_outline_rounded,
                         label: 'Security Settings',
                         textPrimary: textPrimary,
                         borderSide: borderSideColor,
                         onTap: () => Get.toNamed(AppRoutes.security),
                       ),
-                      _menuRow(
-                        icon: Icons.star_outline_rounded,
-                        label: 'My Benefits',
-                        textPrimary: textPrimary,
-                        borderSide: borderSideColor,
-                        onTap: () => Get.toNamed(AppRoutes.rewards),
-                      ),
+                      // _menuRow(
+                      //   icon: Icons.star_outline_rounded,
+                      //   label: 'My Benefits',
+                      //   textPrimary: textPrimary,
+                      //   borderSide: borderSideColor,
+                      //   onTap: () => Get.toNamed(AppRoutes.rewards),
+                      // ),
                       _menuRow(
                         icon: Icons.card_giftcard_rounded,
                         label: 'Refer & Earn',

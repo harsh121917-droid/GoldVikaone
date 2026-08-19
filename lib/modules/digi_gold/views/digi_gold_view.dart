@@ -178,7 +178,7 @@ class _DigiGoldViewState extends State<DigiGoldView>
                     },
                   ),
                   const SizedBox(height: 20),
-                  _RecentTransactionsSection(t: t),
+                  _TrustCertificatesSection(t: t),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -1559,271 +1559,440 @@ class _SipPromoCard extends StatelessWidget {
   }
 }
 
-// ─── Recent Transactions Section ─────────────────────────────────────────────
-class _RecentTransactionsSection extends StatelessWidget {
-  const _RecentTransactionsSection({required this.t});
+// ─── Trust & Security Certificates Section ────────────────────────────────────
+class _TrustCertificatesSection extends StatelessWidget {
+  const _TrustCertificatesSection({required this.t});
   final _T t;
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final goldTxns = GoldController.to.transactions.where((t) => t.type != 'sip_buy').toList();
-      final silverTxns = SilverController.to.transactions.where((t) => t.type != 'sip_buy').toList();
-
-      // Combine real transactions
-      final List<dynamic> combined = [...goldTxns, ...silverTxns];
-      combined.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-      final recent = combined.take(3).toList();
-
-      final List<dynamic> displayTxns = recent;
-
-      if (displayTxns.isEmpty) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: _gold.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _gold.withOpacity(0.3)),
+                ),
+                child: const Icon(
+                  Icons.verified_rounded,
+                  color: _gold,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
               Text(
-                'Recent Transactions',
+                'Trust & Security Certifications',
                 style: TextStyle(
                   color: t.ink,
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
+                  letterSpacing: -0.2,
                 ),
               ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-                decoration: BoxDecoration(
-                  color: t.card,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: t.cardBorder.withOpacity(0.5)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          // Certificate 1: BIS Hallmarked
+          _CertificateCard(
+            t: t,
+            title: 'BIS Hallmarked',
+            badge: '24K 99.9% PURE',
+            subtitle: 'Government-approved hallmark purity guarantee for 99.9% 24K Gold & Silver.',
+            icon: Icons.workspace_premium_rounded,
+            accentColor: _gold,
+            chips: const ['🥇 24K Pure', '🏛️ Govt. Approved', '🔒 100% Backed'],
+            gradient: const LinearGradient(
+              colors: [Color(0xFF2C2208), Color(0xFF16161B)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            onTap: () => _showCertificateDetailsModal(
+              context,
+              t: t,
+              title: 'BIS Hallmarked 24K Gold',
+              badge: '24K 99.9% PURE (999)',
+              subtitle: '100% Purity Hallmarked Guarantee',
+              accentColor: _gold,
+              icon: Icons.workspace_premium_rounded,
+              points: const [
+                'Guaranteed 24 Karat 99.9% (999) pure digital gold & silver.',
+                'Hallmarked by Government-recognized assaying & hallmarking centers.',
+                'Complete transparency with real-time live buyback rates guaranteed.',
+                'Each gram is backed 1:1 by physical hallmarked bullion bars.',
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          // Certificate 2: ISO 27001:2022 Certified
+          _CertificateCard(
+            t: t,
+            title: 'ISO 27001:2022 Certified',
+            badge: 'ISMS CERTIFIED',
+            subtitle: 'Certified Information Security Management System ensuring bank-grade data privacy.',
+            icon: Icons.shield_rounded,
+            accentColor: const Color(0xFF00B4D8),
+            chips: const ['🛡️ Bank-Grade', '🔐 256-Bit SSL', '👁️ Privacy First'],
+            gradient: const LinearGradient(
+              colors: [Color(0xFF082230), Color(0xFF16161B)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            onTap: () => _showCertificateDetailsModal(
+              context,
+              t: t,
+              title: 'ISO 27001:2022 Certified',
+              badge: 'BANK-GRADE SECURITY',
+              subtitle: 'Information Security Management Standard',
+              accentColor: const Color(0xFF00B4D8),
+              icon: Icons.shield_rounded,
+              points: const [
+                'Certified ISO 27001:2022 Information Security Management System (ISMS).',
+                '256-bit SSL bank-grade encryption for all transactions and sensitive data.',
+                'Proactive threat monitoring, vulnerability management, and zero data leakage policy.',
+                'Strict compliance with global financial data protection privacy protocols.',
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCertificateDetailsModal(
+    BuildContext context, {
+    required _T t,
+    required String title,
+    required String badge,
+    required String subtitle,
+    required Color accentColor,
+    required IconData icon,
+    required List<String> points,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: t.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border.all(color: t.cardBorder),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4.5,
+                  decoration: BoxDecoration(
+                    color: t.inkMuted.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.history_toggle_off_rounded,
-                      color: t.inkMuted.withOpacity(0.5),
-                      size: 40,
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: accentColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: accentColor.withOpacity(0.3)),
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'No transactions yet',
-                      style: TextStyle(
-                        color: t.ink,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Icon(icon, color: accentColor, size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: accentColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            badge,
+                            style: TextStyle(
+                              color: accentColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: t.ink,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Your recent purchases & sales will show up here.',
-                      style: TextStyle(
-                        color: t.inkMuted,
-                        fontSize: 11,
-                      ),
-                      textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: t.inkMuted,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Divider(color: t.inkMuted.withOpacity(0.15)),
+              const SizedBox(height: 16),
+              ...points.map((point) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.check_circle_rounded,
+                          color: accentColor,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            point,
+                            style: TextStyle(
+                              color: t.ink,
+                              fontSize: 13,
+                              height: 1.4,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  )),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accentColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Verified & Compliant',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
         );
-      }
+      },
+    );
+  }
+}
 
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+class _CertificateCard extends StatelessWidget {
+  const _CertificateCard({
+    required this.t,
+    required this.title,
+    required this.badge,
+    required this.subtitle,
+    required this.icon,
+    required this.accentColor,
+    required this.chips,
+    required this.gradient,
+    required this.onTap,
+  });
+
+  final _T t;
+  final String title;
+  final String badge;
+  final String subtitle;
+  final IconData icon;
+  final Color accentColor;
+  final List<String> chips;
+  final LinearGradient gradient;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isDark ? null : t.card,
+          gradient: isDark ? gradient : null,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: accentColor.withOpacity(isDark ? 0.35 : 0.22),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: accentColor.withOpacity(0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Top Row: Icon + Title & Badge
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Recent Transactions',
-                  style: TextStyle(
-                    color: t.ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: accentColor.withOpacity(0.28)),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: accentColor,
+                    size: 26,
                   ),
                 ),
-                GestureDetector(
-                  onTap: () => Get.toNamed(AppRoutes.transactions),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'View All',
-                        style: TextStyle(
-                          color: _gold,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              title,
+                              style: TextStyle(
+                                color: t.ink,
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.2,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.check_circle_rounded,
+                            color: accentColor,
+                            size: 15,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                        decoration: BoxDecoration(
+                          color: accentColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: accentColor.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          badge,
+                          style: TextStyle(
+                            color: accentColor,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
+                          ),
                         ),
                       ),
-                      SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_rounded, color: _gold, size: 13),
                     ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: t.inkMuted.withOpacity(0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: t.inkMuted,
+                    size: 12,
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 10),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: t.inkMuted,
+                fontSize: 11.5,
+                height: 1.35,
+                fontWeight: FontWeight.w400,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 12),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: displayTxns.length,
-              separatorBuilder: (_, __) =>
-                  Divider(color: t.inkMuted.withOpacity(0.12), height: 1),
-              itemBuilder: (context, index) {
-                final txn = displayTxns[index];
-                final isGold = txn is GoldTxnModel;
-                final isBuy = txn.type == 'buy';
-
-                final title = isGold
-                    ? (isBuy ? 'Gold Purchased' : 'Gold Sold')
-                    : (isBuy ? 'Silver Purchased' : 'Silver Sold');
-
-                final dateStr =
-                    '${txn.createdAt.day} ${_monthName(txn.createdAt.month)} ${txn.createdAt.year}, ${_formatTime(txn.createdAt)}';
-                final subtitle =
-                    '${txn.grams.toStringAsFixed(3)} g  ·  $dateStr';
-
-                final gramsPrefix = isBuy ? '+' : '-';
-                final gramsColor = isBuy ? _success : _danger;
-
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: (isGold ? _gold : _silver).withOpacity(0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isBuy
-                          ? Icons.shopping_cart_outlined
-                          : Icons.north_east_rounded,
-                      color: isGold ? _gold : _silver,
-                      size: 20,
-                    ),
-                  ),
-                  title: Row(
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          color: t.ink,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
+            // Bottom Row: Feature Chips (Overflow Safe)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: chips
+                    .map(
+                      (chip) => Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                         decoration: BoxDecoration(
-                          color: gramsColor.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(6),
+                          color: accentColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: accentColor.withOpacity(0.2)),
                         ),
                         child: Text(
-                          isBuy ? 'Buy' : 'Sell',
+                          chip,
                           style: TextStyle(
-                            color: gramsColor,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
+                            color: t.ink,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  subtitle: Text(
-                    subtitle,
-                    style: TextStyle(color: t.inkMuted, fontSize: 11),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '$gramsPrefix${txn.grams.toStringAsFixed(3)} g',
-                            style: TextStyle(
-                              color: gramsColor,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '₹ ${txn.totalAmt.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              color: t.inkMuted,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: t.inkMuted,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                  onTap: () {
-                    // Navigate to appropriate detail screen
-                    if (isGold) {
-                      Get.to(() => TransactionDetailView(txn: txn));
-                    } else {
-                      Get.to(() => SilverTransactionDetailView(txn: txn));
-                    }
-                  },
-                );
-              },
+                    )
+                    .toList(),
+              ),
             ),
           ],
         ),
-      );
-    });
-  }
-
-  String _monthName(int month) {
-    const names = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    if (month < 1 || month > 12) return '';
-    return names[month - 1];
-  }
-
-  String _formatTime(DateTime dt) {
-    final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final m = dt.minute.toString().padLeft(2, '0');
-    final ampm = dt.hour < 12 ? 'AM' : 'PM';
-    return '$h:$m $ampm';
+      ),
+    );
   }
 }
+
 
 class _DeliveryBanner extends StatelessWidget {
   const _DeliveryBanner({required this.t, required this.onTap});

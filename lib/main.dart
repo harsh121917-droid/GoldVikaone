@@ -1,3 +1,4 @@
+import 'package:vika1/services/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -10,9 +11,10 @@ import 'routes/app_routes.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Local key-value storage — must be ready before anything reads/writes
+  // Local key-value storage � must be ready before anything reads/writes
   // tokens, theme preference, passcode, etc.
   await GetStorage.init();
+  await NotificationService.init();
 
   // App-wide singletons other controllers depend on via Get.find().
   // These must exist before any screen builds, so register them here
@@ -29,9 +31,6 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = Get.find<AuthService>();
-    final lock = Get.find<LockService>();
-
     return Obx(
       () => GetMaterialApp(
         title: 'Vikaone',
@@ -41,9 +40,7 @@ class MainApp extends StatelessWidget {
         themeMode: ThemeController.to.isDark.value
             ? ThemeMode.dark
             : ThemeMode.light,
-        initialRoute: !auth.isLoggedIn
-            ? AppRoutes.login
-            : (lock.pinActive.value ? AppRoutes.lockScreen : AppRoutes.home),
+        initialRoute: AppRoutes.splash,
         getPages: appPages,
       ),
     );

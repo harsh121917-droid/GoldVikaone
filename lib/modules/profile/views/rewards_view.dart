@@ -764,19 +764,19 @@ class _RewardsViewState extends State<RewardsView>
   ) {
     final catalog = [
       {
-        'name': '₹10 Gold Voucher',
+        'name': '₹1 Gold Voucher',
         'points': 100,
         'icon': Icons.diamond_outlined,
         'color': const Color(0xFFD4A017),
       },
       {
-        'name': '₹50 Silver Voucher',
+        'name': '₹5 Gold Voucher',
         'points': 500,
         'icon': Icons.hexagon_outlined,
         'color': const Color(0xFF9AA3AD),
       },
       {
-        'name': 'Free Delivery Coupon',
+        'name': '₹10 Gold Voucher',
         'points': 1000,
         'icon': Icons.local_shipping_outlined,
         'color': Colors.blue,

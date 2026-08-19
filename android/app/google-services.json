@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "345790694007",
+    "project_id": "payvika-digigold",
+    "storage_bucket": "payvika-digigold.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:345790694007:android:ca868c218acaae5d02fc72",
+        "android_client_info": {
+          "package_name": "com.payvika.vikaone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVSJ9vKybbrhH1FNNz3vcAo26UhYcTM-g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
