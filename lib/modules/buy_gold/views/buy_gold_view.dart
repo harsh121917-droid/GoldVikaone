@@ -1,3 +1,9 @@
+import 'package:vika1/core/network/api_client.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:vika1/core/constants/api_constants.dart';
+import '../../coupons/widgets/coupon_ticket_card.dart';
+import '../../coupons/views/select_coupon_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -65,6 +71,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
   bool _userHasEdited = false;
   bool _redeemReferral = false;
   int _redeemedPoints = 0;
+  Map<String, dynamic>? _appliedCoupon;
   late final TextEditingController _ctrl;
   static const double _GST_PCT = 3.0;
 
@@ -116,12 +123,34 @@ class _BuyGoldViewState extends State<BuyGoldView> {
 
   double get _redeemVal => _redeemedPoints * 0.1;
 
-  double get _payableTotal => _total;
+  double get _couponBonusVal {
+    if (_appliedCoupon == null) return 0.0;
+    if (_appliedCoupon!['type'] == 'extra_gold') {
+      return (_appliedCoupon!['value'] as num).toDouble();
+    }
+    return 0.0;
+  }
 
-  double get _amount => _total / (1 + _GST_PCT / 100); // gold value (pre-GST)
+  double get _couponDiscountAmt {
+    if (_appliedCoupon == null) return 0.0;
+    if (_appliedCoupon!['type'] == 'discount') {
+      return (_appliedCoupon!['value'] as num).toDouble();
+    }
+    return 0.0;
+  }
+
+  // Amount paid by user (e.g. ₹100)
+  double get _payableTotal => (_total - _couponDiscountAmt).clamp(0.0, 9999999.0);
+
+  double get _amount => _total / (1 + _GST_PCT / 100); // base gold value (pre-GST)
   double get _extraGrams => _redeemVal / GoldController.to.buyRate;
   double get _referralExtraGrams => _redeemReferral ? (50.0 / GoldController.to.buyRate) : 0.0;
-  double get _grams => (_amount / GoldController.to.buyRate) + _extraGrams + _referralExtraGrams;
+  double get _couponExtraGrams => _couponBonusVal / GoldController.to.buyRate;
+
+  // Total Gold Credited = Base Gold + Free Coupon Gold (₹100 + ₹15 = ₹115 worth!)
+  double get _totalGoldCreditValue => _amount + _couponBonusVal + _redeemVal + (_redeemReferral ? 50.0 : 0.0);
+  double get _grams => (_totalGoldCreditValue / GoldController.to.buyRate);
+
   double get _gst => _total - _amount;
   double get _walletBal =>
       WalletController.to.wallet.value?.availableBalance ?? 0;
@@ -910,7 +939,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                         final availPoints = pc.points.value;
 
                         final List<int> pointOptions = [0];
-                        for (int val in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000]) {
+                        for (int val in [50, 100, 200, 300, 500, 1000, 1500, 2000, 2500, 3000, 5000, 10000]) {
                           if (val <= availPoints) {
                             pointOptions.add(val);
                           }
@@ -930,12 +959,12 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                               ),
                             );
                           }
-                          final extraVal = pts * 0.1;
+                          final extraVal = pts / 100.0;
                           final extraWt = extraVal / GoldController.to.buyRate;
                           return DropdownMenuItem<int>(
                             value: pts,
                             child: Text(
-                              "Redeem $pts pts (Adds +${extraWt.toStringAsFixed(4)}g)",
+                              "Redeem $pts pts (₹${(pts / 100.0).toStringAsFixed(2)} → +${extraWt.toStringAsFixed(4)}g)",
                               style: const TextStyle(fontSize: 13),
                             ),
                           );
@@ -990,7 +1019,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          'Available: $availPoints pts (₹${(availPoints * 0.1).toStringAsFixed(2)})',
+                                          'Available: $availPoints pts (₹${(availPoints / 100.0).toStringAsFixed(2)})',
                                           style: TextStyle(
                                             color: t.inkMuted,
                                             fontSize: 11,
@@ -1064,6 +1093,28 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                         );
                       }),
 
+                      const SizedBox(height: 16),
+
+                      // ── Apply Coupon / Offer Section ────────────────────────
+                      _CouponsSectionWidget(
+                        appliedCoupon: _appliedCoupon,
+                        currentAmount: _total,
+                        onCouponApplied: (minAmt, coupon) {
+                          setState(() {
+                            _appliedCoupon = coupon;
+                            if (_total < minAmt) {
+                              _ctrl.text = minAmt.toStringAsFixed(0);
+                            }
+                          });
+                        },
+                        onCouponRemoved: () {
+                          setState(() {
+                            _appliedCoupon = null;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
                       // ── You Will Pay Breakdown Card ──────────────────────────
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -1133,10 +1184,12 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                               const SizedBox(height: 12),
                               _breakupRow('Gold Price (24K)', '₹${GoldController.to.buyRate.toStringAsFixed(2)} /g', t),
                               const SizedBox(height: 8),
-                              _breakupRow('Weight', '${_grams.toStringAsFixed(4)} g', t),
-                              if (_redeemedPoints > 0 || _redeemReferral) ...[
+                              _breakupRow('Total Gold Credited', '${_grams.toStringAsFixed(4)} g (₹${_totalGoldCreditValue.toStringAsFixed(2)})', t, isGreen: _couponBonusVal > 0),
+                              if (_couponBonusVal > 0) ...[
                                 const SizedBox(height: 8),
-                                _breakupRow('  ↳ Base Weight', '${(_amount / GoldController.to.buyRate).toStringAsFixed(4)} g', t),
+                                _breakupRow('  ↳ Free Gold (Coupon ${_appliedCoupon!['code']})', '+₹${_couponBonusVal.toStringAsFixed(2)} (+${_couponExtraGrams.toStringAsFixed(4)} g)', t, isGreen: true),
+                              ],
+                              if (_redeemedPoints > 0 || _redeemReferral) ...[
                                 if (_redeemedPoints > 0) ...[
                                   const SizedBox(height: 8),
                                   _breakupRow('  ↳ Points Added', '+${_extraGrams.toStringAsFixed(4)} g', t, isGreen: true),
@@ -1354,6 +1407,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                                   amount: _amount,
                                   pointsRedeemed: pointsToRedeem > 0 ? pointsToRedeem : null,
                                   redeemReferral: _redeemReferral,
+                                  couponCode: _appliedCoupon?['code'],
                                 );
                                 if (ok) {
                                   if (pointsToRedeem > 0) {
@@ -1658,4 +1712,152 @@ class _BuyGoldViewState extends State<BuyGoldView> {
       ),
     ],
   );
+}
+
+
+
+
+
+
+
+// ─── Modern Coupons & Promo Offers Widget ───────────────────────────────────────
+class _CouponsSectionWidget extends StatefulWidget {
+  final Map<String, dynamic>? appliedCoupon;
+  final double currentAmount;
+  final Function(double newAmount, Map<String, dynamic> coupon) onCouponApplied;
+  final VoidCallback onCouponRemoved;
+
+  const _CouponsSectionWidget({
+    Key? key,
+    required this.appliedCoupon,
+    required this.currentAmount,
+    required this.onCouponApplied,
+    required this.onCouponRemoved,
+  }) : super(key: key);
+
+  @override
+  State<_CouponsSectionWidget> createState() => _CouponsSectionWidgetState();
+}
+
+class _CouponsSectionWidgetState extends State<_CouponsSectionWidget> {
+  List<Map<String, dynamic>> _coupons = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCoupons();
+  }
+
+  Future<void> _fetchCoupons() async {
+    try {
+      final res = await ApiClient.instance.get('/coupons');
+      if (res.statusCode == 200) {
+        final data = res.data;
+        final list = (data['coupons'] ?? data['data'] ?? []) as List;
+        if (mounted) {
+          setState(() {
+            _coupons = list.map((item) {
+              final c = Map<String, dynamic>.from(item as Map);
+              final code = c['code']?.toString() ?? 'OFFER';
+              final minAmt = (c['minPurchaseAmount'] as num? ?? 100).toInt();
+              final val = (c['value'] as num? ?? 15).toInt();
+              return {
+                'code': code,
+                'title': c['title']?.toString() ?? 'Add Gold Worth ₹$minAmt',
+                'description': c['description']?.toString() ?? 'Get Free Gold up to ₹$val',
+                'type': c['type']?.toString() ?? 'extra_gold',
+                'value': (c['value'] as num? ?? 15).toDouble(),
+                'minPurchaseAmount': (c['minPurchaseAmount'] as num? ?? 100).toDouble(),
+                'expiry': c['validUntil'] != null ? 'Valid till ${c['validUntil'].toString().split('T')[0]}' : 'Valid till 31 Aug 2026',
+                'tag': 'Applicable on once per user',
+                'badge': (c['isPopular'] == true || code == 'FREEGOLD15') ? 'MOST POPULAR' : '',
+                'stubLabel': 'FREE GOLD',
+                'saveText': 'Up to ₹$val',
+                'isPopular': c['isPopular'] == true,
+              };
+            }).toList();
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _openSelectCoupon() async {
+    final result = await Get.to(() => SelectCouponView(
+          currentAmount: widget.currentAmount,
+          metalType: 'gold',
+          initialSelectedCoupon: widget.appliedCoupon,
+        ));
+    if (result != null && result is Map<String, dynamic>) {
+      final minAmt = (result['minPurchaseAmount'] as num? ?? widget.currentAmount).toDouble();
+      widget.onCouponApplied(minAmt < widget.currentAmount ? widget.currentAmount : minAmt, result);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_coupons.isEmpty) return const SizedBox.shrink();
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final displayCoupons = _coupons.take(4).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Apply Coupon / Offer',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: dark ? Colors.white : const Color(0xFF1E2D24),
+              ),
+            ),
+            GestureDetector(
+              onTap: _openSelectCoupon,
+              child: const Text(
+                'View All',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF9C6B14),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 160,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: displayCoupons.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (ctx, idx) {
+              final coupon = displayCoupons[idx];
+              final isThisApplied = widget.appliedCoupon != null &&
+                  widget.appliedCoupon!['code'] == coupon['code'];
+              return SizedBox(
+                width: 330,
+                child: CouponTicketCard(
+                  coupon: coupon,
+                  margin: EdgeInsets.zero,
+                  isApplied: isThisApplied,
+                  customButtonText: isThisApplied ? 'Applied ✓' : 'Apply',
+                  onApply: () {
+                    final minAmt = (coupon['minPurchaseAmount'] as num? ?? widget.currentAmount).toDouble();
+                    widget.onCouponApplied(minAmt < widget.currentAmount ? widget.currentAmount : minAmt, coupon);
+                  },
+                  onRemove: widget.onCouponRemoved,
+                  onTap: _openSelectCoupon,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 }

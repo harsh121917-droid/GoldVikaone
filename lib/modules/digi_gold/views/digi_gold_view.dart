@@ -1,3 +1,9 @@
+import 'package:vika1/core/network/api_client.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:vika1/core/constants/api_constants.dart';
+import '../../coupons/widgets/coupon_ticket_card.dart';
+import '../../coupons/views/select_coupon_view.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -165,6 +171,8 @@ class _DigiGoldViewState extends State<DigiGoldView>
                   _LiveRates(t: t),
                   const SizedBox(height: 20),
                   _PromoBanner(t: t),
+                  const SizedBox(height: 20),
+                  _HomeCouponsSection(t: t),
                   const SizedBox(height: 20),
                   _SipPromoCard(t: t),
                   const SizedBox(height: 20),
@@ -2193,6 +2201,130 @@ class _DeliveryBanner extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+// ─── Home Scrollable Coupons Section ──────────────────────────────────────────
+class _HomeCouponsSection extends StatefulWidget {
+  final _T t;
+  const _HomeCouponsSection({Key? key, required this.t}) : super(key: key);
+
+  @override
+  State<_HomeCouponsSection> createState() => _HomeCouponsSectionState();
+}
+
+class _HomeCouponsSectionState extends State<_HomeCouponsSection> {
+  List<Map<String, dynamic>> _coupons = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCoupons();
+  }
+
+  Future<void> _fetchCoupons() async {
+    try {
+      final res = await ApiClient.instance.get('/coupons');
+      if (res.statusCode == 200) {
+        final data = res.data;
+        final list = (data['coupons'] ?? data['data'] ?? []) as List;
+        if (mounted) {
+          setState(() {
+            _coupons = list.map((item) {
+              final c = Map<String, dynamic>.from(item as Map);
+              final code = c['code']?.toString() ?? 'OFFER';
+              final minAmt = (c['minPurchaseAmount'] as num? ?? 100).toInt();
+              final val = (c['value'] as num? ?? 15).toInt();
+              return {
+                'code': code,
+                'title': c['title']?.toString() ?? 'Add Gold Worth ₹$minAmt',
+                'description': c['description']?.toString() ?? 'Get Free Gold up to ₹$val',
+                'type': c['type']?.toString() ?? 'extra_gold',
+                'value': (c['value'] as num? ?? 15).toDouble(),
+                'minPurchaseAmount': (c['minPurchaseAmount'] as num? ?? 100).toDouble(),
+                'expiry': c['validUntil'] != null ? 'Valid till ${c['validUntil'].toString().split('T')[0]}' : 'Valid till 31 Aug 2026',
+                'tag': 'Applicable on once per user',
+                'badge': (c['isPopular'] == true || code == 'FREEGOLD15') ? 'MOST POPULAR' : '',
+                'stubLabel': 'FREE GOLD',
+                'saveText': 'Up to ₹$val',
+                'isPopular': c['isPopular'] == true,
+              };
+            }).toList();
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_coupons.isEmpty) return const SizedBox.shrink();
+    final t = widget.t;
+    final displayCoupons = _coupons.take(4).toList();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.local_offer_rounded, color: _gold, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Exclusive Offers & Coupons',
+                    style: TextStyle(
+                      color: t.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () => Get.to(() => const SelectCouponView(currentAmount: 100)),
+                child: const Text(
+                  'View All',
+                  style: TextStyle(
+                    color: _gold,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 190,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: displayCoupons.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (ctx, idx) {
+                final coupon = displayCoupons[idx];
+                return SizedBox(
+                  width: 320,
+                  child: CouponTicketCard(
+                    coupon: coupon,
+                    margin: EdgeInsets.zero,
+                    onTap: () => Get.to(() => SelectCouponView(
+                          currentAmount: 100,
+                          initialSelectedCoupon: coupon,
+                        )),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

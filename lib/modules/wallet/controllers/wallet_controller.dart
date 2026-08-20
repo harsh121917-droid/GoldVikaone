@@ -161,10 +161,10 @@ class WalletController extends GetxController {
   }
 
   // ── 3. Buy Gold from Wallet ────────────────────────────────────────────────
-  Future<bool> buyGold({double? amount, double? grams, int? pointsRedeemed, bool redeemReferral = false}) async {
+  Future<bool> buyGold({double? amount, double? grams, int? pointsRedeemed, bool redeemReferral = false, String? couponCode}) async {
     try {
       isBuying.value = true;
-      final data = await _repo.buyGoldFromWallet(amount: amount, grams: grams, pointsRedeemed: pointsRedeemed, redeemReferral: redeemReferral);
+      final data = await _repo.buyGoldFromWallet(amount: amount, grams: grams, pointsRedeemed: pointsRedeemed, redeemReferral: redeemReferral, couponCode: couponCode);
       await loadWallet();
       if (Get.isRegistered<GoldController>()) await GoldController.to.loadAll();
       if (Get.isRegistered<PointsController>()) await PointsController.to.loadAll();
@@ -228,13 +228,14 @@ class WalletController extends GetxController {
   }
 
   // ── 4b. Buy Silver → Wallet ────────────────────────────────────────────────
-  Future<bool> buySilver({double? amount, double? grams, int? pointsRedeemed}) async {
+  Future<bool> buySilver({double? amount, double? grams, int? pointsRedeemed, String? couponCode}) async {
     try {
       isBuying.value = true;
       final data = await _repo.buySilverFromWallet(
         amount: amount,
         grams: grams,
         pointsRedeemed: pointsRedeemed,
+        couponCode: couponCode,
       );
       await loadWallet();
       if (Get.isRegistered<SilverController>()) {

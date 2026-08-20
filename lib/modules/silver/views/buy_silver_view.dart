@@ -1,3 +1,11 @@
+import 'package:vika1/core/network/api_client.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:vika1/core/constants/api_constants.dart';
+import 'package:flutter/material.dart';
+
+import '../../coupons/widgets/coupon_ticket_card.dart';
+import '../../coupons/views/select_coupon_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -23,6 +31,7 @@ class _BuySilverViewState extends State<BuySilverView> {
   bool _byAmount = true;
   double _slider = 1000;
   int _redeemedPoints = 0;
+  Map<String, dynamic>? _appliedCoupon;
   final _ctrl = TextEditingController(text: '1000');
 
   @override
@@ -41,12 +50,31 @@ class _BuySilverViewState extends State<BuySilverView> {
 
   double get _redeemVal => _redeemedPoints * 0.1;
 
-  double get _payableTotal => _total;
+  double get _couponBonusVal {
+    if (_appliedCoupon == null) return 0.0;
+    if (_appliedCoupon!['type'] == 'extra_gold') {
+      return (_appliedCoupon!['value'] as num).toDouble();
+    }
+    return 0.0;
+  }
+
+  double get _couponDiscountAmt {
+    if (_appliedCoupon == null) return 0.0;
+    if (_appliedCoupon!['type'] == 'discount') {
+      return (_appliedCoupon!['value'] as num).toDouble();
+    }
+    return 0.0;
+  }
+
+  double get _payableTotal =>
+      (_total - _couponDiscountAmt).clamp(0.0, 9999999.0);
 
   double get _amount => _total / (1 + _GST_PCT / 100); // silver value (pre-GST)
-
   double get _extraGrams => _redeemVal / SilverController.to.buyRate;
-  double get _grams => (_amount / SilverController.to.buyRate) + _extraGrams;
+  double get _couponExtraGrams => _couponBonusVal / SilverController.to.buyRate;
+
+  double get _totalSilverCreditValue => _amount + _couponBonusVal + _redeemVal;
+  double get _grams => (_totalSilverCreditValue / SilverController.to.buyRate);
 
   double get _gst => _total - _amount;
   double get _walletBal =>
@@ -484,7 +512,36 @@ class _BuySilverViewState extends State<BuySilverView> {
                     })
                     .toList(),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+
+              // ── Coupons & Offers Widget ──
+              _CouponsSectionWidget(
+                context: context,
+                isDark: dark,
+                currentAmount: _total,
+                metalType: 'silver',
+                appliedCoupon: _appliedCoupon,
+                onApplyCoupon: (newAmount, coupon) {
+                  setState(() {
+                    _ctrl.text = newAmount.toStringAsFixed(0);
+                    _appliedCoupon = coupon;
+                  });
+                  Get.snackbar(
+                    '🎉 Coupon Applied!',
+                    'Coupon "${coupon['code']}" successfully applied to your purchase.',
+                    backgroundColor: const Color(0xFF2ECC71),
+                    colorText: Colors.white,
+                    snackPosition: SnackPosition.TOP,
+                  );
+                },
+                onRemoveCoupon: () {
+                  setState(() {
+                    _appliedCoupon = null;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 16),
 
               // ── You will get ─────────────────────────────────────────────────
               if (_amount > 0) ...[
@@ -753,7 +810,20 @@ class _BuySilverViewState extends State<BuySilverView> {
                   if (availPoints <= 0) return const SizedBox.shrink();
 
                   final List<int> pointOptions = [0];
-                  for (int val in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000]) {
+                  for (int val in [
+                    50,
+                    100,
+                    200,
+                    300,
+                    500,
+                    1000,
+                    1500,
+                    2000,
+                    2500,
+                    3000,
+                    5000,
+                    10000,
+                  ]) {
                     if (val <= availPoints) {
                       pointOptions.add(val);
                     }
@@ -763,7 +833,8 @@ class _BuySilverViewState extends State<BuySilverView> {
                   }
                   pointOptions.sort();
 
-                  final List<DropdownMenuItem<int>> dropdownItems = pointOptions.map((pts) {
+                  final List<DropdownMenuItem<int>>
+                  dropdownItems = pointOptions.map((pts) {
                     if (pts == 0) {
                       return const DropdownMenuItem<int>(
                         value: 0,
@@ -773,12 +844,12 @@ class _BuySilverViewState extends State<BuySilverView> {
                         ),
                       );
                     }
-                    final extraVal = pts * 0.1;
+                    final extraVal = pts / 100.0;
                     final extraWt = extraVal / SilverController.to.buyRate;
                     return DropdownMenuItem<int>(
                       value: pts,
                       child: Text(
-                        "Redeem $pts pts (Adds +${extraWt.toStringAsFixed(4)}g)",
+                        "Redeem $pts pts (₹${(pts / 100.0).toStringAsFixed(2)} → +${extraWt.toStringAsFixed(4)}g)",
                         style: const TextStyle(fontSize: 13),
                       ),
                     );
@@ -809,7 +880,9 @@ class _BuySilverViewState extends State<BuySilverView> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF8A95A5).withOpacity(0.12),
+                                color: const Color(
+                                  0xFF8A95A5,
+                                ).withOpacity(0.12),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -833,11 +906,8 @@ class _BuySilverViewState extends State<BuySilverView> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Available: $availPoints pts (₹${(availPoints * 0.1).toStringAsFixed(2)})',
-                                    style: TextStyle(
-                                      color: ts,
-                                      fontSize: 11,
-                                    ),
+                                    'Available: $availPoints pts (₹${(availPoints / 100.0).toStringAsFixed(2)})',
+                                    style: TextStyle(color: ts, fontSize: 11),
                                   ),
                                 ],
                               ),
@@ -846,15 +916,15 @@ class _BuySilverViewState extends State<BuySilverView> {
                         ),
                         const SizedBox(height: 12),
                         Theme(
-                          data: Theme.of(context).copyWith(
-                            canvasColor: cardBg,
-                          ),
+                          data: Theme.of(context).copyWith(canvasColor: cardBg),
                           child: DropdownButtonFormField<int>(
                             value: _redeemedPoints,
                             items: dropdownItems,
                             decoration: InputDecoration(
                               contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                                 borderSide: BorderSide(
@@ -1024,11 +1094,17 @@ class _BuySilverViewState extends State<BuySilverView> {
                                 final pointsToRedeem = _redeemedPoints;
                                 final ok = await WalletController.to.buySilver(
                                   amount: _amount,
-                                  pointsRedeemed: pointsToRedeem > 0 ? pointsToRedeem : null,
+                                  pointsRedeemed: pointsToRedeem > 0
+                                      ? pointsToRedeem
+                                      : null,
+                                  couponCode: _appliedCoupon?['code'],
                                 );
                                 if (ok) {
                                   if (pointsToRedeem > 0) {
-                                    PointsController.to.redeemPoints(pointsToRedeem, 'Silver Purchase');
+                                    PointsController.to.redeemPoints(
+                                      pointsToRedeem,
+                                      'Silver Purchase',
+                                    );
                                   }
                                   _showSuccessDialog(_grams, _total);
                                 }
@@ -1094,8 +1170,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                         ? 'Processing...'
                                         : _valid
                                         ? 'Buy Silver Securely'
-                                        : (_total >= 55.0 &&
-                                              !_hasEnoughBalance)
+                                        : (_total >= 55.0 && !_hasEnoughBalance)
                                         ? 'Insufficient Balance'
                                         : 'Min ₹${50.0.toInt()}',
                                     style: TextStyle(
@@ -1151,7 +1226,6 @@ class _BuySilverViewState extends State<BuySilverView> {
     });
   }
 
-  
   void _showSuccessDialog(double grams, double totalPaid) {
     showGeneralDialog(
       context: context,
@@ -1160,9 +1234,15 @@ class _BuySilverViewState extends State<BuySilverView> {
       transitionDuration: const Duration(milliseconds: 400),
       pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
       transitionBuilder: (context, anim1, anim2, child) {
-        final scaleCurve = CurvedAnimation(parent: anim1, curve: Curves.easeOutBack);
-        final opacityCurve = CurvedAnimation(parent: anim1, curve: Curves.easeOut);
-        
+        final scaleCurve = CurvedAnimation(
+          parent: anim1,
+          curve: Curves.easeOutBack,
+        );
+        final opacityCurve = CurvedAnimation(
+          parent: anim1,
+          curve: Curves.easeOut,
+        );
+
         final dark = ThemeController.to.isDark.value;
         final bg = dark ? const Color(0xFF060B16) : const Color(0xFFF5F0E8);
         final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
@@ -1176,7 +1256,9 @@ class _BuySilverViewState extends State<BuySilverView> {
             scale: scaleCurve,
             child: AlertDialog(
               backgroundColor: cardBg,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
               contentPadding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1229,10 +1311,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                   Text(
                     'Your digital silver will credit to your account shortly.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: ts,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: ts, fontSize: 12),
                   ),
                   const SizedBox(height: 20),
                   Container(
@@ -1247,11 +1326,27 @@ class _BuySilverViewState extends State<BuySilverView> {
                       children: [
                         _dialogRow('Asset Type', '999 Fine Silver', ts, tp),
                         const SizedBox(height: 8),
-                        _dialogRow('Weight Credited', '${grams.toStringAsFixed(4)} g', ts, const Color(0xFF2ecc71), isHighlight: true),
+                        _dialogRow(
+                          'Weight Credited',
+                          '${grams.toStringAsFixed(4)} g',
+                          ts,
+                          const Color(0xFF2ecc71),
+                          isHighlight: true,
+                        ),
                         const SizedBox(height: 8),
-                        _dialogRow('Silver Rate (per g)', '₹${SilverController.to.buyRate.toStringAsFixed(2)}', ts, tp),
+                        _dialogRow(
+                          'Silver Rate (per g)',
+                          '₹${SilverController.to.buyRate.toStringAsFixed(2)}',
+                          ts,
+                          tp,
+                        ),
                         const SizedBox(height: 8),
-                        _dialogRow('Total Amount', '₹${totalPaid.toStringAsFixed(2)}', ts, tp),
+                        _dialogRow(
+                          'Total Amount',
+                          '₹${totalPaid.toStringAsFixed(2)}',
+                          ts,
+                          tp,
+                        ),
                         const SizedBox(height: 8),
                         _dialogRow('Paid Via', 'Wallet Balance', ts, tp),
                       ],
@@ -1291,16 +1386,16 @@ class _BuySilverViewState extends State<BuySilverView> {
     );
   }
 
-  Widget _dialogRow(String label, String val, Color ts, Color tp, {bool isHighlight = false}) => Row(
+  Widget _dialogRow(
+    String label,
+    String val,
+    Color ts,
+    Color tp, {
+    bool isHighlight = false,
+  }) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Text(
-        label,
-        style: TextStyle(
-          color: ts,
-          fontSize: 12,
-        ),
-      ),
+      Text(label, style: TextStyle(color: ts, fontSize: 12)),
       Text(
         val,
         style: TextStyle(
@@ -1371,4 +1466,152 @@ class _CalcRow extends StatelessWidget {
       ),
     ],
   );
+}
+
+// ─── Modern Coupons & Promo Offers Widget ───────────────────────────────────────
+class _CouponsSectionWidget extends StatefulWidget {
+  final BuildContext context;
+  final bool isDark;
+  final double currentAmount;
+  final String metalType; // 'gold' or 'silver'
+  final Map<String, dynamic>? appliedCoupon;
+  final Function(double newAmount, Map<String, dynamic> coupon) onApplyCoupon;
+  final VoidCallback onRemoveCoupon;
+
+  const _CouponsSectionWidget({
+    Key? key,
+    required this.context,
+    required this.isDark,
+    required this.currentAmount,
+    required this.metalType,
+    required this.appliedCoupon,
+    required this.onApplyCoupon,
+    required this.onRemoveCoupon,
+  }) : super(key: key);
+
+  @override
+  State<_CouponsSectionWidget> createState() => _CouponsSectionWidgetState();
+}
+
+class _CouponsSectionWidgetState extends State<_CouponsSectionWidget> {
+  List<Map<String, dynamic>> _coupons = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCoupons();
+  }
+
+  Future<void> _fetchCoupons() async {
+    try {
+      final res = await ApiClient.instance.get('/coupons');
+      if (res.statusCode == 200) {
+        final data = res.data;
+        final list = (data['coupons'] ?? data['data'] ?? []) as List;
+        if (mounted) {
+          setState(() {
+            _coupons = list.map((item) {
+              final c = Map<String, dynamic>.from(item as Map);
+              final code = c['code']?.toString() ?? 'OFFER';
+              final minAmt = (c['minPurchaseAmount'] as num? ?? 100).toInt();
+              final val = (c['value'] as num? ?? 15).toInt();
+              return {
+                'code': code,
+                'title': c['title']?.toString() ?? 'Add Silver Worth ₹$minAmt',
+                'description': c['description']?.toString() ?? 'Get Free Silver up to ₹$val',
+                'type': c['type']?.toString() ?? 'extra_gold',
+                'value': (c['value'] as num? ?? 15).toDouble(),
+                'minPurchaseAmount': (c['minPurchaseAmount'] as num? ?? 100).toDouble(),
+                'expiry': c['validUntil'] != null ? 'Valid till ${c['validUntil'].toString().split('T')[0]}' : 'Valid till 31 Aug 2026',
+                'tag': 'Applicable on once per user',
+                'badge': (c['isPopular'] == true || code == 'FREEGOLD15') ? 'MOST POPULAR' : '',
+                'stubLabel': 'FREE SILVER',
+                'saveText': 'Up to ₹$val',
+                'isPopular': c['isPopular'] == true,
+              };
+            }).toList();
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _openSelectCoupon() async {
+    final result = await Get.to(() => SelectCouponView(
+          currentAmount: widget.currentAmount,
+          metalType: widget.metalType,
+          initialSelectedCoupon: widget.appliedCoupon,
+        ));
+    if (result != null && result is Map<String, dynamic>) {
+      final minAmt = (result['minPurchaseAmount'] as num? ?? widget.currentAmount).toDouble();
+      widget.onApplyCoupon(minAmt < widget.currentAmount ? widget.currentAmount : minAmt, result);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_coupons.isEmpty) return const SizedBox.shrink();
+    final dark = widget.isDark;
+    final displayCoupons = _coupons.take(4).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Apply Coupon / Offer',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: dark ? Colors.white : const Color(0xFF1E2D24),
+              ),
+            ),
+            GestureDetector(
+              onTap: _openSelectCoupon,
+              child: const Text(
+                'View All',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF9C6B14),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 160,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: displayCoupons.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (ctx, idx) {
+              final coupon = displayCoupons[idx];
+              final isThisApplied = widget.appliedCoupon != null &&
+                  widget.appliedCoupon!['code'] == coupon['code'];
+              return SizedBox(
+                width: 320,
+                child: CouponTicketCard(
+                  coupon: coupon,
+                  margin: EdgeInsets.zero,
+                  isApplied: isThisApplied,
+                  customButtonText: isThisApplied ? 'Applied ✓' : 'Apply',
+                  onApply: () {
+                    final minAmt = (coupon['minPurchaseAmount'] as num? ?? widget.currentAmount).toDouble();
+                    widget.onApplyCoupon(minAmt < widget.currentAmount ? widget.currentAmount : minAmt, coupon);
+                  },
+                  onRemove: widget.onRemoveCoupon,
+                  onTap: _openSelectCoupon,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 }

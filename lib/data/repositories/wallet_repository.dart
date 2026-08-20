@@ -161,6 +161,7 @@ class WalletRepository {
     double? grams,
     int? pointsRedeemed,
     bool redeemReferral = false,
+    String? couponCode,
   }) async {
     final res = await _dio.post(
       '$_w/buy-gold',
@@ -169,6 +170,7 @@ class WalletRepository {
         if (grams != null) 'grams': grams,
         if (pointsRedeemed != null) 'pointsRedeemed': pointsRedeemed,
         'redeemReferral': redeemReferral,
+        if (couponCode != null && couponCode.isNotEmpty) 'couponCode': couponCode,
       },
     );
     return res.data['data'] as Map<String, dynamic>;
@@ -183,6 +185,7 @@ class WalletRepository {
     double? amount,
     double? grams,
     int? pointsRedeemed,
+    String? couponCode,
   }) async {
     final res = await _dio.post(
       '$_w/buy-silver',
@@ -190,6 +193,7 @@ class WalletRepository {
         if (amount != null) 'amountInRupees': amount,
         if (grams != null) 'grams': grams,
         if (pointsRedeemed != null) 'pointsRedeemed': pointsRedeemed,
+        if (couponCode != null && couponCode.isNotEmpty) 'couponCode': couponCode,
       },
     );
     return res.data['data'] as Map<String, dynamic>;
