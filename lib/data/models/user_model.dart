@@ -6,6 +6,7 @@ class UserModel {
   final String role;
   final String? referralCode;
   final double referralBalance;
+  final String kycStatus;
 
   UserModel({
     required this.id,
@@ -15,6 +16,7 @@ class UserModel {
     required this.role,
     this.referralCode,
     this.referralBalance = 0.0,
+    this.kycStatus = 'not_submitted',
   });
 
   factory UserModel.fromJson(Map<String, dynamic> j) => UserModel(
@@ -25,6 +27,7 @@ class UserModel {
     role: j['role'] ?? 'user',
     referralCode: j['referralCode'],
     referralBalance: (j['referralBalance'] as num?)?.toDouble() ?? 0.0,
+    kycStatus: j['kycStatus']?.toString() ?? 'not_submitted',
   );
 
   Map<String, dynamic> toJson() => {
@@ -35,5 +38,6 @@ class UserModel {
     'role': role,
     'referralCode': referralCode,
     'referralBalance': referralBalance,
+    'kycStatus': kycStatus,
   };
 }

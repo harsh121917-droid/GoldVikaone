@@ -7,7 +7,7 @@ import '../../coupons/views/select_coupon_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:vika1/modules/silver/controllers/silver_controller.dart';
+import 'package:vika1/modules/copper/controllers/copper_controller.dart';
 import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 import 'package:vika1/routes/app_routes.dart';
 import 'package:vika1/modules/profile/utils/policy_texts.dart';
@@ -21,8 +21,8 @@ import 'package:vika1/modules/profile/views/rewards_view.dart';
 const _termsContent = PolicyTexts.terms;
 
 // ─── Design tokens (same identity as home) ───────────────────────────────────
-const _silver = Color(0xFF8A95A5);
-const _silverLight = Color(0xFFB0BAC7);
+const _copper = Color(0xFFEA580C);
+const _copperLight = Color(0xFFFB923C);
 const _danger = Color(0xFFE05A47);
 
 class _T {
@@ -57,13 +57,13 @@ class _T {
         );
 }
 
-class BuySilverView extends StatefulWidget {
-  const BuySilverView({super.key});
+class BuyCopperView extends StatefulWidget {
+  const BuyCopperView({super.key});
   @override
-  State<BuySilverView> createState() => _BuySilverViewState();
+  State<BuyCopperView> createState() => _BuyCopperViewState();
 }
 
-class _BuySilverViewState extends State<BuySilverView> {
+class _BuyCopperViewState extends State<BuyCopperView> {
   bool _isBuyingLocal = false;
   bool _byAmount = true;
   bool _showBreakup = true;
@@ -134,7 +134,7 @@ class _BuySilverViewState extends State<BuySilverView> {
   double get _total => _byAmount
       ? (double.tryParse(_ctrl.text) ?? 0)
       : (double.tryParse(_ctrl.text) ?? 0) *
-            SilverController.to.buyRate *
+            CopperController.to.buyRate *
             (1 + _GST_PCT / 100);
 
   double get _redeemVal => _redeemedPoints * 0.01;
@@ -144,7 +144,7 @@ class _BuySilverViewState extends State<BuySilverView> {
     final minAmt = (_appliedCoupon!['minPurchaseAmount'] as num? ?? 0.0)
         .toDouble();
     if (_total < minAmt) return 0.0;
-    if (_appliedCoupon!['type'] == 'extra_silver') {
+    if (_appliedCoupon!['type'] == 'extra_copper') {
       return (_appliedCoupon!['value'] as num).toDouble();
     }
     return 0.0;
@@ -166,16 +166,16 @@ class _BuySilverViewState extends State<BuySilverView> {
       (_total - _couponDiscountAmt).clamp(0.0, 9999999.0);
 
   double get _amount =>
-      _total / (1 + _GST_PCT / 100); // base silver value (pre-GST)
-  double get _extraGrams => _redeemVal / SilverController.to.buyRate;
+      _total / (1 + _GST_PCT / 100); // base copper value (pre-GST)
+  double get _extraGrams => _redeemVal / CopperController.to.buyRate;
   double get _referralExtraGrams =>
-      _redeemReferral ? (50.0 / SilverController.to.buyRate) : 0.0;
-  double get _couponExtraGrams => _couponBonusVal / SilverController.to.buyRate;
+      _redeemReferral ? (50.0 / CopperController.to.buyRate) : 0.0;
+  double get _couponExtraGrams => _couponBonusVal / CopperController.to.buyRate;
 
-  // Total Silver Credited = Base Silver + Free Coupon Silver (₹100 + ₹15 = ₹115 worth!)
-  double get _totalSilverCreditValue =>
+  // Total Copper Credited = Base Copper + Free Coupon Copper (₹100 + ₹15 = ₹115 worth!)
+  double get _totalCopperCreditValue =>
       _amount + _couponBonusVal + _redeemVal + (_redeemReferral ? 50.0 : 0.0);
-  double get _grams => (_totalSilverCreditValue / SilverController.to.buyRate);
+  double get _grams => (_totalCopperCreditValue / CopperController.to.buyRate);
 
   double get _gst => _total - _amount;
   double get _walletBal =>
@@ -195,7 +195,7 @@ class _BuySilverViewState extends State<BuySilverView> {
     _ctrl.text = grams.toStringAsFixed(4);
   });
 
-  // ── 3-Metal Selector Bar (Silver, Silver, Copper) ──────────────────────────
+  // ── 3-Metal Selector Bar (Copper, Silver, Copper) ──────────────────────────
   Widget _buildMetalSelector(String currentMetal, _T t) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -214,16 +214,16 @@ class _BuySilverViewState extends State<BuySilverView> {
       ),
       child: Row(
         children: [
-          // Silver Tab
+          // Copper Tab
           Expanded(
             child: _metalTab(
-              label: 'Silver 999 Fine',
+              label: 'Copper 999 Pure',
               icon: Icons.workspace_premium_rounded,
-              isSelected: currentMetal == 'silver',
-              activeColor: const Color(0xFF8A95A5),
+              isSelected: currentMetal == 'copper',
+              activeColor: const Color(0xFFEA580C),
               onTap: () {
-                if (currentMetal != 'silver') {
-                  Get.offNamed(AppRoutes.buySilver);
+                if (currentMetal != 'copper') {
+                  Get.offNamed(AppRoutes.buyCopper);
                 }
               },
             ),
@@ -369,7 +369,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                     const Expanded(
                       child: Center(
                         child: Text(
-                          'Buy Silver',
+                          'Buy Copper',
                           style: TextStyle(
                             color: Color(0xFF0B3D2E),
                             fontSize: 18,
@@ -440,7 +440,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Live Silver Rate Banner ──────────────────────────────────
+                      // ── Live Copper Rate Banner ──────────────────────────────────
                       Container(
                         width: double.infinity,
                         height: 140,
@@ -449,7 +449,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                           borderRadius: BorderRadius.circular(16),
                           image: const DecorationImage(
                             image: AssetImage(
-                              'assets/images/silver_banner.png',
+                              'assets/images/copper_banner.png',
                             ),
                             fit: BoxFit.cover,
                           ),
@@ -464,7 +464,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'Live Silver Price (999 Fine)',
+                                'Live Copper Price (999 Pure)',
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.9),
                                   fontSize: 12,
@@ -477,9 +477,9 @@ class _BuySilverViewState extends State<BuySilverView> {
                                 textBaseline: TextBaseline.alphabetic,
                                 children: [
                                   Text(
-                                    '₹ ${SilverController.to.buyRate.toStringAsFixed(2)}',
+                                    '₹ ${CopperController.to.buyRate.toStringAsFixed(2)}',
                                     style: const TextStyle(
-                                      color: Color(0xFFFFD700), // bright silver
+                                      color: Color(0xFFFFD700), // bright copper
                                       fontSize: 26,
                                       fontWeight: FontWeight.w900,
                                     ),
@@ -497,10 +497,10 @@ class _BuySilverViewState extends State<BuySilverView> {
                               const SizedBox(height: 6),
                               Obx(() {
                                 final chg =
-                                    SilverController.to.rate.value?.change24h ??
+                                    CopperController.to.rate.value?.change24h ??
                                     0;
                                 final pct =
-                                    SilverController.to.rate.value?.changePct ??
+                                    CopperController.to.rate.value?.changePct ??
                                     0;
                                 final isUp = chg >= 0;
                                 final c = isUp
@@ -530,7 +530,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                               }),
                               const Spacer(),
                               Obx(() {
-                                final rateVal = SilverController.to.rate.value;
+                                final rateVal = CopperController.to.rate.value;
                                 return Row(
                                   children: [
                                     Text(
@@ -543,7 +543,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                     const SizedBox(width: 4),
                                     GestureDetector(
                                       onTap: () =>
-                                          SilverController.to.loadRate(),
+                                          CopperController.to.loadRate(),
                                       child: Icon(
                                         Icons.refresh_rounded,
                                         color: Colors.white.withOpacity(0.65),
@@ -566,12 +566,12 @@ class _BuySilverViewState extends State<BuySilverView> {
                           Row(
                             children: [
                               Image.asset(
-                                'assets/images/silver_coin.png',
+                                'assets/images/gold_coin.png',
                                 width: 22,
                                 height: 22,
                                 errorBuilder: (_, __, ___) => const Icon(
                                   Icons.monetization_on_outlined,
-                                  color: _silver,
+                                  color: _copper,
                                   size: 22,
                                 ),
                               ),
@@ -597,7 +597,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                 // 1. Gold Tab
                                 GestureDetector(
                                   onTap: () {
-                                    if ('silver' != 'gold') {
+                                    if ('copper' != 'gold') {
                                       Get.offNamed(AppRoutes.buyGold);
                                     }
                                   },
@@ -639,7 +639,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                 // 2. Silver Tab
                                 GestureDetector(
                                   onTap: () {
-                                    if ('silver' != 'silver') {
+                                    if ('copper' != 'silver') {
                                       Get.offNamed(AppRoutes.buySilver);
                                     }
                                   },
@@ -649,7 +649,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF0B3D2E),
+                                      color: Colors.transparent,
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: Row(
@@ -669,7 +669,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                         Text(
                                           'Silver',
                                           style: TextStyle(
-                                            color: Colors.white,
+                                            color: t.inkMuted,
                                             fontSize: 11.5,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -681,7 +681,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                 // 3. Copper Tab
                                 GestureDetector(
                                   onTap: () {
-                                    if ('silver' != 'copper') {
+                                    if ('copper' != 'copper') {
                                       Get.offNamed(AppRoutes.buyCopper);
                                     }
                                   },
@@ -691,7 +691,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.transparent,
+                                      color: const Color(0xFF0B3D2E),
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: Row(
@@ -705,7 +705,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                         Text(
                                           'Copper',
                                           style: TextStyle(
-                                            color: t.inkMuted,
+                                            color: Colors.white,
                                             fontSize: 11.5,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -752,7 +752,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                             child: Text(
                               _byAmount ? 'Or Enter Weight' : 'Or Enter Amount',
                               style: const TextStyle(
-                                color: _silver,
+                                color: _copper,
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 decoration: TextDecoration.underline,
@@ -836,7 +836,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                             (_walletBal > 0
                                                 ? _walletBal
                                                 : 10000) /
-                                            SilverController.to.buyRate;
+                                            CopperController.to.buyRate;
                                         _ctrl.text = maxGrams.toStringAsFixed(
                                           4,
                                         );
@@ -852,13 +852,13 @@ class _BuySilverViewState extends State<BuySilverView> {
                                       color: const Color(0xFFFFF9E6),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: _silver.withOpacity(0.5),
+                                        color: _copper.withOpacity(0.5),
                                       ),
                                     ),
                                     child: const Text(
                                       'Max',
                                       style: TextStyle(
-                                        color: _silver,
+                                        color: _copper,
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -873,7 +873,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                   ? '= ${_grams.toStringAsFixed(4)} g'
                                   : '= ₹${_total.toStringAsFixed(2)}',
                               style: const TextStyle(
-                                color: _silver,
+                                color: _copper,
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -934,7 +934,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                             ),
                                             border: Border.all(
                                               color: active
-                                                  ? _silver
+                                                  ? _copper
                                                   : t.inkMuted.withOpacity(
                                                       0.15,
                                                     ),
@@ -946,7 +946,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
                                               color: active
-                                                  ? _silver
+                                                  ? _copper
                                                   : t.inkMuted,
                                               fontSize: 12,
                                               fontWeight: active
@@ -983,7 +983,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                 0xFFFFF9E6,
                               ), // yellow/cream tint
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: _silver, width: 1.5),
+                              border: Border.all(color: _copper, width: 1.5),
                             ),
                             child: Row(
                               children: [
@@ -1032,7 +1032,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: _silver,
+                                      color: _copper,
                                       width: 2,
                                     ),
                                   ),
@@ -1111,7 +1111,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: _redeemReferral
-                                    ? _silver
+                                    ? _copper
                                     : t.inkMuted.withOpacity(0.15),
                                 width: _redeemReferral ? 1.5 : 1,
                               ),
@@ -1124,12 +1124,12 @@ class _BuySilverViewState extends State<BuySilverView> {
                                     Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: _silver.withValues(alpha: 0.12),
+                                        color: _copper.withValues(alpha: 0.12),
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Icon(
                                         Icons.card_giftcard_rounded,
-                                        color: _silver,
+                                        color: _copper,
                                         size: 20,
                                       ),
                                     ),
@@ -1173,15 +1173,15 @@ class _BuySilverViewState extends State<BuySilverView> {
                                         ),
                                       ),
                                       subtitle: Text(
-                                        'Pay ₹${_total.toStringAsFixed(0)}, get ₹${(_total + 50.0).toStringAsFixed(0)} worth of silver!',
+                                        'Pay ₹${_total.toStringAsFixed(0)}, get ₹${(_total + 50.0).toStringAsFixed(0)} worth of copper!',
                                         style: TextStyle(
-                                          color: _silver,
+                                          color: _copper,
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                       value: _redeemReferral,
-                                      activeColor: _silver,
+                                      activeColor: _copper,
                                       onChanged: (val) {
                                         setState(() {
                                           _redeemReferral = val;
@@ -1306,7 +1306,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                           }
                           final extraVal = pts / 100.0;
                           final extraWt =
-                              extraVal / SilverController.to.buyRate;
+                              extraVal / CopperController.to.buyRate;
                           return DropdownMenuItem<int>(
                             value: pts,
                             child: Text(
@@ -1328,7 +1328,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: _redeemedPoints > 0
-                                  ? _silver.withOpacity(0.5)
+                                  ? _copper.withOpacity(0.5)
                                   : t.inkMuted.withOpacity(0.15),
                               width: _redeemedPoints > 0 ? 1.5 : 1,
                             ),
@@ -1341,12 +1341,12 @@ class _BuySilverViewState extends State<BuySilverView> {
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: _silver.withOpacity(0.12),
+                                      color: _copper.withOpacity(0.12),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
                                       Icons.emoji_events_outlined,
-                                      color: _silver,
+                                      color: _copper,
                                       size: 20,
                                     ),
                                   ),
@@ -1407,7 +1407,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(10),
                                         borderSide: const BorderSide(
-                                          color: _silver,
+                                          color: _copper,
                                         ),
                                       ),
                                     ),
@@ -1527,21 +1527,21 @@ class _BuySilverViewState extends State<BuySilverView> {
                               ),
                               const SizedBox(height: 12),
                               _breakupRow(
-                                'Silver Price (999 Fine)',
-                                '₹${SilverController.to.buyRate.toStringAsFixed(2)} /g',
+                                'Copper Price (999 Pure)',
+                                '₹${CopperController.to.buyRate.toStringAsFixed(2)} /g',
                                 t,
                               ),
                               const SizedBox(height: 8),
                               _breakupRow(
-                                'Total Silver Credited',
-                                '${_grams.toStringAsFixed(4)} g (₹${_totalSilverCreditValue.toStringAsFixed(2)})',
+                                'Total Copper Credited',
+                                '${_grams.toStringAsFixed(4)} g (₹${_totalCopperCreditValue.toStringAsFixed(2)})',
                                 t,
                                 isGreen: _couponBonusVal > 0,
                               ),
                               if (_couponBonusVal > 0) ...[
                                 const SizedBox(height: 8),
                                 _breakupRow(
-                                  '  ↳ Free Silver (Coupon ${_appliedCoupon!['code']})',
+                                  '  ↳ Free Copper (Coupon ${_appliedCoupon!['code']})',
                                   '+₹${_couponBonusVal.toStringAsFixed(2)} (+${_couponExtraGrams.toStringAsFixed(4)} g)',
                                   t,
                                   isGreen: true,
@@ -1586,7 +1586,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                       ),
                       const SizedBox(height: 16),
 
-                      // ── Secure Silver Strip ──────────────────────────────────────
+                      // ── Secure Copper Strip ──────────────────────────────────────
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -1604,12 +1604,12 @@ class _BuySilverViewState extends State<BuySilverView> {
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF8A95A5).withOpacity(0.1),
+                                color: const Color(0xFFEA580C).withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
                                 Icons.shield_outlined,
-                                color: Color(0xFF8A95A5),
+                                color: Color(0xFFEA580C),
                                 size: 18,
                               ),
                             ),
@@ -1619,7 +1619,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '100% Secure Silver',
+                                    '100% Secure Copper',
                                     style: TextStyle(
                                       color: t.ink,
                                       fontSize: 12,
@@ -1628,7 +1628,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                   ),
                                   const SizedBox(height: 1),
                                   Text(
-                                    'Your silver is stored in secure vaults and 100% insured.',
+                                    'Your copper is stored in secure vaults and 100% insured.',
                                     style: TextStyle(
                                       color: t.inkMuted,
                                       fontSize: 10,
@@ -1774,7 +1774,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                               if (kycCtrl.kycStatus.value != "approved") {
                                 Get.snackbar(
                                   "KYC Required",
-                                  "Please complete your KYC to buy silver.",
+                                  "Please complete your KYC to buy copper.",
                                   backgroundColor: const Color(0xFFE05A47),
                                   colorText: Colors.white,
                                   snackPosition: SnackPosition.BOTTOM,
@@ -1788,7 +1788,7 @@ class _BuySilverViewState extends State<BuySilverView> {
 
                               try {
                                 final pointsToRedeem = _redeemedPoints;
-                                final ok = await WalletController.to.buySilver(
+                                final ok = await WalletController.to.buyCopper(
                                   amount: _amount,
                                   pointsRedeemed: pointsToRedeem > 0
                                       ? pointsToRedeem
@@ -1800,7 +1800,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                   if (pointsToRedeem > 0) {
                                     PointsController.to.redeemPoints(
                                       pointsToRedeem,
-                                      'Silver Purchase',
+                                      'Copper Purchase',
                                     );
                                   }
                                   _showSuccessDialog(_grams, _payableTotal);
@@ -1847,7 +1847,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                       ),
                                       SizedBox(width: 8),
                                       Text(
-                                        'Buy Silver Now',
+                                        'Buy Copper Now',
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 14,
@@ -1859,7 +1859,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                   Text(
                                     '₹${_payableTotal.toStringAsFixed(2)}',
                                     style: const TextStyle(
-                                      color: Color(0xFFFFD700), // silver text
+                                      color: Color(0xFFFFD700), // copper text
                                       fontSize: 14,
                                       fontWeight: FontWeight.w900,
                                     ),
@@ -1876,7 +1876,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                       children: [
                         _trustBadge(
                           Icons.verified_outlined,
-                          '999 Fine 99.99% Purity',
+                          '999 Pure 99.99% Purity',
                           '100% Hallmarked',
                           t,
                         ),
@@ -2007,12 +2007,12 @@ class _BuySilverViewState extends State<BuySilverView> {
                         ),
                       ),
                       Image.asset(
-                        'assets/images/silver_coin.png',
+                        'assets/images/copper_coin.png',
                         width: 50,
                         height: 50,
                         errorBuilder: (_, __, ___) => const Icon(
                           Icons.monetization_on_rounded,
-                          color: _silver,
+                          color: _copper,
                           size: 50,
                         ),
                       ),
@@ -2036,7 +2036,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Silver Purchased Successfully!',
+                    'Copper Purchased Successfully!',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: const Color(0xFF0B3D2E),
@@ -2046,7 +2046,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Your digital silver will credit to your account shortly.',
+                    'Your digital copper will credit to your account shortly.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: t.inkMuted, fontSize: 12),
                   ),
@@ -2061,7 +2061,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                     ),
                     child: Column(
                       children: [
-                        _dialogRow('Asset Type', '999 Fine Silver', t),
+                        _dialogRow('Asset Type', '999 Pure Copper', t),
                         const SizedBox(height: 8),
                         _dialogRow(
                           'Weight Credited',
@@ -2071,8 +2071,8 @@ class _BuySilverViewState extends State<BuySilverView> {
                         ),
                         const SizedBox(height: 8),
                         _dialogRow(
-                          'Silver Rate (per g)',
-                          '₹${SilverController.to.buyRate.toStringAsFixed(2)}',
+                          'Copper Rate (per g)',
+                          '₹${CopperController.to.buyRate.toStringAsFixed(2)}',
                           t,
                         ),
                         const SizedBox(height: 8),
@@ -2185,11 +2185,11 @@ class _CouponsSectionWidgetState extends State<_CouponsSectionWidget> {
               final val = (c['value'] as num? ?? 15).toInt();
               return {
                 'code': code,
-                'title': c['title']?.toString() ?? 'Add Silver Worth ₹$minAmt',
+                'title': c['title']?.toString() ?? 'Add Copper Worth ₹$minAmt',
                 'description':
                     c['description']?.toString() ??
-                    'Get Free Silver up to ₹$val',
-                'type': c['type']?.toString() ?? 'extra_silver',
+                    'Get Free Copper up to ₹$val',
+                'type': c['type']?.toString() ?? 'extra_copper',
                 'value': (c['value'] as num? ?? 15).toDouble(),
                 'minPurchaseAmount': (c['minPurchaseAmount'] as num? ?? 100)
                     .toDouble(),
@@ -2218,7 +2218,7 @@ class _CouponsSectionWidgetState extends State<_CouponsSectionWidget> {
     final result = await Get.to(
       () => SelectCouponView(
         currentAmount: widget.currentAmount,
-        metalType: 'silver',
+        metalType: 'copper',
         initialSelectedCoupon: widget.appliedCoupon,
       ),
     );
@@ -2268,7 +2268,7 @@ class _CouponsSectionWidgetState extends State<_CouponsSectionWidget> {
         ),
         const SizedBox(height: 10),
         SizedBox(
-          height: 160,
+          height: 170,
           child: _isLoading
               ? ListView.separated(
                   scrollDirection: Axis.horizontal,

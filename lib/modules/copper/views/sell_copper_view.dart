@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:vika1/modules/silver/controllers/silver_controller.dart';
+import 'package:vika1/modules/copper/controllers/copper_controller.dart';
 import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 
-// ─── Design tokens (Silver Theme identity) ───────────────────────────────────
+// ─── Design tokens (Copper Theme identity) ───────────────────────────────────
 const _danger = Color(0xFFE05A47);
 
 class _T {
@@ -40,20 +40,20 @@ class _T {
         );
 }
 
-class SellSilverView extends StatefulWidget {
-  const SellSilverView({super.key});
+class SellCopperView extends StatefulWidget {
+  const SellCopperView({super.key});
   @override
-  State<SellSilverView> createState() => _SellSilverViewState();
+  State<SellCopperView> createState() => _SellCopperViewState();
 }
 
-class _SellSilverViewState extends State<SellSilverView> {
+class _SellCopperViewState extends State<SellCopperView> {
   bool _byGrams = true;
   final _ctrl = TextEditingController(text: '1.0000');
 
   double get _sellRate =>
-      SilverController.to.sellRate > 0 ? SilverController.to.sellRate : 173.0;
+      CopperController.to.sellRate > 0 ? CopperController.to.sellRate : 173.0;
   double get _available =>
-      SilverController.to.balance.value?.availableGrams ?? 0;
+      CopperController.to.balance.value?.availableGrams ?? 0;
 
   double get _inputVal => double.tryParse(_ctrl.text) ?? 0;
   double get _gramsDisp => _byGrams ? _inputVal : _inputVal / _sellRate;
@@ -121,7 +121,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'Sell Silver',
+                              'Sell Copper',
                               style: TextStyle(
                                 color: t.primary,
                                 fontSize: 18,
@@ -129,7 +129,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                               ),
                             ),
                             Text(
-                              'Convert your silver to cash',
+                              'Convert your copper to cash',
                               style: TextStyle(color: t.inkMuted, fontSize: 11),
                             ),
                           ],
@@ -181,7 +181,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Live Silver Rate Banner ────────────────────────────────
+                      // ── Live Copper Rate Banner ────────────────────────────────
                       Container(
                         width: double.infinity,
                         height: 140,
@@ -190,7 +190,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                           borderRadius: BorderRadius.circular(16),
                           image: const DecorationImage(
                             image: AssetImage(
-                              'assets/images/silver_banner.png',
+                              'assets/images/copper_banner.png',
                             ),
                             fit: BoxFit.cover,
                           ),
@@ -203,7 +203,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'Live Silver Price (999)',
+                                'Live Copper Price (999)',
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.9),
                                   fontSize: 12,
@@ -236,10 +236,10 @@ class _SellSilverViewState extends State<SellSilverView> {
                               const SizedBox(height: 6),
                               Obx(() {
                                 final chg =
-                                    SilverController.to.rate.value?.change24h ??
+                                    CopperController.to.rate.value?.change24h ??
                                     0;
                                 final pct =
-                                    SilverController.to.rate.value?.changePct ??
+                                    CopperController.to.rate.value?.changePct ??
                                     0;
                                 final isUp = chg >= 0;
                                 final c = isUp
@@ -269,7 +269,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                               }),
                               const Spacer(),
                               Obx(() {
-                                final rateVal = SilverController.to.rate.value;
+                                final rateVal = CopperController.to.rate.value;
                                 return Row(
                                   children: [
                                     Text(
@@ -282,7 +282,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                                     const SizedBox(width: 4),
                                     GestureDetector(
                                       onTap: () =>
-                                          SilverController.to.loadRate(),
+                                          CopperController.to.loadRate(),
                                       child: Icon(
                                         Icons.refresh_rounded,
                                         color: Colors.white.withOpacity(0.65),
@@ -331,7 +331,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Available Silver Balance',
+                                    'Available Copper Balance',
                                     style: TextStyle(
                                       color: t.inkMuted,
                                       fontSize: 11,
@@ -699,7 +699,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                       onTap: _valid && !WalletController.to.isSelling.value
                           ? () async {
                               HapticFeedback.mediumImpact();
-                              final ok = await WalletController.to.sellSilver(
+                              final ok = await WalletController.to.sellCopper(
                                 _gramsDisp,
                               );
                               if (ok) {
@@ -740,7 +740,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                                       ),
                                       SizedBox(width: 8),
                                       Text(
-                                        'Sell Silver Now',
+                                        'Sell Copper Now',
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 14,
@@ -770,7 +770,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                         _trustBadge(
                           Icons.verified_outlined,
                           '100% Secure',
-                          'Your silver is 100% safe',
+                          'Your copper is 100% safe',
                           t,
                         ),
                         _trustBadge(
@@ -924,7 +924,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                         ),
                       ),
                       Image.asset(
-                        'assets/images/silver_coin.png',
+                        'assets/images/copper_coin.png',
                         width: 50,
                         height: 50,
                         errorBuilder: (_, __, ___) => const Icon(
@@ -953,7 +953,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Silver Sold Successfully!',
+                    'Copper Sold Successfully!',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: t.primary,
@@ -980,7 +980,7 @@ class _SellSilverViewState extends State<SellSilverView> {
                     ),
                     child: Column(
                       children: [
-                        _dialogRow('Asset Type', '999 Silver', t),
+                        _dialogRow('Asset Type', '999 Copper', t),
                         const SizedBox(height: 8),
                         _dialogRow(
                           'Weight Sold',

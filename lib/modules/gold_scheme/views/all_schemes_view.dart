@@ -152,7 +152,7 @@ class _AllSchemesViewState extends State<AllSchemesView> {
                         width: double.infinity,
                         decoration: const BoxDecoration(
                           image: DecorationImage(
-                            image: AssetImage('assets/images/gold banner.png'),
+                            image: AssetImage('assets/images/gold_banner.png'),
                             fit: BoxFit.cover,
                           ),
                         ),

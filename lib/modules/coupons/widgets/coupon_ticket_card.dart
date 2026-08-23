@@ -668,3 +668,151 @@ class _DashedLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
+
+
+// ─── Animated Coupon Ticket Skeleton Loader ───────────────────────────────────
+class CouponTicketSkeletonCard extends StatefulWidget {
+  final double width;
+  final double height;
+  final EdgeInsetsGeometry margin;
+
+  const CouponTicketSkeletonCard({
+    Key? key,
+    this.width = double.infinity,
+    this.height = 145,
+    this.margin = const EdgeInsets.only(bottom: 16),
+  }) : super(key: key);
+
+  @override
+  State<CouponTicketSkeletonCard> createState() => _CouponTicketSkeletonCardState();
+}
+
+class _CouponTicketSkeletonCardState extends State<CouponTicketSkeletonCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (context, child) {
+        final shimmer = _anim.value;
+        final baseColor = dark ? const Color(0xFF1B2A20) : const Color(0xFFEDE8DD);
+        final highlightColor = dark ? const Color(0xFF2C4233) : const Color(0xFFFAF7F0);
+        final color = Color.lerp(baseColor, highlightColor, shimmer)!;
+
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          margin: widget.margin,
+          decoration: BoxDecoration(
+            color: dark ? const Color(0xFF111E16) : const Color(0xFFFDFBF7),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: dark ? const Color(0x33D4A017) : const Color(0x33B8860B),
+              width: 1,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                // Left Stub Box
+                Container(
+                  width: 52,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Divider line
+                Container(
+                  width: 1,
+                  height: double.infinity,
+                  color: dark ? Colors.white10 : Colors.black12,
+                ),
+                const SizedBox(width: 12),
+                // Right offer details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 75,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 150,
+                        height: 15,
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: 110,
+                        height: 11,
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            width: 65,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          Container(
+                            width: 60,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}

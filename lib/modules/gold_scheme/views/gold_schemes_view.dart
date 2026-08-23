@@ -124,7 +124,10 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
 
       final maturedValue = (_my ?? [])
           .where((e) => e.status == 'completed')
-          .fold<double>(0.0, (sum, e) => sum + (e.installmentsPaid * e.monthlyAmount));
+          .fold<double>(
+            0.0,
+            (sum, e) => sum + (e.installmentsPaid * e.monthlyAmount),
+          );
 
       return Scaffold(
         backgroundColor: t.bg,
@@ -180,7 +183,9 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: dark ? const Color(0xFF1A2B45) : const Color(0xFFF3F4F6),
+                  color: dark
+                      ? const Color(0xFF1A2B45)
+                      : const Color(0xFFF3F4F6),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(Icons.description_outlined, color: t.ink, size: 18),
@@ -200,291 +205,334 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                          const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                          // ── Green Schemes Value Banner ──
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Container(
-                              height: 165,
-                              width: double.infinity,
-                              clipBehavior: Clip.antiAlias,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(24),
-                                image: const DecorationImage(
-                                  image: AssetImage('assets/images/gold banner.png'),
-                                  fit: BoxFit.cover,
-                                ),
+                      // ── Green Schemes Value Banner ──
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Container(
+                          height: 165,
+                          width: double.infinity,
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            image: const DecorationImage(
+                              image: AssetImage(
+                                'assets/images/gold_banner.png',
                               ),
-                              child: Stack(
-                                children: [
-                                  Container(
-                                    color: const Color(0xFF072E20).withOpacity(0.4),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(20),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          child: Stack(
+                            children: [
+                              Container(
+                                color: const Color(0xFF072E20).withOpacity(0.4),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () => setState(
+                                            () => _isBalanceVisible =
+                                                !_isBalanceVisible,
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Text(
+                                                'Total Schemes Value',
+                                                style: TextStyle(
+                                                  color: Colors.white70,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Icon(
+                                                _isBalanceVisible
+                                                    ? Icons.visibility
+                                                    : Icons.visibility_off,
+                                                color: Colors.white70,
+                                                size: 14,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _loading
+                                              ? '₹ ••••'
+                                              : _isBalanceVisible
+                                              ? '₹ ${totalValue.toStringAsFixed(2)}'
+                                              : '₹ ••••••',
+                                          style: const TextStyle(
+                                            color: Color(0xFFFFD573),
+                                            fontSize: 26,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Row(
                                       children: [
                                         Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            GestureDetector(
-                                              onTap: () => setState(() => _isBalanceVisible = !_isBalanceVisible),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Text(
-                                                    'Total Schemes Value',
-                                                    style: TextStyle(
-                                                      color: Colors.white70,
-                                                      fontSize: 12,
-                                                      fontWeight: FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  Icon(
-                                                    _isBalanceVisible ? Icons.visibility : Icons.visibility_off,
-                                                    color: Colors.white70,
-                                                    size: 14,
-                                                  ),
-                                                ],
+                                            const Text(
+                                              'Total Schemes',
+                                              style: TextStyle(
+                                                color: Colors.white60,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            const SizedBox(height: 4),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              _loading
+                                                  ? '--'
+                                                  : '${(_my ?? []).length.toString().padLeft(2, '0')}',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(width: 40),
+                                        Container(
+                                          width: 1,
+                                          height: 30,
+                                          color: Colors.white24,
+                                        ),
+                                        const SizedBox(width: 40),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Matured Value',
+                                              style: TextStyle(
+                                                color: Colors.white60,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
                                             Text(
                                               _loading
                                                   ? '₹ ••••'
-                                                  : _isBalanceVisible
-                                                      ? '₹ ${totalValue.toStringAsFixed(2)}'
-                                                      : '₹ ••••••',
+                                                  : '₹ ${maturedValue.toStringAsFixed(2)}',
                                               style: const TextStyle(
-                                                color: Color(0xFFFFD573),
-                                                fontSize: 26,
-                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                           ],
                                         ),
-                                        Row(
-                                          children: [
-                                            Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                const Text(
-                                                  'Total Schemes',
-                                                  style: TextStyle(
-                                                    color: Colors.white60,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  _loading
-                                                      ? '--'
-                                                      : '${(_my ?? []).length.toString().padLeft(2, '0')}',
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(width: 40),
-                                            Container(
-                                              width: 1,
-                                              height: 30,
-                                              color: Colors.white24,
-                                            ),
-                                            const SizedBox(width: 40),
-                                            Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                const Text(
-                                                  'Matured Value',
-                                                  style: TextStyle(
-                                                    color: Colors.white60,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  _loading
-                                                      ? '₹ ••••'
-                                                      : '₹ ${maturedValue.toStringAsFixed(2)}',
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
                                       ],
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // ── Start a New Gold Scheme Action Bar ──
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: t.card,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: t.cardBorder),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF0B3D2E).withOpacity(0.08),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.calendar_today_outlined, color: Color(0xFF0B3D2E), size: 20),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Start a new Gold Scheme',
-                                          style: TextStyle(
-                                            color: t.ink,
-                                            fontSize: 13.5,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Begin your gold saving journey today',
-                                          style: TextStyle(
-                                            color: t.inkMuted,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  GestureDetector(
-                                    onTap: () => Get.to(() => AllSchemesView(onEnrolled: _load)),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF072E20),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: const [
-                                          Text(
-                                            'Start a Scheme',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 11.5,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          SizedBox(width: 6),
-                                          Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 12),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // ── My Enrolled Schemes Header ──
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'My Enrolled Schemes',
-                                  style: TextStyle(
-                                    color: t.ink,
-                                    fontSize: 15.5,
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                                  ],
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── Start a New Gold Scheme Action Bar ──
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: t.card,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: t.cardBorder),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF0B3D2E,
+                                  ).withOpacity(0.08),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.calendar_today_outlined,
+                                  color: Color(0xFF0B3D2E),
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Start a new Gold Scheme',
+                                      style: TextStyle(
+                                        color: t.ink,
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Begin your gold saving journey today',
+                                      style: TextStyle(
+                                        color: t.inkMuted,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () => Get.to(
+                                  () => AllSchemesView(onEnrolled: _load),
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: t.card,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: t.cardBorder),
+                                    color: const Color(0xFF072E20),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.filter_list_rounded, color: t.ink, size: 14),
-                                      const SizedBox(width: 4),
+                                    children: const [
                                       Text(
-                                        'Filter',
-                                        style: TextStyle(color: t.ink, fontSize: 11, fontWeight: FontWeight.bold),
+                                        'Start a Scheme',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
-                                      const SizedBox(width: 2),
-                                      Icon(Icons.keyboard_arrow_down_rounded, color: t.ink, size: 14),
+                                      SizedBox(width: 6),
+                                      Icon(
+                                        Icons.arrow_forward_rounded,
+                                        color: Colors.white,
+                                        size: 12,
+                                      ),
                                     ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 12),
-
-                          // ── My Schemes List ──
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: _loading
-                                ? Container(
-                                    padding: const EdgeInsets.all(20),
-                                    alignment: Alignment.center,
-                                    child: const CircularProgressIndicator(color: _gold),
-                                  )
-                                : (_my ?? []).isEmpty
-                                    ? _EmptyMySchemes(t: t)
-                                    : Column(
-                                        children: _my!
-                                            .map(
-                                              (e) => _EnrollmentCard(
-                                                e: e,
-                                                t: t,
-                                                dark: dark,
-                                                onChanged: _load,
-                                              ),
-                                            )
-                                            .toList(),
-                                      ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // ── Why Invest Info Grid ──
-                          _WhyInvestSection(t: t),
-                          const SizedBox(height: 40),
-                        ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 24),
+
+                      // ── My Enrolled Schemes Header ──
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'My Enrolled Schemes',
+                              style: TextStyle(
+                                color: t.ink,
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: t.card,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: t.cardBorder),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.filter_list_rounded,
+                                    color: t.ink,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Filter',
+                                    style: TextStyle(
+                                      color: t.ink,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    color: t.ink,
+                                    size: 14,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ── My Schemes List ──
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _loading
+                            ? Container(
+                                padding: const EdgeInsets.all(20),
+                                alignment: Alignment.center,
+                                child: const CircularProgressIndicator(
+                                  color: _gold,
+                                ),
+                              )
+                            : (_my ?? []).isEmpty
+                            ? _EmptyMySchemes(t: t)
+                            : Column(
+                                children: _my!
+                                    .map(
+                                      (e) => _EnrollmentCard(
+                                        e: e,
+                                        t: t,
+                                        dark: dark,
+                                        onChanged: _load,
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // ── Why Invest Info Grid ──
+                      _WhyInvestSection(t: t),
+                      const SizedBox(height: 40),
+                    ],
                   ),
+                ),
+              ),
       );
     });
   }
@@ -520,10 +568,26 @@ class _WhyInvestSection extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildFeature(Icons.verified_user_outlined, '100% Secure', 'Your gold is safe & insured'),
-              _buildFeature(Icons.savings_outlined, 'Small Savings', 'Start with as low as ₹100'),
-              _buildFeature(Icons.trending_up_rounded, 'Wealth Growth', 'Build wealth for your future'),
-              _buildFeature(Icons.lock_open_rounded, 'Flexible Tenure', 'Choose tenure that suits you'),
+              _buildFeature(
+                Icons.verified_user_outlined,
+                '100% Secure',
+                'Your gold is safe & insured',
+              ),
+              _buildFeature(
+                Icons.savings_outlined,
+                'Small Savings',
+                'Start with as low as ₹100',
+              ),
+              _buildFeature(
+                Icons.trending_up_rounded,
+                'Wealth Growth',
+                'Build wealth for your future',
+              ),
+              _buildFeature(
+                Icons.lock_open_rounded,
+                'Flexible Tenure',
+                'Choose tenure that suits you',
+              ),
             ],
           ),
         ],
@@ -551,10 +615,7 @@ class _WhyInvestSection extends StatelessWidget {
           Text(
             desc,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white60,
-              fontSize: 7.5,
-            ),
+            style: const TextStyle(color: Colors.white60, fontSize: 7.5),
           ),
         ],
       ),
@@ -669,7 +730,9 @@ class _EnrollmentCard extends StatelessWidget {
                         ),
                         child: Center(
                           child: Image.asset(
-                            isSilver ? 'assets/images/silver_coin.png' : 'assets/images/gold_coin.png',
+                            isSilver
+                                ? 'assets/images/silver_coin.png'
+                                : 'assets/images/gold_coin.png',
                             width: 32,
                             height: 32,
                             fit: BoxFit.contain,
@@ -692,16 +755,16 @@ class _EnrollmentCard extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               installText,
-                              style: TextStyle(
-                                color: t.inkMuted,
-                                fontSize: 11,
-                              ),
+                              style: TextStyle(color: t.inkMuted, fontSize: 11),
                             ),
                           ],
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(8),
@@ -716,18 +779,37 @@ class _EnrollmentCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Icon(Icons.chevron_right_rounded, color: t.inkMuted, size: 20),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: t.inkMuted,
+                        size: 20,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Row 2: Stats Grid
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildStatColumn('Monthly Investment', '₹ ${e.monthlyAmount.toStringAsFixed(0)}', t, false),
-                      _buildStatColumn('Total Invested', '₹ ${(e.installmentsPaid * e.monthlyAmount).toStringAsFixed(0)}', t, false),
-                      _buildStatColumn('Gold Accumulated', '${e.totalGoldGrams.toStringAsFixed(3)} g', t, true),
+                      _buildStatColumn(
+                        'Monthly Investment',
+                        '₹ ${e.monthlyAmount.toStringAsFixed(0)}',
+                        t,
+                        false,
+                      ),
+                      _buildStatColumn(
+                        'Total Invested',
+                        '₹ ${(e.installmentsPaid * e.monthlyAmount).toStringAsFixed(0)}',
+                        t,
+                        false,
+                      ),
+                      _buildStatColumn(
+                        'Gold Accumulated',
+                        '${e.totalGoldGrams.toStringAsFixed(3)} g',
+                        t,
+                        true,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -775,15 +857,24 @@ class _EnrollmentCard extends StatelessWidget {
               Container(
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF9E6),
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(24),
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.card_giftcard_rounded, color: Color(0xFFD4A017), size: 16),
+                        const Icon(
+                          Icons.card_giftcard_rounded,
+                          color: Color(0xFFD4A017),
+                          size: 16,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Next EMI on $nextInstallmentDateText',
@@ -808,7 +899,9 @@ class _EnrollmentCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         GestureDetector(
                           onTap: () async {
-                            await Get.to(() => SchemeDetailView(enrollmentId: e.id));
+                            await Get.to(
+                              () => SchemeDetailView(enrollmentId: e.id),
+                            );
                             onChanged();
                           },
                           child: Container(
@@ -816,7 +909,10 @@ class _EnrollmentCard extends StatelessWidget {
                               color: const Color(0xFF042116),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
                             child: const Text(
                               'Pay Now',
                               style: TextStyle(
@@ -836,20 +932,33 @@ class _EnrollmentCard extends StatelessWidget {
               Container(
                 decoration: BoxDecoration(
                   color: const Color(0xFFF3F4F6),
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(24),
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.check_circle_rounded, color: Colors.green, size: 16),
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.green,
+                          size: 16,
+                        ),
                         const SizedBox(width: 8),
                         Text(
-                          e.status == 'completed' ? 'Scheme matured successfully!' : 'Scheme cancelled',
+                          e.status == 'completed'
+                              ? 'Scheme matured successfully!'
+                              : 'Scheme cancelled',
                           style: TextStyle(
-                            color: e.status == 'completed' ? Colors.green[800] : Colors.red[800],
+                            color: e.status == 'completed'
+                                ? Colors.green[800]
+                                : Colors.red[800],
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
@@ -858,7 +967,9 @@ class _EnrollmentCard extends StatelessWidget {
                     ),
                     GestureDetector(
                       onTap: () async {
-                        await Get.to(() => SchemeDetailView(enrollmentId: e.id));
+                        await Get.to(
+                          () => SchemeDetailView(enrollmentId: e.id),
+                        );
                         onChanged();
                       },
                       child: Container(
@@ -867,7 +978,10 @@ class _EnrollmentCard extends StatelessWidget {
                           border: Border.all(color: Colors.black12),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
                         child: const Text(
                           'View Details',
                           style: TextStyle(
@@ -1196,7 +1310,13 @@ class _EnrollSchemeSheetState extends State<EnrollSchemeSheet> {
                                       ),
                                     ),
                                     Obx(() {
-                                      final bal = WalletController.to.wallet.value?.availableBalance ?? 0.0;
+                                      final bal =
+                                          WalletController
+                                              .to
+                                              .wallet
+                                              .value
+                                              ?.availableBalance ??
+                                          0.0;
                                       return Text(
                                         'Bal: ₹${bal.toStringAsFixed(0)}',
                                         style: TextStyle(
@@ -1216,7 +1336,8 @@ class _EnrollSchemeSheetState extends State<EnrollSchemeSheet> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => setState(() => _paymentMethod = 'razorpay'),
+                        onTap: () =>
+                            setState(() => _paymentMethod = 'razorpay'),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             vertical: 12,
@@ -1333,7 +1454,10 @@ class _EnrollSchemeSheetState extends State<EnrollSchemeSheet> {
                 GestureDetector(
                   onTap: () => setState(() => _agreedToTerms = !_agreedToTerms),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 2,
+                      vertical: 8,
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -1363,10 +1487,7 @@ class _EnrollSchemeSheetState extends State<EnrollSchemeSheet> {
                         Expanded(
                           child: RichText(
                             text: TextSpan(
-                              style: TextStyle(
-                                color: t.inkMuted,
-                                fontSize: 12,
-                              ),
+                              style: TextStyle(color: t.inkMuted, fontSize: 12),
                               children: [
                                 const TextSpan(text: 'I agree to the '),
                                 WidgetSpan(
@@ -1402,14 +1523,18 @@ class _EnrollSchemeSheetState extends State<EnrollSchemeSheet> {
                 ),
                 const SizedBox(height: 12),
                 GestureDetector(
-                  onTap: _valid && _agreedToTerms && !_submitting ? _submit : null,
+                  onTap: _valid && _agreedToTerms && !_submitting
+                      ? _submit
+                      : null,
                   child: Container(
                     height: 52,
                     decoration: BoxDecoration(
                       gradient: (_valid && _agreedToTerms)
                           ? const LinearGradient(colors: [_gold, _goldLight])
                           : null,
-                      color: (_valid && _agreedToTerms) ? null : _gold.withOpacity(0.3),
+                      color: (_valid && _agreedToTerms)
+                          ? null
+                          : _gold.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Center(

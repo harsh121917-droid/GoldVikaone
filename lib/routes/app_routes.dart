@@ -35,6 +35,13 @@ import 'package:vika1/modules/silver/views/my_silver_view.dart';
 import 'package:vika1/modules/silver_sip/bindings/silver_sip_binding.dart';
 import 'package:vika1/modules/silver_sip/views/silver_sip_view.dart';
 
+// Copper
+import 'package:vika1/modules/copper/bindings/copper_binding.dart';
+import 'package:vika1/modules/copper/views/buy_copper_view.dart';
+import 'package:vika1/modules/copper/views/sell_copper_view.dart';
+import 'package:vika1/modules/copper/views/my_copper_view.dart';
+
+
 // Gold SIP (recurring savings)
 import 'package:vika1/modules/gold_sip/bindings/gold_sip_binding.dart';
 import 'package:vika1/modules/gold_sip/views/digi_gold_savings_view.dart';
@@ -83,6 +90,11 @@ abstract class AppRoutes {
   static const sellSilver = '/silver/sell';
   static const mySilver = '/silver/my-silver';
   static const silverSip = '/silver/sip';
+
+  static const buyCopper = '/copper/buy';
+  static const sellCopper = '/copper/sell';
+  static const myCopper = '/copper/my-copper';
+
 
   static const wallet = '/wallet';
   static const bankAccounts = '/wallet/banks';
@@ -200,6 +212,24 @@ final appPages = [
     page: () => const SilverSipView(),
     binding: SilverSipBinding(),
   ),
+
+  // ── Copper ───────────────────────────────────────────────────────────────
+  GetPage(
+    name: AppRoutes.buyCopper,
+    page: () => const BuyCopperView(),
+    binding: CopperBinding(),
+  ),
+  GetPage(
+    name: AppRoutes.sellCopper,
+    page: () => const SellCopperView(),
+    binding: CopperBinding(),
+  ),
+  GetPage(
+    name: AppRoutes.myCopper,
+    page: () => const MyCopperView(),
+    binding: CopperBinding(),
+  ),
+
 
   // ── Gold SIP ─────────────────────────────────────────────────────────────
   GetPage(

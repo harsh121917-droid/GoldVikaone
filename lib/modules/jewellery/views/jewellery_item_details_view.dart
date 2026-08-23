@@ -126,117 +126,12 @@ class JewelleryItemDetailsView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Product Image Showcase Box ──
-            Container(
-              width: double.infinity,
-              height: 300,
-              decoration: BoxDecoration(
-                color: t.subBg,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: t.cardBorder),
-              ),
-              child: Stack(
-                children: [
-                  Center(
-                    child:
-                        item['imageUrl'] != null &&
-                            item['imageUrl'].toString().startsWith('http')
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Image.network(
-                              item['imageUrl'],
-                              width: double.infinity,
-                              height: 300,
-                              fit: BoxFit.cover,
-                              loadingBuilder: (context, child, progress) {
-                                if (progress == null) return child;
-                                return SizedBox(
-                                  height: 300,
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      value: progress.expectedTotalBytes != null
-                                          ? progress.cumulativeBytesLoaded /
-                                                progress.expectedTotalBytes!
-                                          : null,
-                                      strokeWidth: 2,
-                                      color: _gold,
-                                    ),
-                                  ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Icon(
-                                    metalType == 'gold'
-                                        ? Icons.diamond_outlined
-                                        : Icons.circle_outlined,
-                                    size: 90,
-                                    color: _gold,
-                                  ),
-                            ),
-                          )
-                        : Icon(
-                            metalType == 'gold'
-                                ? Icons.diamond_outlined
-                                : Icons.circle_outlined,
-                            size: 90,
-                            color: _gold,
-                          ),
-                  ),
-
-                  // Purity Badge Top Left
-                  Positioned(
-                    top: 14,
-                    left: 14,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _gold.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: _gold.withValues(alpha: 0.5)),
-                      ),
-                      child: Text(
-                        (item['purity'] ?? '22K Gold').toString(),
-                        style: const TextStyle(
-                          color: _gold,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Metal Badge Top Right
-                  Positioned(
-                    top: 14,
-                    right: 14,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: metalType == 'silver'
-                            ? Colors.grey.withValues(alpha: 0.25)
-                            : Colors.amber.withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        metalType.toUpperCase(),
-                        style: TextStyle(
-                          color: metalType == 'silver'
-                              ? Colors.white70
-                              : Colors.amber,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            // ── Product Multi-Image Showcase Carousel ──
+            _JewelleryImageShowcase(
+              images: _extractImages(item),
+              metalType: metalType,
+              purity: (item['purity'] ?? '22K Gold').toString(),
+              t: t,
             ),
 
             const SizedBox(height: 16),
@@ -682,4 +577,217 @@ class JewelleryItemDetailsView extends StatelessWidget {
       ),
     );
   }
+  List<String> _extractImages(Map<String, dynamic> item) {
+    final List<String> list = [];
+    if (item['images'] is List && (item['images'] as List).isNotEmpty) {
+      for (final img in item['images'] as List) {
+        final s = img?.toString().trim();
+        if (s != null && s.isNotEmpty && s.startsWith('http')) {
+          list.add(s);
+        }
+      }
+    }
+    if (list.isEmpty && item['imageUrl'] != null) {
+      final s = item['imageUrl'].toString().trim();
+      if (s.isNotEmpty && s.startsWith('http')) {
+        list.add(s);
+      }
+    }
+    return list;
+  }
+}
+
+// ─── Swipeable Multi-Image Carousel with Page Indicator ───────────────────────
+class _JewelleryImageShowcase extends StatefulWidget {
+  final List<String> images;
+  final String metalType;
+  final String purity;
+  final _T t;
+
+  const _JewelleryImageShowcase({
+    Key? key,
+    required this.images,
+    required this.metalType,
+    required this.purity,
+    required this.t,
+  }) : super(key: key);
+
+  @override
+  State<_JewelleryImageShowcase> createState() => _JewelleryImageShowcaseState();
+}
+
+class _JewelleryImageShowcaseState extends State<_JewelleryImageShowcase> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.t;
+    final images = widget.images;
+
+    return Container(
+      width: double.infinity,
+      height: 300,
+      decoration: BoxDecoration(
+        color: t.subBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: t.cardBorder),
+      ),
+      child: Stack(
+        children: [
+          if (images.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: images.length,
+                onPageChanged: (idx) => setState(() => _currentPage = idx),
+                itemBuilder: (ctx, idx) {
+                  return Image.network(
+                    images[idx],
+                    width: double.infinity,
+                    height: 300,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return SizedBox(
+                        height: 300,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: progress.expectedTotalBytes != null
+                                ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                                : null,
+                            strokeWidth: 2,
+                            color: _gold,
+                          ),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      widget.metalType == 'gold' ? Icons.diamond_outlined : Icons.circle_outlined,
+                      size: 90,
+                      color: _gold,
+                    ),
+                  );
+                },
+              ),
+            )
+          else
+            Center(
+              child: Icon(
+                widget.metalType == 'gold' ? Icons.diamond_outlined : Icons.circle_outlined,
+                size: 90,
+                color: _gold,
+              ),
+            ),
+
+          // Purity Badge Top Left
+          Positioned(
+            top: 14,
+            left: 14,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: _gold.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: _gold.withValues(alpha: 0.5)),
+              ),
+              child: Text(
+                widget.purity,
+                style: const TextStyle(
+                  color: _gold,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+
+          // Metal Badge Top Right
+          Positioned(
+            top: 14,
+            right: 14,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: widget.metalType == 'silver'
+                    ? Colors.grey.withValues(alpha: 0.25)
+                    : Colors.amber.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                widget.metalType.toUpperCase(),
+                style: TextStyle(
+                  color: widget.metalType == 'silver' ? Colors.white70 : Colors.amber,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+
+          // Multi-Image Dots & Page Counter (if multiple images)
+          if (images.length > 1) ...[
+            // Photo count pill bottom-right
+            Positioned(
+              bottom: 14,
+              right: 14,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.65),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.photo_library_outlined, size: 12, color: Colors.white),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${_currentPage + 1}/${images.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Dots Indicator at Bottom Center
+            Positioned(
+              bottom: 14,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(images.length, (idx) {
+                  final active = idx == _currentPage;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: active ? 18 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: active ? _gold : Colors.white.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
 }

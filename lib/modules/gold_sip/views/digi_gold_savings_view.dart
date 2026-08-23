@@ -239,7 +239,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
                           image: const DecorationImage(
-                            image: AssetImage('assets/images/gold banner.png'),
+                            image: AssetImage('assets/images/gold_banner.png'),
                             fit: BoxFit.cover,
                           ),
                         ),

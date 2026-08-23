@@ -7,6 +7,7 @@ import 'package:vika1/core/services/auth_service.dart';
 import 'package:vika1/data/repositories/wallet_repository.dart';
 import 'package:vika1/modules/digi_gold/controllers/digi_gold_controller.dart';
 import 'package:vika1/modules/silver/controllers/silver_controller.dart';
+import 'package:vika1/modules/copper/controllers/copper_controller.dart';
 import 'package:vika1/modules/profile/views/rewards_view.dart';
 
 class WalletController extends GetxController {
@@ -228,13 +229,14 @@ class WalletController extends GetxController {
   }
 
   // ── 4b. Buy Silver → Wallet ────────────────────────────────────────────────
-  Future<bool> buySilver({double? amount, double? grams, int? pointsRedeemed, String? couponCode}) async {
+  Future<bool> buySilver({double? amount, double? grams, int? pointsRedeemed, bool redeemReferral = false, String? couponCode}) async {
     try {
       isBuying.value = true;
       final data = await _repo.buySilverFromWallet(
         amount: amount,
         grams: grams,
         pointsRedeemed: pointsRedeemed,
+        redeemReferral: redeemReferral,
         couponCode: couponCode,
       );
       await loadWallet();
@@ -296,6 +298,77 @@ class WalletController extends GetxController {
       isSelling.value = false;
     }
   }
+
+  // ── 4c. Buy Copper → Wallet ────────────────────────────────────────────────
+  Future<bool> buyCopper({double? amount, double? grams, int? pointsRedeemed, String? couponCode, required bool redeemReferral}) async {
+    try {
+      isBuying.value = true;
+      final data = await _repo.buyCopperFromWallet(
+        amount: amount,
+        grams: grams,
+        pointsRedeemed: pointsRedeemed,
+        couponCode: couponCode,
+      );
+      await loadWallet();
+      if (Get.isRegistered<CopperController>()) {
+        await CopperController.to.loadAll();
+      }
+      if (Get.isRegistered<PointsController>()) {
+        await PointsController.to.loadAll();
+      }
+      Get.snackbar(
+        'Copper Purchased! 🧱',
+        '${(data['grams'] ?? 0).toStringAsFixed(4)}g added to your account',
+        backgroundColor: const Color(0xFFEA580C),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return true;
+    } on DioException catch (e) {
+      Get.snackbar(
+        'Purchase Failed',
+        e.response?.data?['message'] ?? 'Insufficient wallet balance',
+        backgroundColor: const Color(0xFFe74c3c),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } finally {
+      isBuying.value = false;
+    }
+  }
+
+  // ── 5c. Sell Copper → Wallet ───────────────────────────────────────────────
+  Future<bool> sellCopper(double grams) async {
+    try {
+      isSelling.value = true;
+      final data = await _repo.sellCopperToWallet(grams);
+      await loadWallet();
+      if (Get.isRegistered<CopperController>()) {
+        await CopperController.to.loadAll();
+      }
+      Get.snackbar(
+        'Sell Order Placed! 💰',
+        '₹${data['sellValue']} will credit to wallet in 24h',
+        backgroundColor: const Color(0xFF3B82F6),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return true;
+    } on DioException catch (e) {
+      Get.snackbar(
+        'Sell Failed',
+        e.response?.data?['message'] ?? 'Failed',
+        backgroundColor: const Color(0xFFe74c3c),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } finally {
+      isSelling.value = false;
+    }
+  }
+
 
   // ── 5. Withdraw ───────────────────────────────────────────────────────────
   Future<bool> withdraw(double amount, String bankAccountId) async {

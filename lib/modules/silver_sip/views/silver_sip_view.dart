@@ -46,7 +46,13 @@ class SilverSipView extends StatefulWidget {
 
 class _SilverSipViewState extends State<SilverSipView> {
   String _selectedFreq = 'Monthly';
-  final List<String> _frequencies = ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'Yearly'];
+  final List<String> _frequencies = [
+    'Daily',
+    'Weekly',
+    'Monthly',
+    'Quarterly',
+    'Yearly',
+  ];
 
   final _amountCtrl = TextEditingController(text: '1000');
   double get _amount => double.tryParse(_amountCtrl.text) ?? 0.0;
@@ -78,16 +84,29 @@ class _SilverSipViewState extends State<SilverSipView> {
   double get _totalInvested => _amount * _cyclesCount;
   double get _gramsPerCycle => _amount / _buyRate;
   double get _totalGrams => _gramsPerCycle * _cyclesCount;
-  double get _expectedReturns => _totalInvested * 0.175; // 17.5% expected growth simulation
+  double get _expectedReturns =>
+      _totalInvested * 0.175; // 17.5% expected growth simulation
 
   DateTime get _startDate => DateTime.now();
   DateTime get _endDate => DateTime.now().add(Duration(days: _months * 30));
 
   String _fmtDate(DateTime dt) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
   }
-
 
   @override
   void dispose() {
@@ -108,7 +127,10 @@ class _SilverSipViewState extends State<SilverSipView> {
             children: [
               // ── Premium Custom App Bar ───────────────────────────────────
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     GestureDetector(
@@ -127,7 +149,11 @@ class _SilverSipViewState extends State<SilverSipView> {
                             ),
                           ],
                         ),
-                        child: Icon(Icons.chevron_left_rounded, color: t.ink, size: 24),
+                        child: Icon(
+                          Icons.chevron_left_rounded,
+                          color: t.ink,
+                          size: 24,
+                        ),
                       ),
                     ),
                     Expanded(
@@ -144,10 +170,7 @@ class _SilverSipViewState extends State<SilverSipView> {
                           ),
                           Text(
                             'Save regularly, shine in future ✨',
-                            style: TextStyle(
-                              color: t.inkMuted,
-                              fontSize: 11,
-                            ),
+                            style: TextStyle(color: t.inkMuted, fontSize: 11),
                           ),
                         ],
                       ),
@@ -155,16 +178,25 @@ class _SilverSipViewState extends State<SilverSipView> {
                     GestureDetector(
                       onTap: () => Get.toNamed(AppRoutes.transactions),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: t.card,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: t.inkMuted.withOpacity(0.2)),
+                          border: Border.all(
+                            color: t.inkMuted.withOpacity(0.2),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.history_rounded, color: t.primary, size: 14),
+                            Icon(
+                              Icons.history_rounded,
+                              color: t.primary,
+                              size: 14,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               'SIP History',
@@ -186,7 +218,10 @@ class _SilverSipViewState extends State<SilverSipView> {
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -198,7 +233,9 @@ class _SilverSipViewState extends State<SilverSipView> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
                           image: const DecorationImage(
-                            image: AssetImage('assets/images/silver banner.png'),
+                            image: AssetImage(
+                              'assets/images/silver_banner.png',
+                            ),
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -210,11 +247,16 @@ class _SilverSipViewState extends State<SilverSipView> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: t.primary.withOpacity(0.25),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: t.primary.withOpacity(0.5)),
+                                  border: Border.all(
+                                    color: t.primary.withOpacity(0.5),
+                                  ),
                                 ),
                                 child: const Text(
                                   'Build Wealth with SIP',
@@ -244,11 +286,21 @@ class _SilverSipViewState extends State<SilverSipView> {
                               ),
                               const Spacer(),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  _bannerLabel(Icons.savings_outlined, 'Start with just ₹100'),
-                                  _bannerLabel(Icons.verified_outlined, '999 Pure Silver'),
-                                  _bannerLabel(Icons.lock_outline_rounded, 'Secure & Insured'),
+                                  _bannerLabel(
+                                    Icons.savings_outlined,
+                                    'Start with just ₹100',
+                                  ),
+                                  _bannerLabel(
+                                    Icons.verified_outlined,
+                                    '999 Pure Silver',
+                                  ),
+                                  _bannerLabel(
+                                    Icons.lock_outline_rounded,
+                                    'Secure & Insured',
+                                  ),
                                 ],
                               ),
                             ],
@@ -273,17 +325,24 @@ class _SilverSipViewState extends State<SilverSipView> {
                           final active = _selectedFreq == freq;
                           return Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 2,
+                              ),
                               child: GestureDetector(
-                                onTap: () => setState(() => _selectedFreq = freq),
+                                onTap: () =>
+                                    setState(() => _selectedFreq = freq),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 150),
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: active ? t.primary : t.card,
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                      color: active ? Colors.transparent : t.inkMuted.withOpacity(0.15),
+                                      color: active
+                                          ? Colors.transparent
+                                          : t.inkMuted.withOpacity(0.15),
                                     ),
                                   ),
                                   child: Text(
@@ -352,17 +411,30 @@ class _SilverSipViewState extends State<SilverSipView> {
                                 ),
                                 DropdownButton<double>(
                                   underline: const SizedBox.shrink(),
-                                  icon: Icon(Icons.keyboard_arrow_down_rounded, color: t.inkMuted),
-                                  items: [100.0, 500.0, 1000.0, 2000.0, 5000.0].map((val) {
-                                    return DropdownMenuItem<double>(
-                                      value: val,
-                                      child: Text('₹ ${val.toInt()}', style: TextStyle(color: t.ink, fontWeight: FontWeight.bold)),
-                                    );
-                                  }).toList(),
+                                  icon: Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    color: t.inkMuted,
+                                  ),
+                                  items: [100.0, 500.0, 1000.0, 2000.0, 5000.0]
+                                      .map((val) {
+                                        return DropdownMenuItem<double>(
+                                          value: val,
+                                          child: Text(
+                                            '₹ ${val.toInt()}',
+                                            style: TextStyle(
+                                              color: t.ink,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        );
+                                      })
+                                      .toList(),
                                   onChanged: (val) {
                                     if (val != null) {
                                       setState(() {
-                                        _amountCtrl.text = val.toStringAsFixed(0);
+                                        _amountCtrl.text = val.toStringAsFixed(
+                                          0,
+                                        );
                                       });
                                     }
                                   },
@@ -381,7 +453,13 @@ class _SilverSipViewState extends State<SilverSipView> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'You will get ~ ${_gramsPerCycle.toStringAsFixed(4)} g of silver every ${_selectedFreq.toLowerCase() == 'daily' ? 'day' : _selectedFreq.toLowerCase() == 'weekly' ? 'week' : _selectedFreq.toLowerCase() == 'yearly' ? 'year' : 'month'}',
+                              'You will get ~ ${_gramsPerCycle.toStringAsFixed(4)} g of silver every ${_selectedFreq.toLowerCase() == 'daily'
+                                  ? 'day'
+                                  : _selectedFreq.toLowerCase() == 'weekly'
+                                  ? 'week'
+                                  : _selectedFreq.toLowerCase() == 'yearly'
+                                  ? 'year'
+                                  : 'month'}',
                               style: TextStyle(
                                 color: t.primary,
                                 fontSize: 12,
@@ -404,10 +482,7 @@ class _SilverSipViewState extends State<SilverSipView> {
                       ),
                       Text(
                         'Choose how long you want to continue',
-                        style: TextStyle(
-                          color: t.inkMuted,
-                          fontSize: 11,
-                        ),
+                        style: TextStyle(color: t.inkMuted, fontSize: 11),
                       ),
                       const SizedBox(height: 10),
                       Row(
@@ -418,20 +493,29 @@ class _SilverSipViewState extends State<SilverSipView> {
                           final active = _selectedDurationIdx == idx;
                           return Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 3,
+                              ),
                               child: GestureDetector(
-                                onTap: () => setState(() => _selectedDurationIdx = idx),
+                                onTap: () =>
+                                    setState(() => _selectedDurationIdx = idx),
                                 child: Stack(
                                   clipBehavior: Clip.none,
                                   children: [
                                     AnimatedContainer(
-                                      duration: const Duration(milliseconds: 150),
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      duration: const Duration(
+                                        milliseconds: 150,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: t.card,
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
-                                          color: active ? t.primary : t.inkMuted.withOpacity(0.15),
+                                          color: active
+                                              ? t.primary
+                                              : t.inkMuted.withOpacity(0.15),
                                           width: active ? 2 : 1,
                                         ),
                                       ),
@@ -489,34 +573,71 @@ class _SilverSipViewState extends State<SilverSipView> {
                         decoration: BoxDecoration(
                           color: t.subBg,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: t.inkMuted.withOpacity(0.1)),
+                          border: Border.all(
+                            color: t.inkMuted.withOpacity(0.1),
+                          ),
                         ),
                         child: Row(
                           children: [
                             Expanded(
                               child: Row(
                                 children: [
-                                  Icon(Icons.calendar_today_rounded, color: t.primary, size: 16),
+                                  Icon(
+                                    Icons.calendar_today_rounded,
+                                    color: t.primary,
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 8),
                                   Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text('SIP Start Date', style: TextStyle(color: t.inkMuted, fontSize: 10)),
-                                      Text(_fmtDate(_startDate), style: TextStyle(color: t.ink, fontSize: 12, fontWeight: FontWeight.bold)),
+                                      Text(
+                                        'SIP Start Date',
+                                        style: TextStyle(
+                                          color: t.inkMuted,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                      Text(
+                                        _fmtDate(_startDate),
+                                        style: TextStyle(
+                                          color: t.ink,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ],
                               ),
                             ),
-                            Container(width: 1, height: 26, color: t.inkMuted.withOpacity(0.2)),
+                            Container(
+                              width: 1,
+                              height: 26,
+                              color: t.inkMuted.withOpacity(0.2),
+                            ),
                             Expanded(
                               child: Padding(
                                 padding: const EdgeInsets.only(left: 16),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('End Date', style: TextStyle(color: t.inkMuted, fontSize: 10)),
-                                    Text(_fmtDate(_endDate), style: TextStyle(color: t.ink, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      'End Date',
+                                      style: TextStyle(
+                                        color: t.inkMuted,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    Text(
+                                      _fmtDate(_endDate),
+                                      style: TextStyle(
+                                        color: t.ink,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -549,13 +670,31 @@ class _SilverSipViewState extends State<SilverSipView> {
                               flex: 6,
                               child: Column(
                                 children: [
-                                  _summaryRow('Monthly Investment', '₹${_amount.toStringAsFixed(0)}', t),
+                                  _summaryRow(
+                                    'Monthly Investment',
+                                    '₹${_amount.toStringAsFixed(0)}',
+                                    t,
+                                  ),
                                   const SizedBox(height: 8),
-                                  _summaryRow('Total Investment (Est.)', '₹${_totalInvested.toStringAsFixed(0)}', t),
+                                  _summaryRow(
+                                    'Total Investment (Est.)',
+                                    '₹${_totalInvested.toStringAsFixed(0)}',
+                                    t,
+                                  ),
                                   const SizedBox(height: 8),
-                                  _summaryRow('Wealth in Silver (Est.)', '~ ${_totalGrams.toStringAsFixed(4)} g', t, highlightColor: t.primary),
+                                  _summaryRow(
+                                    'Wealth in Silver (Est.)',
+                                    '~ ${_totalGrams.toStringAsFixed(4)} g',
+                                    t,
+                                    highlightColor: t.primary,
+                                  ),
                                   const SizedBox(height: 8),
-                                  _summaryRow('Expected Returns (Est.)', '₹${_expectedReturns.toStringAsFixed(0)} (17.5%)', t, highlightColor: const Color(0xFF2ecc71)),
+                                  _summaryRow(
+                                    'Expected Returns (Est.)',
+                                    '₹${_expectedReturns.toStringAsFixed(0)} (17.5%)',
+                                    t,
+                                    highlightColor: const Color(0xFF2ecc71),
+                                  ),
                                 ],
                               ),
                             ),
@@ -609,10 +748,30 @@ class _SilverSipViewState extends State<SilverSipView> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _trustFeature(Icons.trending_up_rounded, 'Hedge Against\nInflation', 'Protects wealth', t),
-                          _trustFeature(Icons.track_changes_rounded, 'Disciplined\nSaving', 'Small steps', t),
-                          _trustFeature(Icons.verified_user_outlined, '999 Pure\nSilver', 'Purity guaranteed', t),
-                          _trustFeature(Icons.shield_outlined, 'Secure &\nTrusted', 'Insured & safe', t),
+                          _trustFeature(
+                            Icons.trending_up_rounded,
+                            'Hedge Against\nInflation',
+                            'Protects wealth',
+                            t,
+                          ),
+                          _trustFeature(
+                            Icons.track_changes_rounded,
+                            'Disciplined\nSaving',
+                            'Small steps',
+                            t,
+                          ),
+                          _trustFeature(
+                            Icons.verified_user_outlined,
+                            '999 Pure\nSilver',
+                            'Purity guaranteed',
+                            t,
+                          ),
+                          _trustFeature(
+                            Icons.shield_outlined,
+                            'Secure &\nTrusted',
+                            'Insured & safe',
+                            t,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 30),
@@ -623,10 +782,17 @@ class _SilverSipViewState extends State<SilverSipView> {
 
               // ── Fixed Bottom Start Bar ────────────────────────────────────
               Container(
-                padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.paddingOf(context).bottom + 12),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  12,
+                  16,
+                  MediaQuery.paddingOf(context).bottom + 12,
+                ),
                 decoration: BoxDecoration(
                   color: t.card,
-                  border: Border(top: BorderSide(color: t.inkMuted.withOpacity(0.15))),
+                  border: Border(
+                    top: BorderSide(color: t.inkMuted.withOpacity(0.15)),
+                  ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -639,7 +805,11 @@ class _SilverSipViewState extends State<SilverSipView> {
                             color: t.primary.withOpacity(0.08),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(Icons.calendar_today_outlined, color: t.primary, size: 18),
+                          child: Icon(
+                            Icons.calendar_today_outlined,
+                            color: t.primary,
+                            size: 18,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -657,11 +827,17 @@ class _SilverSipViewState extends State<SilverSipView> {
                               Text.rich(
                                 TextSpan(
                                   text: 'Starting from ',
-                                  style: TextStyle(color: t.inkMuted, fontSize: 10),
+                                  style: TextStyle(
+                                    color: t.inkMuted,
+                                    fontSize: 10,
+                                  ),
                                   children: [
                                     TextSpan(
                                       text: _fmtDate(_startDate),
-                                      style: const TextStyle(color: Color(0xFF2ecc71), fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                        color: Color(0xFF2ecc71),
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -673,18 +849,22 @@ class _SilverSipViewState extends State<SilverSipView> {
                           onTap: _amount >= 100
                               ? () async {
                                   HapticFeedback.mediumImpact();
-                                  final ok = await WalletController.to.buySilver(
-                                    amount: _amount,
-                                  );
+                                  final ok = await WalletController.to
+                                      .buySilver(amount: _amount);
                                   if (ok) {
                                     _showSuccessDialog();
                                   }
                                 }
                               : null,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
                             decoration: BoxDecoration(
-                              color: _amount >= 100 ? t.primary : t.primary.withOpacity(0.5),
+                              color: _amount >= 100
+                                  ? t.primary
+                                  : t.primary.withOpacity(0.5),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Row(
@@ -699,7 +879,11 @@ class _SilverSipViewState extends State<SilverSipView> {
                                   ),
                                 ),
                                 SizedBox(width: 6),
-                                Icon(Icons.chevron_right_rounded, color: Colors.white, size: 16),
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
                               ],
                             ),
                           ),
@@ -710,7 +894,11 @@ class _SilverSipViewState extends State<SilverSipView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
-                        Icon(Icons.lock_outline_rounded, color: Colors.grey, size: 12),
+                        Icon(
+                          Icons.lock_outline_rounded,
+                          color: Colors.grey,
+                          size: 12,
+                        ),
                         SizedBox(width: 4),
                         Text(
                           '100% Secure Transaction',
@@ -733,13 +921,7 @@ class _SilverSipViewState extends State<SilverSipView> {
     children: [
       Icon(icon, color: Colors.white70, size: 12),
       const SizedBox(width: 4),
-      Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white70,
-          fontSize: 9,
-        ),
-      ),
+      Text(text, style: const TextStyle(color: Colors.white70, fontSize: 9)),
     ],
   );
 
@@ -776,13 +958,7 @@ class _SilverSipViewState extends State<SilverSipView> {
   Widget _summaryRow(String l, String v, _T t, {Color? highlightColor}) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Text(
-        l,
-        style: TextStyle(
-          color: t.inkMuted,
-          fontSize: 11,
-        ),
-      ),
+      Text(l, style: TextStyle(color: t.inkMuted, fontSize: 11)),
       Text(
         v,
         style: TextStyle(
@@ -795,38 +971,36 @@ class _SilverSipViewState extends State<SilverSipView> {
   );
 
   // ─── Trust Feature Grid item ───────────────────────────────────────────────
-  Widget _trustFeature(IconData icon, String label, String sub, _T t) => Expanded(
-    child: Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: t.primary.withOpacity(0.06),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: t.primary, size: 18),
+  Widget _trustFeature(IconData icon, String label, String sub, _T t) =>
+      Expanded(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: t.primary.withOpacity(0.06),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: t.primary, size: 18),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: t.ink,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              sub,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: t.inkMuted, fontSize: 9),
+            ),
+          ],
         ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: t.ink,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          sub,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: t.inkMuted,
-            fontSize: 9,
-          ),
-        ),
-      ],
-    ),
-  );
+      );
 
   // ─── Success Dialog Modal ─────────────────────────────────────────────────
   void _showSuccessDialog() {
@@ -837,9 +1011,15 @@ class _SilverSipViewState extends State<SilverSipView> {
       transitionDuration: const Duration(milliseconds: 400),
       pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
       transitionBuilder: (context, anim1, anim2, child) {
-        final scaleCurve = CurvedAnimation(parent: anim1, curve: Curves.easeOutBack);
-        final opacityCurve = CurvedAnimation(parent: anim1, curve: Curves.easeOut);
-        
+        final scaleCurve = CurvedAnimation(
+          parent: anim1,
+          curve: Curves.easeOutBack,
+        );
+        final opacityCurve = CurvedAnimation(
+          parent: anim1,
+          curve: Curves.easeOut,
+        );
+
         final dark = ThemeController.to.isDark.value;
         final t = _T.of(dark);
 
@@ -849,7 +1029,9 @@ class _SilverSipViewState extends State<SilverSipView> {
             scale: scaleCurve,
             child: AlertDialog(
               backgroundColor: t.card,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
               contentPadding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -919,15 +1101,26 @@ class _SilverSipViewState extends State<SilverSipView> {
                     decoration: BoxDecoration(
                       color: const Color(0xFFF3F1EA),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF6B7A72).withOpacity(0.1)),
+                      border: Border.all(
+                        color: const Color(0xFF6B7A72).withOpacity(0.1),
+                      ),
                     ),
                     child: Column(
                       children: [
                         _dialogRow('SIP Frequency', _selectedFreq, t),
                         const SizedBox(height: 8),
-                        _dialogRow('Installment Amt', '₹${_amount.toStringAsFixed(0)}', t, isHighlight: true),
+                        _dialogRow(
+                          'Installment Amt',
+                          '₹${_amount.toStringAsFixed(0)}',
+                          t,
+                          isHighlight: true,
+                        ),
                         const SizedBox(height: 8),
-                        _dialogRow('Duration', _durations[_selectedDurationIdx]['label'] as String, t),
+                        _dialogRow(
+                          'Duration',
+                          _durations[_selectedDurationIdx]['label'] as String,
+                          t,
+                        ),
                         const SizedBox(height: 8),
                         _dialogRow('Start Date', _fmtDate(_startDate), t),
                         const SizedBox(height: 8),
@@ -969,16 +1162,15 @@ class _SilverSipViewState extends State<SilverSipView> {
     );
   }
 
-  Widget _dialogRow(String label, String val, _T t, {bool isHighlight = false}) => Row(
+  Widget _dialogRow(
+    String label,
+    String val,
+    _T t, {
+    bool isHighlight = false,
+  }) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Text(
-        label,
-        style: TextStyle(
-          color: t.inkMuted,
-          fontSize: 12,
-        ),
-      ),
+      Text(label, style: TextStyle(color: t.inkMuted, fontSize: 12)),
       Text(
         val,
         style: TextStyle(
@@ -1018,9 +1210,12 @@ class _ChartPainter extends CustomPainter {
     final path = Path()
       ..moveTo(0, size.height * 0.9)
       ..cubicTo(
-        size.width * 0.25, size.height * 0.85,
-        size.width * 0.5, size.height * 0.4,
-        size.width * 0.75, size.height * 0.35,
+        size.width * 0.25,
+        size.height * 0.85,
+        size.width * 0.5,
+        size.height * 0.4,
+        size.width * 0.75,
+        size.height * 0.35,
       )
       ..lineTo(size.width, size.height * 0.1);
 

@@ -1,3 +1,4 @@
+import '../../../core/services/auth_service.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart' ;
@@ -55,6 +56,12 @@ class KycController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    try {
+      final cached = AuthService().currentUser?.kycStatus;
+      if (cached != null && cached.isNotEmpty && cached != 'not_submitted') {
+        kycStatus.value = cached;
+      }
+    } catch (_) {}
     loadMyKyc();
   }
 

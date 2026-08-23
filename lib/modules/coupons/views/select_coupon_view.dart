@@ -30,7 +30,7 @@ class _SelectCouponViewState extends State<SelectCouponView> {
   @override
   void initState() {
     super.initState();
-    _selectedCoupon = widget.initialSelectedCoupon ?? _coupons.first;
+    _selectedCoupon = widget.initialSelectedCoupon;
     _fetchCoupons();
   }
 
@@ -210,24 +210,88 @@ class _SelectCouponViewState extends State<SelectCouponView> {
 
                   const SizedBox(height: 16),
 
-                  ..._coupons.map((c) {
-                    final isSelected = _selectedCoupon != null && _selectedCoupon!['code'] == c['code'];
-                    return CouponTicketCard(
-                      coupon: c,
-                      isSelected: isSelected,
-                      onTap: () {
-                        setState(() {
-                          _selectedCoupon = c;
-                        });
-                      },
-                      onApply: () {
-                        setState(() {
-                          _selectedCoupon = c;
-                        });
-                        Get.back(result: c);
-                      },
-                    );
-                  }).toList(),
+                  if (_isLoading) ...[
+                    const CouponTicketSkeletonCard(margin: EdgeInsets.only(bottom: 14)),
+                    const CouponTicketSkeletonCard(margin: EdgeInsets.only(bottom: 14)),
+                  ] else if (_coupons.isEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: dark ? const Color(0xFF132018) : const Color(0xFFFDFBF7),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: dark ? Colors.white10 : const Color(0xFFEDE8DD),
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD4A017).withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.local_offer_outlined,
+                              color: Color(0xFFD4A017),
+                              size: 36,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            'No Coupons Available',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: textInk,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'You do not have any active coupons right now. Check back soon for new offers!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: textInk.withValues(alpha: 0.65),
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          OutlinedButton(
+                            onPressed: () => Get.back(),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFFD4A017),
+                              side: const BorderSide(color: Color(0xFFD4A017)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            ),
+                            child: const Text('Go Back', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    ..._coupons.map((c) {
+                      final isSelected = _selectedCoupon != null && _selectedCoupon!['code'] == c['code'];
+                      return CouponTicketCard(
+                        coupon: c,
+                        isSelected: isSelected,
+                        onTap: () {
+                          setState(() {
+                            _selectedCoupon = c;
+                          });
+                        },
+                        onApply: () {
+                          setState(() {
+                            _selectedCoupon = c;
+                          });
+                          Get.back(result: c);
+                        },
+                      );
+                    }).toList(),
+                  ],
                 ],
               ),
             ),

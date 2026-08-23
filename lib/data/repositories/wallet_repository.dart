@@ -185,6 +185,7 @@ class WalletRepository {
     double? amount,
     double? grams,
     int? pointsRedeemed,
+    bool redeemReferral = false,
     String? couponCode,
   }) async {
     final res = await _dio.post(
@@ -193,6 +194,7 @@ class WalletRepository {
         if (amount != null) 'amountInRupees': amount,
         if (grams != null) 'grams': grams,
         if (pointsRedeemed != null) 'pointsRedeemed': pointsRedeemed,
+        'redeemReferral': redeemReferral,
         if (couponCode != null && couponCode.isNotEmpty) 'couponCode': couponCode,
       },
     );
@@ -203,6 +205,32 @@ class WalletRepository {
     final res = await _dio.post('$_w/sell-silver', data: {'grams': grams});
     return res.data['data'] as Map<String, dynamic>;
   }
+
+  Future<Map<String, dynamic>> buyCopperFromWallet({
+    double? amount,
+    double? grams,
+    int? pointsRedeemed,
+    bool redeemReferral = false,
+    String? couponCode,
+  }) async {
+    final res = await _dio.post(
+      '$_w/buy-copper',
+      data: {
+        if (amount != null) 'amountInRupees': amount,
+        if (grams != null) 'grams': grams,
+        if (pointsRedeemed != null) 'pointsRedeemed': pointsRedeemed,
+        'redeemReferral': redeemReferral,
+        if (couponCode != null && couponCode.isNotEmpty) 'couponCode': couponCode,
+      },
+    );
+    return res.data['data'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> sellCopperToWallet(double grams) async {
+    final res = await _dio.post('$_w/sell-copper', data: {'grams': grams});
+    return res.data['data'] as Map<String, dynamic>;
+  }
+
 
   Future<Map<String, dynamic>> initiateWithdraw(
     double amount,

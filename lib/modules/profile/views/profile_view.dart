@@ -131,7 +131,7 @@ class ProfileView extends StatelessWidget {
                     color: const Color(0xFF042116),
                     borderRadius: BorderRadius.circular(24),
                     image: const DecorationImage(
-                      image: AssetImage('assets/images/gold banner.png'),
+                      image: AssetImage('assets/images/gold_banner.png'),
                       fit: BoxFit.cover,
                       opacity: 0.15,
                     ),

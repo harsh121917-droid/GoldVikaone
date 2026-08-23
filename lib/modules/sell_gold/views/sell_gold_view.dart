@@ -60,8 +60,6 @@ class _SellGoldViewState extends State<SellGoldView> {
   double get _rupeesDisp => _byGrams ? _inputVal * _sellRate : _inputVal;
   bool get _valid => _gramsDisp > 0.0001 && _gramsDisp <= _available;
 
-
-
   String _fmtUpdated(DateTime? dt) {
     if (dt == null) return 'Rate unavailable';
     final now = DateTime.now();
@@ -88,7 +86,10 @@ class _SellGoldViewState extends State<SellGoldView> {
             children: [
               // ── Premium App Bar ──────────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     GestureDetector(
@@ -128,16 +129,16 @@ class _SellGoldViewState extends State<SellGoldView> {
                           ),
                           Text(
                             'Convert your gold to cash',
-                            style: TextStyle(
-                              color: t.inkMuted,
-                              fontSize: 11,
-                            ),
+                            style: TextStyle(color: t.inkMuted, fontSize: 11),
                           ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: t.card,
                         borderRadius: BorderRadius.circular(16),
@@ -171,7 +172,10 @@ class _SellGoldViewState extends State<SellGoldView> {
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -183,7 +187,7 @@ class _SellGoldViewState extends State<SellGoldView> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
                           image: const DecorationImage(
-                            image: AssetImage('assets/images/gold banner.png'),
+                            image: AssetImage('assets/images/gold_banner.png'),
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -227,15 +231,23 @@ class _SellGoldViewState extends State<SellGoldView> {
                               ),
                               const SizedBox(height: 6),
                               Obx(() {
-                                final chg = GoldController.to.rate.value?.change24h ?? 0;
-                                final pct = GoldController.to.rate.value?.changePct ?? 0;
+                                final chg =
+                                    GoldController.to.rate.value?.change24h ??
+                                    0;
+                                final pct =
+                                    GoldController.to.rate.value?.changePct ??
+                                    0;
                                 final isUp = chg >= 0;
-                                final c = isUp ? const Color(0xFF2ecc71) : _danger;
+                                final c = isUp
+                                    ? const Color(0xFF2ecc71)
+                                    : _danger;
                                 return Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                                      isUp
+                                          ? Icons.arrow_upward_rounded
+                                          : Icons.arrow_downward_rounded,
                                       color: c,
                                       size: 12,
                                     ),
@@ -283,18 +295,25 @@ class _SellGoldViewState extends State<SellGoldView> {
 
                       // ── Available Balance Card ─────────────────────────────────
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: t.card,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: t.inkMuted.withOpacity(0.15)),
+                          border: Border.all(
+                            color: t.inkMuted.withOpacity(0.15),
+                          ),
                         ),
                         child: Row(
                           children: [
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF0B3D2E).withOpacity(0.08),
+                                color: const Color(
+                                  0xFF0B3D2E,
+                                ).withOpacity(0.08),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -364,10 +383,14 @@ class _SellGoldViewState extends State<SellGoldView> {
                               setState(() {
                                 if (_byGrams) {
                                   _byGrams = false;
-                                  _ctrl.text = _rupeesDisp > 0 ? _rupeesDisp.toStringAsFixed(0) : '1000';
+                                  _ctrl.text = _rupeesDisp > 0
+                                      ? _rupeesDisp.toStringAsFixed(0)
+                                      : '1000';
                                 } else {
                                   _byGrams = true;
-                                  _ctrl.text = _gramsDisp > 0 ? _gramsDisp.toStringAsFixed(4) : '0.1000';
+                                  _ctrl.text = _gramsDisp > 0
+                                      ? _gramsDisp.toStringAsFixed(4)
+                                      : '0.1000';
                                 }
                               });
                             },
@@ -385,11 +408,16 @@ class _SellGoldViewState extends State<SellGoldView> {
                       ),
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: t.card,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: t.inkMuted.withOpacity(0.15)),
+                          border: Border.all(
+                            color: t.inkMuted.withOpacity(0.15),
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,7 +436,10 @@ class _SellGoldViewState extends State<SellGoldView> {
                                 Expanded(
                                   child: TextField(
                                     controller: _ctrl,
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
                                     onChanged: (_) => setState(() {}),
                                     style: TextStyle(
                                       color: t.ink,
@@ -438,15 +469,22 @@ class _SellGoldViewState extends State<SellGoldView> {
                                   onTap: () {
                                     setState(() {
                                       _byGrams = true;
-                                      _ctrl.text = _available.toStringAsFixed(4);
+                                      _ctrl.text = _available.toStringAsFixed(
+                                        4,
+                                      );
                                     });
                                   },
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFFFF9E6),
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: _gold.withOpacity(0.5)),
+                                      border: Border.all(
+                                        color: _gold.withOpacity(0.5),
+                                      ),
                                     ),
                                     child: const Text(
                                       'Max',
@@ -480,9 +518,21 @@ class _SellGoldViewState extends State<SellGoldView> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _chip(_byGrams ? 0.05 : 500.0, _byGrams ? '0.05g' : '₹500', t),
-                          _chip(_byGrams ? 0.1 : 1000.0, _byGrams ? '0.1g' : '₹1000', t),
-                          _chip(_byGrams ? 0.2 : 2000.0, _byGrams ? '0.2g' : '₹2000', t),
+                          _chip(
+                            _byGrams ? 0.05 : 500.0,
+                            _byGrams ? '0.05g' : '₹500',
+                            t,
+                          ),
+                          _chip(
+                            _byGrams ? 0.1 : 1000.0,
+                            _byGrams ? '0.1g' : '₹1000',
+                            t,
+                          ),
+                          _chip(
+                            _byGrams ? 0.2 : 2000.0,
+                            _byGrams ? '0.2g' : '₹2000',
+                            t,
+                          ),
                           _chip(0.0, 'All Balance', t, isAll: true),
                         ],
                       ),
@@ -494,7 +544,9 @@ class _SellGoldViewState extends State<SellGoldView> {
                         decoration: BoxDecoration(
                           color: t.card,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: t.inkMuted.withOpacity(0.15)),
+                          border: Border.all(
+                            color: t.inkMuted.withOpacity(0.15),
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -503,7 +555,8 @@ class _SellGoldViewState extends State<SellGoldView> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'You will receive (Breakup)',
@@ -526,15 +579,28 @@ class _SellGoldViewState extends State<SellGoldView> {
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF2ecc71).withOpacity(0.08),
+                                    color: const Color(
+                                      0xFF2ecc71,
+                                    ).withOpacity(0.08),
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: const Color(0xFF2ecc71).withOpacity(0.2)),
+                                    border: Border.all(
+                                      color: const Color(
+                                        0xFF2ecc71,
+                                      ).withOpacity(0.2),
+                                    ),
                                   ),
                                   child: Row(
                                     children: const [
-                                      Icon(Icons.verified_rounded, color: Color(0xFF2ecc71), size: 12),
+                                      Icon(
+                                        Icons.verified_rounded,
+                                        color: Color(0xFF2ecc71),
+                                        size: 12,
+                                      ),
                                       SizedBox(width: 4),
                                       Text(
                                         'Best Price',
@@ -552,10 +618,7 @@ class _SellGoldViewState extends State<SellGoldView> {
                             const SizedBox(height: 8),
                             Text(
                               '(${_gramsDisp.toStringAsFixed(4)} g × ₹${_sellRate.toStringAsFixed(2)}/g)',
-                              style: TextStyle(
-                                color: t.inkMuted,
-                                fontSize: 11,
-                              ),
+                              style: TextStyle(color: t.inkMuted, fontSize: 11),
                             ),
                           ],
                         ),
@@ -566,16 +629,22 @@ class _SellGoldViewState extends State<SellGoldView> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE8F4F1), // clean light teal green
+                          color: const Color(
+                            0xFFE8F4F1,
+                          ), // clean light teal green
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFF0B3D2E).withOpacity(0.15)),
+                          border: Border.all(
+                            color: const Color(0xFF0B3D2E).withOpacity(0.15),
+                          ),
                         ),
                         child: Row(
                           children: [
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF0B3D2E).withOpacity(0.08),
+                                color: const Color(
+                                  0xFF0B3D2E,
+                                ).withOpacity(0.08),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -623,9 +692,7 @@ class _SellGoldViewState extends State<SellGoldView> {
                 decoration: BoxDecoration(
                   color: t.card,
                   border: Border(
-                    top: BorderSide(
-                      color: t.inkMuted.withOpacity(0.15),
-                    ),
+                    top: BorderSide(color: t.inkMuted.withOpacity(0.15)),
                   ),
                 ),
                 child: Column(
@@ -647,7 +714,9 @@ class _SellGoldViewState extends State<SellGoldView> {
                         height: 54,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
-                          color: _valid ? const Color(0xFF0B3D2E) : const Color(0xFF0B3D2E).withOpacity(0.5),
+                          color: _valid
+                              ? const Color(0xFF0B3D2E)
+                              : const Color(0xFF0B3D2E).withOpacity(0.5),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: WalletController.to.isSelling.value
@@ -662,7 +731,8 @@ class _SellGoldViewState extends State<SellGoldView> {
                                 ),
                               )
                             : Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
                                     children: const [
@@ -700,9 +770,24 @@ class _SellGoldViewState extends State<SellGoldView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _trustBadge(Icons.verified_outlined, '100% Secure', 'Your gold is 100% safe', t),
-                        _trustBadge(Icons.bolt_outlined, 'Instant Payout', 'Get money instantly', t),
-                        _trustBadge(Icons.visibility_off_outlined, 'No Hidden Charges', 'Transparent process', t),
+                        _trustBadge(
+                          Icons.verified_outlined,
+                          '100% Secure',
+                          'Your gold is 100% safe',
+                          t,
+                        ),
+                        _trustBadge(
+                          Icons.bolt_outlined,
+                          'Instant Payout',
+                          'Get money instantly',
+                          t,
+                        ),
+                        _trustBadge(
+                          Icons.visibility_off_outlined,
+                          'No Hidden Charges',
+                          'Transparent process',
+                          t,
+                        ),
                       ],
                     ),
                   ],
@@ -789,10 +874,7 @@ class _SellGoldViewState extends State<SellGoldView> {
         Text(
           sub,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: t.inkMuted,
-            fontSize: 8,
-          ),
+          style: TextStyle(color: t.inkMuted, fontSize: 8),
         ),
       ],
     ),
@@ -806,9 +888,15 @@ class _SellGoldViewState extends State<SellGoldView> {
       transitionDuration: const Duration(milliseconds: 400),
       pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
       transitionBuilder: (context, anim1, anim2, child) {
-        final scaleCurve = CurvedAnimation(parent: anim1, curve: Curves.easeOutBack);
-        final opacityCurve = CurvedAnimation(parent: anim1, curve: Curves.easeOut);
-        
+        final scaleCurve = CurvedAnimation(
+          parent: anim1,
+          curve: Curves.easeOutBack,
+        );
+        final opacityCurve = CurvedAnimation(
+          parent: anim1,
+          curve: Curves.easeOut,
+        );
+
         final dark = ThemeController.to.isDark.value;
         final t = _T.of(dark);
 
@@ -818,7 +906,9 @@ class _SellGoldViewState extends State<SellGoldView> {
             scale: scaleCurve,
             child: AlertDialog(
               backgroundColor: t.card,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
               contentPadding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -876,10 +966,7 @@ class _SellGoldViewState extends State<SellGoldView> {
                   const Text(
                     'The sale proceeds have been credited to your App Wallet.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Color(0xFF6B7A72),
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Color(0xFF6B7A72), fontSize: 12),
                   ),
                   const SizedBox(height: 20),
                   Container(
@@ -888,15 +975,26 @@ class _SellGoldViewState extends State<SellGoldView> {
                     decoration: BoxDecoration(
                       color: const Color(0xFFF3F1EA),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF6B7A72).withOpacity(0.1)),
+                      border: Border.all(
+                        color: const Color(0xFF6B7A72).withOpacity(0.1),
+                      ),
                     ),
                     child: Column(
                       children: [
                         _dialogRow('Asset Type', '24K Gold', t),
                         const SizedBox(height: 8),
-                        _dialogRow('Weight Sold', '${grams.toStringAsFixed(4)} g', t, isHighlight: true),
+                        _dialogRow(
+                          'Weight Sold',
+                          '${grams.toStringAsFixed(4)} g',
+                          t,
+                          isHighlight: true,
+                        ),
                         const SizedBox(height: 8),
-                        _dialogRow('Amount Received', '₹${totalAmount.toStringAsFixed(2)}', t),
+                        _dialogRow(
+                          'Amount Received',
+                          '₹${totalAmount.toStringAsFixed(2)}',
+                          t,
+                        ),
                         const SizedBox(height: 8),
                         _dialogRow('Credited To', 'Wallet Balance', t),
                       ],
@@ -936,16 +1034,15 @@ class _SellGoldViewState extends State<SellGoldView> {
     );
   }
 
-  Widget _dialogRow(String label, String val, _T t, {bool isHighlight = false}) => Row(
+  Widget _dialogRow(
+    String label,
+    String val,
+    _T t, {
+    bool isHighlight = false,
+  }) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Text(
-        label,
-        style: TextStyle(
-          color: t.inkMuted,
-          fontSize: 12,
-        ),
-      ),
+      Text(label, style: TextStyle(color: t.inkMuted, fontSize: 12)),
       Text(
         val,
         style: TextStyle(

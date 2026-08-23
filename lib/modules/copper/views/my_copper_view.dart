@@ -1,13 +1,13 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:vika1/modules/silver/controllers/silver_controller.dart';
+import 'package:vika1/modules/copper/controllers/copper_controller.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 import '../../../routes/app_routes.dart';
 
-// ─── Live data from SilverController ──────────────────────────────────────────
+// ─── Live data from CopperController ──────────────────────────────────────────
 
 // Dummy chart data (7 points for 1M view)
 const _chart1M = [
@@ -47,13 +47,13 @@ const _chart1Y = [
   18756.0,
 ];
 
-class MySilverView extends StatefulWidget {
-  const MySilverView({super.key});
+class MyCopperView extends StatefulWidget {
+  const MyCopperView({super.key});
   @override
-  State<MySilverView> createState() => _MySilverViewState();
+  State<MyCopperView> createState() => _MyCopperViewState();
 }
 
-class _MySilverViewState extends State<MySilverView>
+class _MyCopperViewState extends State<MyCopperView>
     with SingleTickerProviderStateMixin {
   int _tabIdx = 2; // Default to 1M
   bool _hideAmt = false;
@@ -89,7 +89,7 @@ class _MySilverViewState extends State<MySilverView>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'My Silver',
+                'My Copper',
                 style: TextStyle(
                   color: tp,
                   fontSize: 18,
@@ -97,7 +97,7 @@ class _MySilverViewState extends State<MySilverView>
                 ),
               ),
               Text(
-                'Track your silver holdings and growth',
+                'Track your copper holdings and growth',
                 style: TextStyle(color: ts, fontSize: 11),
               ),
             ],
@@ -131,7 +131,7 @@ class _MySilverViewState extends State<MySilverView>
                           Row(
                             children: [
                               Text(
-                                'Total Silver',
+                                'Total Copper',
                                 style: TextStyle(color: ts, fontSize: 13),
                               ),
                               const SizedBox(width: 6),
@@ -169,7 +169,7 @@ class _MySilverViewState extends State<MySilverView>
                                     Transform.translate(
                                       offset: const Offset(2, 3),
                                       child: Text(
-                                        '${SilverController.to.totalGrams.toStringAsFixed(4)}g',
+                                        '${CopperController.to.totalGrams.toStringAsFixed(4)}g',
                                         style: TextStyle(
                                           color: Color(0x44D4A017),
                                           fontSize: 36,
@@ -179,7 +179,7 @@ class _MySilverViewState extends State<MySilverView>
                                       ),
                                     ),
                                     Text(
-                                      '${SilverController.to.totalGrams.toStringAsFixed(4)}g',
+                                      '${CopperController.to.totalGrams.toStringAsFixed(4)}g',
                                       style: TextStyle(
                                         color: Color(0xFF8A95A5),
                                         fontSize: 36,
@@ -191,17 +191,17 @@ class _MySilverViewState extends State<MySilverView>
                                 ),
                           const SizedBox(height: 4),
                           Text(
-                            'Current Value  ₹${(SilverController.to.balance.value?.currentValue ?? 0).toStringAsFixed(2)}',
+                            'Current Value  ₹${(CopperController.to.balance.value?.currentValue ?? 0).toStringAsFixed(2)}',
                             style: TextStyle(color: ts, fontSize: 13),
                           ),
                           const SizedBox(height: 10),
                           Builder(
                             builder: (_) {
                               final gain =
-                                  SilverController.to.balance.value?.gainLoss ??
+                                  CopperController.to.balance.value?.gainLoss ??
                                   0;
                               final gainPct =
-                                  SilverController
+                                  CopperController
                                       .to
                                       .balance
                                       .value
@@ -288,14 +288,14 @@ class _MySilverViewState extends State<MySilverView>
                 child: Row(
                   children: [
                     _Stat(
-                      '${SilverController.to.totalGrams.toStringAsFixed(4)}g',
-                      'Available Silver',
+                      '${CopperController.to.totalGrams.toStringAsFixed(4)}g',
+                      'Available Copper',
                       const Color(0xFF8A95A5),
                       dark,
                     ),
                     _VDivider(dark),
                     _Stat(
-                      '₹${(SilverController.to.balance.value?.investedAmt ?? 0).toStringAsFixed(0)}',
+                      '₹${(CopperController.to.balance.value?.investedAmt ?? 0).toStringAsFixed(0)}',
                       'Invested Amount',
                       const Color(0xFF3B82F6),
                       dark,
@@ -304,9 +304,9 @@ class _MySilverViewState extends State<MySilverView>
                     Builder(
                       builder: (_) {
                         final gain =
-                            SilverController.to.balance.value?.gainLoss ?? 0;
+                            CopperController.to.balance.value?.gainLoss ?? 0;
                         final gainPct =
-                            SilverController.to.balance.value?.gainLossPct ?? 0;
+                            CopperController.to.balance.value?.gainLossPct ?? 0;
                         final isUp = gain >= 0;
                         return _Stat(
                           '${isUp ? '+' : ''}₹${gain.toStringAsFixed(2)}\n${gainPct.toStringAsFixed(2)}%',
@@ -320,7 +320,7 @@ class _MySilverViewState extends State<MySilverView>
                     ),
                     // _VDivider(dark),
                     // _Stat(
-                    //   '₹${(SilverController.to.balance.value?.avgBuyRate ?? 0)}/g',
+                    //   '₹${(CopperController.to.balance.value?.avgBuyRate ?? 0)}/g',
                     //   'Avg. Buy Price',
                     //   const Color(0xFFAB47BC),
                     //   dark,
@@ -351,7 +351,7 @@ class _MySilverViewState extends State<MySilverView>
                     Row(
                       children: [
                         Text(
-                          'Silver Value',
+                          'Copper Value',
                           style: TextStyle(
                             color: tp,
                             fontSize: 14,
@@ -359,7 +359,7 @@ class _MySilverViewState extends State<MySilverView>
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Icon(Icons.access_time_rounded, color: ts, size: 14),
+                        // Icon(Icons.access_time_rounded, color: ts, size: 14),
                         const Spacer(),
                         // Time tabs
                         ..._tabs.asMap().entries.map(
@@ -367,7 +367,9 @@ class _MySilverViewState extends State<MySilverView>
                             onTap: () {
                               HapticFeedback.selectionClick();
                               setState(() => _tabIdx = e.key);
-                              SilverController.to.loadPriceHistory(_tabs[e.key].toLowerCase());
+                              CopperController.to.loadPriceHistory(
+                                _tabs[e.key].toLowerCase(),
+                              );
                             },
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 180),
@@ -398,31 +400,39 @@ class _MySilverViewState extends State<MySilverView>
                     const SizedBox(height: 12),
                     // Value + change
                     Obx(() {
-                      final history = SilverController.to.priceHistory;
-                      final isLoading = SilverController.to.historyLoading.value;
-                      
-                      double currentPrice = SilverController.to.buyRate;
+                      final history = CopperController.to.priceHistory;
+                      final isLoading =
+                          CopperController.to.historyLoading.value;
+
+                      double currentPrice = CopperController.to.buyRate;
                       double changeAmt = 0.0;
                       double changePct = 0.0;
                       bool priceIsUp = true;
-                      
+
                       if (history.isNotEmpty) {
                         final lastItem = history.last;
                         currentPrice = (lastItem['price'] as num).toDouble();
                         final firstItem = history.first;
-                        final firstPrice = (firstItem['price'] as num).toDouble();
+                        final firstPrice = (firstItem['price'] as num)
+                            .toDouble();
                         changeAmt = currentPrice - firstPrice;
-                        changePct = firstPrice > 0 ? (changeAmt / firstPrice) * 100 : 0.0;
+                        changePct = firstPrice > 0
+                            ? (changeAmt / firstPrice) * 100
+                            : 0.0;
                         priceIsUp = changeAmt >= 0;
                       }
-                      
-                      final chartGainColor = priceIsUp ? const Color(0xFF2ecc71) : const Color(0xFFe74c3c);
-                      
+
+                      final chartGainColor = priceIsUp
+                          ? const Color(0xFF2ecc71)
+                          : const Color(0xFFe74c3c);
+
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isLoading ? 'Loading...' : '₹${currentPrice.toStringAsFixed(2)}/g',
+                            isLoading
+                                ? 'Loading...'
+                                : '₹${currentPrice.toStringAsFixed(2)}/g',
                             style: TextStyle(
                               color: tp,
                               fontSize: 22,
@@ -460,14 +470,16 @@ class _MySilverViewState extends State<MySilverView>
                     }),
                     const SizedBox(height: 16),
                     // Chart
-                    Obx(() => _SpotPriceChart(
-                          history: SilverController.to.priceHistory,
-                          isLoading: SilverController.to.historyLoading.value,
-                          themeColor: const Color(0xFF8A95A5),
-                          bgColor: bg,
-                          inkColor: tp,
-                          inkMutedColor: ts,
-                        )),
+                    Obx(
+                      () => _SpotPriceChart(
+                        history: CopperController.to.priceHistory,
+                        isLoading: CopperController.to.historyLoading.value,
+                        themeColor: const Color(0xFF8A95A5),
+                        bgColor: bg,
+                        inkColor: tp,
+                        inkMutedColor: ts,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     // X-axis labels
                     Row(
@@ -527,7 +539,7 @@ class _MySilverViewState extends State<MySilverView>
                         ),
                         child: Row(
                           children: [
-                            // Silver icon
+                            // Copper icon
                             Container(
                               width: 44,
                               height: 44,
@@ -603,7 +615,7 @@ class _MySilverViewState extends State<MySilverView>
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${SilverController.to.totalGrams}g  ·  ₹${(SilverController.to.balance.value?.currentValue ?? 0).toStringAsFixed(2)}',
+                                    '${CopperController.to.totalGrams}g  ·  ₹${(CopperController.to.balance.value?.currentValue ?? 0).toStringAsFixed(2)}',
                                     style: TextStyle(color: ts, fontSize: 11),
                                   ),
                                 ],
@@ -677,7 +689,7 @@ class _MySilverViewState extends State<MySilverView>
                 ),
               ),
 
-              // ── Silver SIP Banner ───────────────────────────────────────────────
+              // ── Copper SIP Banner ───────────────────────────────────────────────
               Container(
                 margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                 padding: const EdgeInsets.all(16),
@@ -709,7 +721,7 @@ class _MySilverViewState extends State<MySilverView>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Silver SIP is the smart way to grow wealth',
+                            'Copper SIP is the smart way to grow wealth',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 13,
@@ -729,7 +741,7 @@ class _MySilverViewState extends State<MySilverView>
                     ),
                     const SizedBox(width: 12),
                     GestureDetector(
-                      onTap: () => Get.toNamed(AppRoutes.silverSip),
+                      onTap: () => Get.toNamed(AppRoutes.myCopper),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -786,7 +798,7 @@ class _MySilverViewState extends State<MySilverView>
             children: [
               Expanded(
                 child: GestureDetector(
-                  onTap: () => Get.toNamed(AppRoutes.buySilver),
+                  onTap: () => Get.toNamed(AppRoutes.buyCopper),
                   child: Container(
                     height: 50,
                     decoration: BoxDecoration(
@@ -804,7 +816,7 @@ class _MySilverViewState extends State<MySilverView>
                     ),
                     child: const Center(
                       child: Text(
-                        'Buy More Silver',
+                        'Buy More Copper',
                         style: TextStyle(
                           color: Color(0xFF2A2E33),
                           fontSize: 14,
@@ -818,7 +830,7 @@ class _MySilverViewState extends State<MySilverView>
               const SizedBox(width: 10),
               Expanded(
                 child: GestureDetector(
-                  onTap: () => Get.toNamed(AppRoutes.sellSilver),
+                  onTap: () => Get.toNamed(AppRoutes.sellCopper),
                   child: Container(
                     height: 50,
                     decoration: BoxDecoration(
@@ -832,7 +844,7 @@ class _MySilverViewState extends State<MySilverView>
                     ),
                     child: const Center(
                       child: Text(
-                        'Sell Silver',
+                        'Sell Copper',
                         style: TextStyle(
                           color: Color(0xFF3B82F6),
                           fontSize: 14,
@@ -868,9 +880,9 @@ class _MySilverViewState extends State<MySilverView>
   }
 }
 
-// ─── Silver Line Chart Painter ──────────────────────────────────────────────────
-class _SilverChartPainter extends CustomPainter {
-  const _SilverChartPainter({required this.data, required this.dark});
+// ─── Copper Line Chart Painter ──────────────────────────────────────────────────
+class _CopperChartPainter extends CustomPainter {
+  const _CopperChartPainter({required this.data, required this.dark});
   final List<double> data;
   final bool dark;
 
@@ -962,7 +974,7 @@ class _SilverChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _SilverChartPainter old) => old.data != data;
+  bool shouldRepaint(covariant _CopperChartPainter old) => old.data != data;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1033,7 +1045,9 @@ class _SpotPriceChart extends StatelessWidget {
     if (isLoading) {
       return const SizedBox(
         height: 140,
-        child: Center(child: CircularProgressIndicator(color: Color(0xFF8A95A5))),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFF8A95A5)),
+        ),
       );
     }
 
@@ -1089,7 +1103,8 @@ class _SpotPriceChart extends StatelessWidget {
                   if (index >= 0 && index < history.length) {
                     final dateStr = history[index]['date'] as String;
                     final dt = DateTime.parse(dateStr);
-                    final formattedDate = "${dt.day}/${dt.month} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+                    final formattedDate =
+                        "${dt.day}/${dt.month} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
                     return LineTooltipItem(
                       '₹${spot.y.toStringAsFixed(2)}\n$formattedDate',
                       TextStyle(
