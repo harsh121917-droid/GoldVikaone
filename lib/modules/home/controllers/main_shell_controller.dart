@@ -1,8 +1,8 @@
+import 'package:vika1/core/services/location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vika1/modules/digi_gold/controllers/digi_gold_controller.dart';
-import 'package:vika1/modules/silver/controllers/silver_controller.dart';
 import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 import 'package:vika1/modules/kyc/controllers/kyc_controller.dart';
 import 'package:vika1/core/network/api_client.dart';
@@ -21,6 +21,7 @@ class MainShellController extends GetxController {
     super.onReady();
     // Check for app updates on startup
     _checkForUpdate();
+    LocationService.to.checkAndPromptLocation();
   }
 
   Future<void> _checkForUpdate() async {

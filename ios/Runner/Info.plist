@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Vikaone requires your location to secure transactions and verify your digital gold account.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Vikaone requires your location to secure transactions and verify your digital gold account.</string>
 </dict>
 </plist>
