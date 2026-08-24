@@ -72,8 +72,18 @@ class OrderModel {
     String? img;
     String? pur;
     if (json['jewellery'] != null && json['jewellery'] is Map) {
-      img = json['jewellery']['imageUrl']?.toString();
-      pur = json['jewellery']['purity']?.toString();
+      final jMap = json['jewellery'] as Map;
+      img = jMap['imageUrl']?.toString()?.trim();
+      if ((img == null || img.isEmpty) && jMap['images'] is List && (jMap['images'] as List).isNotEmpty) {
+        img = jMap['images'][0]?.toString()?.trim();
+      }
+      if (img == null || img.isEmpty) {
+        img = jMap['image']?.toString()?.trim();
+      }
+      pur = jMap['purity']?.toString();
+    }
+    if (img == null || img.isEmpty) {
+      img = json['imageUrl']?.toString()?.trim() ?? json['image']?.toString()?.trim();
     }
 
     var historyList = <StatusHistoryItem>[];

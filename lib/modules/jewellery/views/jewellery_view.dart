@@ -342,8 +342,22 @@ class JewelleryView extends StatelessWidget {
                             final purity = (p['purity'] ?? '22K Gold').toString();
                             final weight = '${p['weightGrams'] ?? 0} g';
                             final making = (p['makingCharges'] ?? 1500).toString();
+                            final isGold = (p['metalType'] ?? 'gold').toString().toLowerCase() == 'gold';
 
-                            final imageUrl = p['imageUrl']?.toString() ?? '';
+                            // Resolve Main / Primary Image with full fallback hierarchy
+                            String imageUrl = (p['imageUrl']?.toString() ?? '').trim();
+                            if (imageUrl.isEmpty && p['images'] is List && (p['images'] as List).isNotEmpty) {
+                              for (final img in p['images'] as List) {
+                                final s = img?.toString().trim() ?? '';
+                                if (s.isNotEmpty) {
+                                  imageUrl = s;
+                                  break;
+                                }
+                              }
+                            }
+                            if (imageUrl.isEmpty) {
+                              imageUrl = (p['image']?.toString() ?? '').trim();
+                            }
 
                             return GestureDetector(
                               onTap: () => Get.to(() => JewelleryItemDetailsView(item: p)),
@@ -363,7 +377,7 @@ class JewelleryView extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Image / Icon Box
+                                    // Image / Icon Box — Center-aligned, original aspect ratio (never stretched/cropped)
                                     Expanded(
                                       child: Container(
                                         margin: const EdgeInsets.all(8),
@@ -373,39 +387,43 @@ class JewelleryView extends StatelessWidget {
                                         ),
                                         child: Stack(
                                           children: [
-                                            Center(
-                              child: imageUrl.startsWith('http')
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Image.network(
-                                        imageUrl,
-                                        width: double.infinity,
-                                        height: double.infinity,
-                                        fit: BoxFit.cover,
-                                        loadingBuilder: (context, child, progress) {
-                                          if (progress == null) return child;
-                                          return Center(
-                                            child: CircularProgressIndicator(
-                                              value: progress.expectedTotalBytes != null
-                                                  ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
-                                                  : null,
-                                              strokeWidth: 2,
-                                              color: _gold,
-                                            ),
-                                          );
-                                        },
-                                        errorBuilder: (context, error, stackTrace) => const Icon(
-                                          Icons.diamond_outlined,
-                                          size: 42,
-                                          color: _gold,
-                                        ),
-                                      ),
-                                    )
-                                  : const Icon(
-                                      Icons.diamond_outlined,
-                                      size: 42,
-                                      color: _gold,
-                                    ),
+                                            Positioned.fill(
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(8.0),
+                                                child: Center(
+                                                  child: imageUrl.isNotEmpty && (imageUrl.startsWith('http') || imageUrl.startsWith('data:'))
+                                                      ? ClipRRect(
+                                                          borderRadius: BorderRadius.circular(8),
+                                                          child: Image.network(
+                                                            imageUrl,
+                                                            fit: BoxFit.contain,
+                                                            alignment: Alignment.center,
+                                                            loadingBuilder: (context, child, progress) {
+                                                              if (progress == null) return child;
+                                                              return Center(
+                                                                child: CircularProgressIndicator(
+                                                                  value: progress.expectedTotalBytes != null
+                                                                      ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                                                                      : null,
+                                                                  strokeWidth: 2,
+                                                                  color: _gold,
+                                                                ),
+                                                              );
+                                                            },
+                                                            errorBuilder: (context, error, stackTrace) => Icon(
+                                                              isGold ? Icons.diamond_outlined : Icons.circle_outlined,
+                                                              size: 42,
+                                                              color: _gold,
+                                                            ),
+                                                          ),
+                                                        )
+                                                      : Icon(
+                                                          isGold ? Icons.diamond_outlined : Icons.circle_outlined,
+                                                          size: 42,
+                                                          color: _gold,
+                                                        ),
+                                                ),
+                                              ),
                                             ),
                                             Positioned(
                                               top: 6,

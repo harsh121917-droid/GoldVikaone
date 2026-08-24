@@ -579,20 +579,33 @@ class JewelleryItemDetailsView extends StatelessWidget {
   }
   List<String> _extractImages(Map<String, dynamic> item) {
     final List<String> list = [];
+    final Set<String> seen = {};
+
+    // 1. Primary / Main Image first
+    final primary = item['imageUrl']?.toString().trim() ?? '';
+    if (primary.isNotEmpty && (primary.startsWith('http') || primary.startsWith('data:'))) {
+      list.add(primary);
+      seen.add(primary);
+    }
+
+    // 2. Multi-image gallery list
     if (item['images'] is List && (item['images'] as List).isNotEmpty) {
       for (final img in item['images'] as List) {
         final s = img?.toString().trim();
-        if (s != null && s.isNotEmpty && s.startsWith('http')) {
+        if (s != null && s.isNotEmpty && (s.startsWith('http') || s.startsWith('data:')) && !seen.contains(s)) {
           list.add(s);
+          seen.add(s);
         }
       }
     }
-    if (list.isEmpty && item['imageUrl'] != null) {
-      final s = item['imageUrl'].toString().trim();
-      if (s.isNotEmpty && s.startsWith('http')) {
-        list.add(s);
-      }
+
+    // 3. Fallback bullion coin image
+    final fallbackImg = item['image']?.toString().trim() ?? '';
+    if (fallbackImg.isNotEmpty && (fallbackImg.startsWith('http') || fallbackImg.startsWith('data:')) && !seen.contains(fallbackImg)) {
+      list.add(fallbackImg);
+      seen.add(fallbackImg);
     }
+
     return list;
   }
 }
@@ -649,30 +662,31 @@ class _JewelleryImageShowcaseState extends State<_JewelleryImageShowcase> {
                 itemCount: images.length,
                 onPageChanged: (idx) => setState(() => _currentPage = idx),
                 itemBuilder: (ctx, idx) {
-                  return Image.network(
-                    images[idx],
-                    width: double.infinity,
-                    height: 300,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return SizedBox(
-                        height: 300,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            value: progress.expectedTotalBytes != null
-                                ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
-                                : null,
-                            strokeWidth: 2,
-                            color: _gold,
-                          ),
+                  return Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Center(
+                      child: Image.network(
+                        images[idx],
+                        fit: BoxFit.contain,
+                        alignment: Alignment.center,
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: progress.expectedTotalBytes != null
+                                  ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                                  : null,
+                              strokeWidth: 2,
+                              color: _gold,
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          widget.metalType == 'gold' ? Icons.diamond_outlined : Icons.circle_outlined,
+                          size: 90,
+                          color: _gold,
                         ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                      widget.metalType == 'gold' ? Icons.diamond_outlined : Icons.circle_outlined,
-                      size: 90,
-                      color: _gold,
+                      ),
                     ),
                   );
                 },

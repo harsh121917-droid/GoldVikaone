@@ -158,8 +158,13 @@ class JewelleryController extends GetxController {
     applyFilters();
   }
 
-  // Calculate product price based on live rates
+  // Calculate product price based on live rates or direct price
   double calculateProductPrice(Map<String, dynamic> item) {
+    final directPrice = (item['price'] ?? 0.0) is num
+        ? (item['price'] as num).toDouble()
+        : double.tryParse(item['price'].toString()) ?? 0.0;
+    if (directPrice > 0) return directPrice;
+
     final metal = (item['metalType'] ?? 'gold').toString().toLowerCase();
     final weight = (item['weightGrams'] ?? 0.0) is num
         ? (item['weightGrams'] as num).toDouble()

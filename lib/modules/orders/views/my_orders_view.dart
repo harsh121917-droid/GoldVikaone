@@ -291,7 +291,7 @@ class MyOrdersView extends StatelessWidget {
                     child: order.imageUrl != null && order.imageUrl!.isNotEmpty
                         ? Image.network(
                             order.imageUrl!,
-                            fit: BoxFit.cover,
+                            fit: BoxFit.contain, alignment: Alignment.center,
                             errorBuilder: (ctx, err, stack) => Image.asset(
                               'assets/images/logo.png',
                               fit: BoxFit.contain,
