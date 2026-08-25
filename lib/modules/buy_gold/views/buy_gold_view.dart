@@ -2260,7 +2260,7 @@ class _CouponsSectionWidgetState extends State<_CouponsSectionWidget> {
         ),
         const SizedBox(height: 10),
         SizedBox(
-          height: 160,
+          height: 145,
           child: _isLoading
               ? ListView.separated(
                   scrollDirection: Axis.horizontal,

@@ -153,13 +153,13 @@ class CouponTicketCard extends StatelessWidget {
 
     String buttonLabel = customButtonText ?? (isApplied ? 'Applied ✓' : (isSelected ? 'Selected' : 'Apply Coupon'));
 
-    const double stubWidth = 114.0;
+    const double stubWidth = 100.0;
     final borderColor = (isSelected || isApplied) ? const Color(0xFFB87E14) : const Color(0xFFE8DBB8);
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: margin ?? const EdgeInsets.only(bottom: 16),
+        margin: margin ?? const EdgeInsets.only(bottom: 10),
         child: CustomPaint(
           foregroundPainter: TicketVoucherBorderPainter(
             color: borderColor,
@@ -179,7 +179,7 @@ class CouponTicketCard extends StatelessWidget {
                     // ── Left Ticket Stub ──────────────────────────────────────────
                     Container(
                       width: stubWidth,
-                      padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+                      padding: const EdgeInsets.fromLTRB(8, 6, 6, 6),
                       decoration: BoxDecoration(
                         color: dark ? const Color(0xFF192C20) : const Color(0xFFFFF7E6),
                       ),
@@ -310,7 +310,7 @@ class CouponTicketCard extends StatelessWidget {
                     // ── Right Main Details Section ───────────────────────────────
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 10, 14, 10),
+                        padding: const EdgeInsets.fromLTRB(6, 6, 10, 6),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -372,35 +372,35 @@ class CouponTicketCard extends StatelessWidget {
                               ],
                             ),
 
-                            const SizedBox(height: 4),
+                            // const SizedBox(height: 4),
 
-                            // Once Per User Tag
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: dark ? Colors.white10 : const Color(0xFFFFFDF5),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0xFFF7EED9)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.person_outline_rounded,
-                                      size: 11, color: Color(0xFF8A6A32)),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    tag,
-                                    style: const TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF8A6A32),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            // // Once Per User Tag
+                            // Container(
+                            //   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            //   decoration: BoxDecoration(
+                            //     color: dark ? Colors.white10 : const Color(0xFFFFFDF5),
+                            //     borderRadius: BorderRadius.circular(6),
+                            //     border: Border.all(color: const Color(0xFFF7EED9)),
+                            //   ),
+                            //   child: Row(
+                            //     mainAxisSize: MainAxisSize.min,
+                            //     children: [
+                            //       const Icon(Icons.person_outline_rounded,
+                            //           size: 11, color: Color(0xFF8A6A32)),
+                            //       const SizedBox(width: 4),
+                            //       Text(
+                            //         tag,
+                            //         style: const TextStyle(
+                            //           fontSize: 9,
+                            //           fontWeight: FontWeight.w700,
+                            //           color: Color(0xFF8A6A32),
+                            //         ),
+                            //       ),
+                            //     ],
+                            //   ),
+                            // ),
 
-                            const SizedBox(height: 8),
+                            // const SizedBox(height: 8),
 
                             // Bottom Actions: View Details & Apply
                             Row(
@@ -438,7 +438,7 @@ class CouponTicketCard extends StatelessWidget {
                                   },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 7),
+                                        horizontal: 11, vertical: 5),
                                     decoration: BoxDecoration(
                                       gradient: isApplied
                                           ? const LinearGradient(
@@ -679,7 +679,7 @@ class CouponTicketSkeletonCard extends StatefulWidget {
   const CouponTicketSkeletonCard({
     Key? key,
     this.width = double.infinity,
-    this.height = 145,
+    this.height = 115,
     this.margin = const EdgeInsets.only(bottom: 16),
   }) : super(key: key);
 

@@ -27,7 +27,7 @@ class CopperRateModel {
     change24h: (j['change24h'] ?? 0) * 1.0,
     changePct: (j['changePct'] ?? 0) * 1.0,
     purity: j['purity'] ?? '999',
-    gstPct: (j['gstPct'] ?? 3.0) * 1.0,
+    gstPct: (j['gstPct'] ?? 18.0) * 1.0,
     updatedAt: DateTime.tryParse(j['updatedAt'] ?? '') ?? DateTime.now(),
     source: j['source'] ?? 'gold-api.com',
   );

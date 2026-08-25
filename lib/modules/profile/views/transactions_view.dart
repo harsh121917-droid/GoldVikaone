@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vika1/data/repositories/gold_repository.dart';
 import 'package:vika1/data/repositories/silver_repository.dart';
+import 'package:vika1/data/repositories/copper_repository.dart';
 import 'package:vika1/modules/digi_gold/views/transaction_detail_view.dart';
 import 'package:vika1/modules/silver_sip/views/silver_transaction_detail_view.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
@@ -43,12 +44,15 @@ class _T {
 class TransactionsController extends GetxController {
   final _goldRepo = GoldRepository();
   final _silverRepo = SilverRepository();
+  final _copperRepo = CopperRepository();
 
   var isLoadingGold = true.obs;
   var isLoadingSilver = true.obs;
+  var isLoadingCopper = true.obs;
 
   var goldTxns = <GoldTxnModel>[].obs;
   var silverTxns = <SilverTxnModel>[].obs;
+  var copperTxns = <CopperTxnModel>[].obs;
 
   @override
   void onInit() {
@@ -59,13 +63,14 @@ class TransactionsController extends GetxController {
   void loadAll() {
     loadGoldTxns();
     loadSilverTxns();
+    loadCopperTxns();
   }
 
   Future<void> loadGoldTxns() async {
     try {
       isLoadingGold(true);
       final list = await _goldRepo.getTransactions();
-      goldTxns.value = list.where((t) => t.type != 'sip_buy').toList();
+      goldTxns.value = list;
     } catch (e) {
       // Silently catch network failures
     } finally {
@@ -77,11 +82,23 @@ class TransactionsController extends GetxController {
     try {
       isLoadingSilver(true);
       final list = await _silverRepo.getTransactions();
-      silverTxns.value = list.where((t) => t.type != 'sip_buy').toList();
+      silverTxns.value = list;
     } catch (e) {
       // Silently catch network failures
     } finally {
       isLoadingSilver(false);
+    }
+  }
+
+  Future<void> loadCopperTxns() async {
+    try {
+      isLoadingCopper(true);
+      final list = await _copperRepo.getTransactions();
+      copperTxns.value = list;
+    } catch (e) {
+      // Silently catch network failures
+    } finally {
+      isLoadingCopper(false);
     }
   }
 }
@@ -102,7 +119,7 @@ class _TransactionsViewState extends State<TransactionsView>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -151,6 +168,7 @@ class _TransactionsViewState extends State<TransactionsView>
             tabs: const [
               Tab(text: 'Gold'),
               Tab(text: 'Silver'),
+              Tab(text: 'Copper'),
             ],
           ),
         ),
@@ -159,6 +177,7 @@ class _TransactionsViewState extends State<TransactionsView>
           children: [
             _buildGoldTab(t),
             _buildSilverTab(t),
+            _buildCopperTab(t),
           ],
         ),
       );
@@ -233,7 +252,136 @@ class _TransactionsViewState extends State<TransactionsView>
     });
   }
 
-  // Helper Widget for Gold & Silver list cards
+  // ─── Copper Tab ─────────────────────────────────────────────────────────────
+  Widget _buildCopperTab(_T t) {
+    return Obx(() {
+      if (_ctrl.isLoadingCopper.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (_ctrl.copperTxns.isEmpty) {
+        return _buildEmptyState('No copper transactions yet', t);
+      }
+      return RefreshIndicator(
+        onRefresh: () => _ctrl.loadCopperTxns(),
+        child: ListView.separated(
+          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+          padding: const EdgeInsets.all(16),
+          itemCount: _ctrl.copperTxns.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, i) {
+            final txn = _ctrl.copperTxns[i];
+            return _buildMetalCard(
+              title: txn.typeLabel,
+              grams: txn.grams,
+              rate: txn.ratePerGram,
+              amount: txn.totalAmt > 0 ? txn.totalAmt : txn.copperValue,
+              status: txn.status,
+              date: txn.createdAt,
+              t: t,
+              onTap: () {
+                // Show clean bottom sheet details for Copper
+                _showCopperTxnModal(context, txn, t);
+              },
+            );
+          },
+        ),
+      );
+    });
+  }
+
+  void _showCopperTxnModal(BuildContext context, CopperTxnModel txn, _T t) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: t.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: t.inkMuted.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    txn.typeLabel,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: t.ink,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: txn.isSuccess
+                          ? const Color(0xFF2ECC71).withOpacity(0.12)
+                          : const Color(0xFFF39C12).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      txn.status.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: txn.isSuccess ? const Color(0xFF2ECC71) : const Color(0xFFF39C12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _modalRow('Invoice No.', txn.displayInvoiceNo, t),
+              _modalRow('Quantity', '${txn.grams.toStringAsFixed(4)} grams', t),
+              _modalRow('Locked Rate', '₹${txn.ratePerGram.toStringAsFixed(2)} / g', t),
+              if (txn.isBuy && txn.gstAmt > 0)
+                _modalRow('GST (18%)', '₹${txn.gstAmt.toStringAsFixed(2)}', t),
+              _modalRow('Total Amount', '₹${(txn.totalAmt > 0 ? txn.totalAmt : txn.copperValue).toStringAsFixed(2)}', t, isHighlight: true),
+              _modalRow('Date & Time', '${txn.createdAt.day}/${txn.createdAt.month}/${txn.createdAt.year} ${txn.createdAt.hour.toString().padLeft(2, '0')}:${txn.createdAt.minute.toString().padLeft(2, '0')}', t),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _modalRow(String label, String value, _T t, {bool isHighlight = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: t.inkMuted, fontSize: 13)),
+          Text(
+            value,
+            style: TextStyle(
+              color: isHighlight ? const Color(0xFFD4A017) : t.ink,
+              fontWeight: isHighlight ? FontWeight.w900 : FontWeight.w600,
+              fontSize: isHighlight ? 15 : 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper Widget for Gold & Silver & Copper list cards
   Widget _buildMetalCard({
     required String title,
     required double grams,

@@ -53,30 +53,30 @@ class LocationService extends GetxService {
         child: Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           backgroundColor: const Color(0xFF0F172A),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
           child: Padding(
-            padding: const EdgeInsets.all(22),
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Glowing Pin Icon
                 Container(
-                  width: 64,
-                  height: 64,
+                  width: 58,
+                  height: 58,
                   decoration: BoxDecoration(
                     color: const Color(0xFFD4A017).withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                     border: Border.all(color: const Color(0xFFD4A017).withValues(alpha: 0.35), width: 2),
                   ),
                   child: const Center(
-                    child: Icon(Icons.location_on_rounded, color: Color(0xFFD4A017), size: 34),
+                    child: Icon(Icons.location_on_rounded, color: Color(0xFFD4A017), size: 30),
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
 
                 // Title
                 const Text(
-                  'Enable Location Access 📍',
+                  'Enable Location',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 18,
@@ -85,49 +85,25 @@ class LocationService extends GetxService {
                     letterSpacing: -0.2,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
 
-                // Description
+                // Clean Concise Message
                 Text(
-                  'To comply with government bullion trading compliance and safeguard your digital gold wallet, we require one-time GPS verification.',
+                  'Please enable location access to continue.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.white.withValues(alpha: 0.7),
-                    height: 1.45,
                   ),
                 ),
-                const SizedBox(height: 16),
-
-                // Security Note
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.verified_user_rounded, color: Color(0xFF1FAE7A), size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'One-time capture • Encrypted & Secure',
-                          style: TextStyle(fontSize: 11.5, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 20),
 
                 // Action Buttons
                 Obx(() => Column(
                   children: [
                     SizedBox(
                       width: double.infinity,
-                      height: 48,
+                      height: 46,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFD4A017),
@@ -143,8 +119,8 @@ class LocationService extends GetxService {
                                   _isPromptShowing = false;
                                   Get.back();
                                   Get.snackbar(
-                                    'Location Verified! 📍',
-                                    'Your account location has been successfully registered.',
+                                    'Location Enabled',
+                                    'Location access enabled successfully.',
                                     backgroundColor: const Color(0xFF1FAE7A),
                                     colorText: Colors.white,
                                     snackPosition: SnackPosition.BOTTOM,
@@ -164,7 +140,7 @@ class LocationService extends GetxService {
                                   Icon(Icons.my_location_rounded, size: 18),
                                   SizedBox(width: 8),
                                   Text(
-                                    'Allow Location Access',
+                                    'Enable Location',
                                     style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                                   ),
                                 ],
@@ -172,24 +148,16 @@ class LocationService extends GetxService {
                       ),
                     ),
                     if (!isMandatory) ...[
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       TextButton(
                         onPressed: isCapturing.value
                             ? null
                             : () {
                                 _isPromptShowing = false;
                                 Get.back();
-                                Get.snackbar(
-                                  'Location Required',
-                                  'You will be reminded again to enable location for account security.',
-                                  backgroundColor: const Color(0xFFE05A47),
-                                  colorText: Colors.white,
-                                  snackPosition: SnackPosition.BOTTOM,
-                                  margin: const EdgeInsets.all(12),
-                                );
                               },
                         child: Text(
-                          'Remind Me Later',
+                          'Not Now',
                           style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12.5),
                         ),
                       ),
@@ -202,13 +170,10 @@ class LocationService extends GetxService {
         ),
       ),
       barrierDismissible: !isMandatory,
-    ).then((_) {
-      _isPromptShowing = false;
-    });
+    );
   }
 
-  /// Retrieves device GPS coordinates and sends to backend API
-  Future<bool> captureAndSaveLocation() async {
+    Future<bool> captureAndSaveLocation() async {
     try {
       isCapturing.value = true;
 

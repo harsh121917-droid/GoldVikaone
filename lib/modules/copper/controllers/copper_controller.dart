@@ -81,6 +81,6 @@ class CopperController extends GetxController {
 
   double gramsForAmount(double amt) => amt / buyRate;
   double amountForGrams(double grams) => grams * buyRate;
-  double gstFor(double amt) => amt * (rate.value?.gstPct ?? 3.0) / 100;
+  double gstFor(double amt) => amt * (rate.value?.gstPct ?? 18.0) / 100;
   double totalFor(double amt) => amt + gstFor(amt);
 }

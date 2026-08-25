@@ -73,7 +73,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
   int _redeemedPoints = 0;
   Map<String, dynamic>? _appliedCoupon;
   late final TextEditingController _ctrl;
-  static const double _GST_PCT = 3.0;
+  static const double _GST_PCT = 18.0;
 
   @override
   void initState() {
@@ -1576,7 +1576,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                               ),
                               const SizedBox(height: 8),
                               _breakupRow(
-                                'GST (3%)',
+                                'GST (18%)',
                                 '₹${_gst.toStringAsFixed(2)}',
                                 t,
                               ),
@@ -2268,7 +2268,7 @@ class _CouponsSectionWidgetState extends State<_CouponsSectionWidget> {
         ),
         const SizedBox(height: 10),
         SizedBox(
-          height: 170,
+          height: 145,
           child: _isLoading
               ? ListView.separated(
                   scrollDirection: Axis.horizontal,
@@ -2279,7 +2279,7 @@ class _CouponsSectionWidgetState extends State<_CouponsSectionWidget> {
                     width: 320,
                     child: CouponTicketSkeletonCard(
                       margin: EdgeInsets.zero,
-                      height: 160,
+                      height: 150,
                     ),
                   ),
                 )

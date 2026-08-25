@@ -1602,150 +1602,76 @@ class _PromoBanner extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
 
-                  // Right 3D Visual Graphic
+                  // Right Visual Graphic with NSE & BSE Official Badges
                   Expanded(
                     flex: 4,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          height: 130,
-                          decoration: BoxDecoration(
-                            gradient: RadialGradient(
-                              colors: [
-                                const Color(0xFF1FAE7A).withOpacity(0.2),
-                                Colors.transparent,
-                              ],
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // 3D Safe Vault representation
-                              Container(
-                                width: 62,
-                                height: 62,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF0F4736), Color(0xFF08281E)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: const Color(0xFF1FAE7A).withOpacity(0.4),
-                                    width: 1.5,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.4),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Center(
-                                  child: Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: const LinearGradient(
-                                        colors: [Color(0xFFD4A017), Color(0xFFF59E0B)],
-                                      ),
-                                      border: Border.all(color: Colors.white24),
-                                    ),
-                                    child: const Icon(
-                                      Icons.lock_rounded,
-                                      color: Color(0xFF261800),
-                                      size: 14,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              // Growth Bar Indicator
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Container(
-                                    width: 8,
-                                    height: 14,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFD4A017).withOpacity(0.7),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Container(
-                                    width: 8,
-                                    height: 22,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFD4A017).withOpacity(0.85),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Container(
-                                    width: 8,
-                                    height: 30,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF59E0B),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                    child: const Align(
-                                      alignment: Alignment.topCenter,
-                                      child: Icon(Icons.north_east_rounded, color: Colors.white, size: 8),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                    child: Container(
+                      height: 140,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          colors: [
+                            const Color(0xFF1FAE7A).withOpacity(0.18),
+                            Colors.transparent,
+                          ],
                         ),
-                        // 45+ AMCs Pill Overlay
-                        Positioned(
-                          bottom: 2,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // NSE Official Badge
+                          Container(
+                            width: 104,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF031610).withOpacity(0.88),
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFF1FAE7A).withOpacity(0.4),
-                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.3),
-                                  blurRadius: 6,
+                                  color: Colors.black.withOpacity(0.35),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
                                 ),
                               ],
+                              border: Border.all(
+                                color: const Color(0xFFD4A017).withOpacity(0.5),
+                                width: 1.2,
+                              ),
                             ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Text(
-                                  "45+ AMCs",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                                Text(
-                                  "Partnered",
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
+                            child: Image.asset(
+                              'assets/images/Mutual_Funds/NSE.png',
+                              height: 24,
+                              fit: BoxFit.contain,
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 10),
+                          // BSE Official Badge
+                          Container(
+                            width: 104,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.35),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                              border: Border.all(
+                                color: const Color(0xFF1FAE7A).withOpacity(0.5),
+                                width: 1.2,
+                              ),
+                            ),
+                            child: Image.asset(
+                              'assets/images/Mutual_Funds/BSE.gif',
+                              height: 24,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -2718,7 +2644,7 @@ class _HomeCouponsSectionState extends State<_HomeCouponsSection> {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 190,
+            height: 145,
             child: _isLoading
                 ? ListView.separated(
                     scrollDirection: Axis.horizontal,

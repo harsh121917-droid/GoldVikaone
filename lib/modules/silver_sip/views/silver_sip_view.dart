@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:vika1/data/repositories/sip_repository.dart';
 import 'package:vika1/modules/silver/controllers/silver_controller.dart';
 import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
-import '../../../routes/app_routes.dart';
+import '../../gold_sip/views/sip_journey_view.dart';
+
+// ─── Design Tokens ──────────────────────────────────────────────────────────
+const _silver = Color(0xFF9E9E9E);
+const _silverLight = Color(0xFFE2E8F0);
+const _success = Color(0xFF10B981);
+const _danger = Color(0xFFEF4444);
 
 class _T {
   final Color bg, card, primary, ink, inkMuted, border, subBg;
@@ -19,22 +26,22 @@ class _T {
   });
   factory _T.of(bool dark) => dark
       ? const _T(
-          bg: Color(0xFF060B16),
+          bg: Color(0xFF060B14),
           card: Color(0xFF0E1626),
-          primary: Color(0xFF8A95A5),
+          primary: Color(0xFF94A3B8),
           ink: Color(0xFFEDF0FF),
           inkMuted: Color(0xFF8A95B0),
-          border: Color(0xFF1A2B45),
-          subBg: Color(0xFF0A0F1E),
+          border: Color(0xFF1E293B),
+          subBg: Color(0xFF0F172A),
         )
       : const _T(
-          bg: Color(0xFFF9F9FB),
+          bg: Color(0xFFF8FAFC),
           card: Colors.white,
-          primary: Color(0xFF1A2340),
-          ink: Color(0xFF1A2340),
-          inkMuted: Color(0xFF6B7280),
-          border: Color(0xFFE8EBF2),
-          subBg: Color(0xFFF8F5EE),
+          primary: Color(0xFF1E293B),
+          ink: Color(0xFF0F172A),
+          inkMuted: Color(0xFF64748B),
+          border: Color(0xFFE2E8F0),
+          subBg: Color(0xFFF1F5F9),
         );
 }
 
@@ -45,6 +52,11 @@ class SilverSipView extends StatefulWidget {
 }
 
 class _SilverSipViewState extends State<SilverSipView> {
+  final _sipRepo = SipRepository();
+  int _activeTab = 0; // 0 = Create SIP, 1 = My Active SIPs & Journey
+
+  // ── Create SIP State ──
+  bool _isStartingSip = false;
   String _selectedFreq = 'Monthly';
   final List<String> _frequencies = [
     'Daily',
@@ -66,12 +78,10 @@ class _SilverSipViewState extends State<SilverSipView> {
   ];
   int _selectedDurationIdx = 1; // 1 Year default
 
-  double get _buyRate =>
-      SilverController.to.buyRate > 0 ? SilverController.to.buyRate : 180.0;
+  double get _buyRate => Get.isRegistered<SilverController>() && SilverController.to.buyRate > 0 ? SilverController.to.buyRate : 85.0;
 
   int get _months => _durations[_selectedDurationIdx]['months'] as int;
 
-  // Compute number of installment cycles based on duration and frequency
   int get _cyclesCount {
     final m = _months;
     if (_selectedFreq == 'Daily') return m * 30;
@@ -82,28 +92,102 @@ class _SilverSipViewState extends State<SilverSipView> {
   }
 
   double get _totalInvested => _amount * _cyclesCount;
-  double get _gramsPerCycle => _amount / _buyRate;
+  double get _gramsPerCycle => (_amount / 1.03) / _buyRate;
   double get _totalGrams => _gramsPerCycle * _cyclesCount;
-  double get _expectedReturns =>
-      _totalInvested * 0.175; // 17.5% expected growth simulation
+  double get _expectedReturns => _totalInvested * 0.16;
 
-  DateTime get _startDate => DateTime.now();
-  DateTime get _endDate => DateTime.now().add(Duration(days: _months * 30));
+  // ── My SIPs State ──
+  bool _loadingMySips = false;
+  SipPortfolioSummary _portfolioSummary = const SipPortfolioSummary();
+  List<SipModel> _mySips = [];
 
-  String _fmtDate(DateTime dt) {
+  @override
+  void initState() {
+    super.initState();
+    _loadMySips();
+  }
+
+  Future<void> _loadMySips() async {
+    setState(() => _loadingMySips = true);
+    try {
+      final res = await _sipRepo.getMySips();
+      setState(() {
+        _portfolioSummary = res['portfolio'] as SipPortfolioSummary;
+        final all = res['sips'] as List<SipModel>;
+        _mySips = all.where((s) => s.isSilver).toList();
+        _loadingMySips = false;
+      });
+    } catch (_) {
+      setState(() => _loadingMySips = false);
+    }
+  }
+
+  Future<void> _handleStartSip() async {
+    if (_amount < 100) {
+      Get.snackbar(
+        'Minimum Amount',
+        'Minimum SIP installment is ₹100',
+        backgroundColor: _danger,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    final walletBal = Get.isRegistered<WalletController>() ? (WalletController.to.wallet.value?.availableBalance ?? WalletController.to.wallet.value?.balance ?? 0.0) : 0.0;
+    if (walletBal < _amount) {
+      Get.snackbar(
+        'Low Wallet Balance',
+        'You need ₹${_amount.toStringAsFixed(0)} in your wallet to start this SIP. Current balance: ₹${walletBal.toStringAsFixed(0)}',
+        backgroundColor: _danger,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    setState(() => _isStartingSip = true);
+    try {
+      final created = await _sipRepo.createSip(
+        metal: 'silver',
+        frequency: _selectedFreq.toLowerCase(),
+        installmentAmount: _amount,
+        durationMonths: _months,
+        paymentMethod: 'wallet',
+      );
+
+      if (Get.isRegistered<WalletController>()) { WalletController.to.loadWallet(); }
+      _loadMySips();
+
+      Get.snackbar(
+        'Silver SIP Started!',
+        'Your first installment of ₹${_amount.toStringAsFixed(0)} is paid and silver is credited to your vault.',
+        backgroundColor: _success,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+
+      // Switch to My SIPs tab
+      setState(() => _activeTab = 1);
+      Get.to(() => SipJourneyView(sipId: created.id));
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        e.toString().replaceAll('Exception: ', ''),
+        backgroundColor: _danger,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      setState(() => _isStartingSip = false);
+    }
+  }
+
+  String _fmtDate(DateTime? dt) {
+    if (dt == null) return '—';
     const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
   }
@@ -125,12 +209,9 @@ class _SilverSipViewState extends State<SilverSipView> {
         body: SafeArea(
           child: Column(
             children: [
-              // ── Premium Custom App Bar ───────────────────────────────────
+              // ── Header ───────────────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
                     GestureDetector(
@@ -143,771 +224,165 @@ class _SilverSipViewState extends State<SilverSipView> {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 8,
                             ),
                           ],
                         ),
-                        child: Icon(
-                          Icons.chevron_left_rounded,
-                          color: t.ink,
-                          size: 24,
-                        ),
+                        child: Icon(Icons.arrow_back_ios_new_rounded, color: t.ink, size: 18),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Silver SIP',
-                            style: TextStyle(
-                              color: t.primary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                'Digi Silver SIP',
+                                style: TextStyle(color: t.ink, fontSize: 17, fontWeight: FontWeight.w900),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.blueGrey.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  '999 Pure Silver',
+                                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 9, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ],
                           ),
                           Text(
-                            'Save regularly, shine in future ✨',
+                            'Systematic Fine Silver Accumulation',
                             style: TextStyle(color: t.inkMuted, fontSize: 11),
                           ),
                         ],
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () => Get.toNamed(AppRoutes.transactions),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: t.card,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: t.inkMuted.withOpacity(0.2),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.history_rounded,
-                              color: t.primary,
-                              size: 14,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'SIP History',
-                              style: TextStyle(
-                                color: t.primary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
 
-              // ── Scrollable Body ──────────────────────────────────────────
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+              // ── Segmented Pill Controller ─────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: t.subBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: t.border),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      // ── Hero Banner Card ───────────────────────────────────────
-                      Container(
-                        width: double.infinity,
-                        height: 160,
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          image: const DecorationImage(
-                            image: AssetImage(
-                              'assets/images/silver_banner.png',
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _activeTab = 0),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: _activeTab == 0
+                                  ? (dark ? const Color(0xFF334155) : const Color(0xFF1E293B))
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          color: Colors.black.withOpacity(0.25),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: t.primary.withOpacity(0.25),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: t.primary.withOpacity(0.5),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Build Wealth with SIP',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Small Savings Today,',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const Text(
-                                'Big Security Tomorrow',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const Spacer(),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                            child: Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  _bannerLabel(
-                                    Icons.savings_outlined,
-                                    'Start with just ₹100',
+                                  Icon(
+                                    Icons.calculate_rounded,
+                                    size: 15,
+                                    color: _activeTab == 0 ? Colors.white : t.inkMuted,
                                   ),
-                                  _bannerLabel(
-                                    Icons.verified_outlined,
-                                    '999 Pure Silver',
-                                  ),
-                                  _bannerLabel(
-                                    Icons.lock_outline_rounded,
-                                    'Secure & Insured',
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Create Silver SIP',
+                                    style: TextStyle(
+                                      color: _activeTab == 0 ? Colors.white : t.inkMuted,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                                 ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
-
-                      // ── Choose SIP Plan ────────────────────────────────────────
-                      Text(
-                        'Choose SIP Plan',
-                        style: TextStyle(
-                          color: t.ink,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: _frequencies.map((freq) {
-                          final active = _selectedFreq == freq;
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 2,
-                              ),
-                              child: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _selectedFreq = freq),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 150),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: active ? t.primary : t.card,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: active
-                                          ? Colors.transparent
-                                          : t.inkMuted.withOpacity(0.15),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    freq,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: active ? Colors.white : t.inkMuted,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() => _activeTab = 1);
+                            _loadMySips();
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: _activeTab == 1
+                                  ? (dark ? const Color(0xFF334155) : const Color(0xFF1E293B))
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // ── Choose Investment Dropdown + Quick Add Chips ───────────
-                      Text(
-                        '$_selectedFreq Investment',
-                        style: TextStyle(
-                          color: t.ink,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: t.card,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: t.border),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  '₹',
-                                  style: TextStyle(
-                                    color: t.primary,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _amountCtrl,
-                                    keyboardType: TextInputType.number,
-                                    onChanged: (_) => setState(() {}),
-                                    style: TextStyle(
-                                      color: t.ink,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                    decoration: const InputDecoration(
-                                      border: InputBorder.none,
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.zero,
-                                    ),
-                                  ),
-                                ),
-                                DropdownButton<double>(
-                                  underline: const SizedBox.shrink(),
-                                  icon: Icon(
-                                    Icons.keyboard_arrow_down_rounded,
-                                    color: t.inkMuted,
-                                  ),
-                                  items: [100.0, 500.0, 1000.0, 2000.0, 5000.0]
-                                      .map((val) {
-                                        return DropdownMenuItem<double>(
-                                          value: val,
-                                          child: Text(
-                                            '₹ ${val.toInt()}',
-                                            style: TextStyle(
-                                              color: t.ink,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        );
-                                      })
-                                      .toList(),
-                                  onChanged: (val) {
-                                    if (val != null) {
-                                      setState(() {
-                                        _amountCtrl.text = val.toStringAsFixed(
-                                          0,
-                                        );
-                                      });
-                                    }
-                                  },
-                                ),
-                              ],
-                            ),
-                            const Divider(height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _quickAddChip(100, t),
-                                _quickAddChip(500, t),
-                                _quickAddChip(1000, t),
-                                _quickAddChip(2000, t),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'You will get ~ ${_gramsPerCycle.toStringAsFixed(4)} g of silver every ${_selectedFreq.toLowerCase() == 'daily'
-                                  ? 'day'
-                                  : _selectedFreq.toLowerCase() == 'weekly'
-                                  ? 'week'
-                                  : _selectedFreq.toLowerCase() == 'yearly'
-                                  ? 'year'
-                                  : 'month'}',
-                              style: TextStyle(
-                                color: t.primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // ── SIP Duration Selector ──────────────────────────────────
-                      Text(
-                        'SIP Duration',
-                        style: TextStyle(
-                          color: t.ink,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'Choose how long you want to continue',
-                        style: TextStyle(color: t.inkMuted, fontSize: 11),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: _durations.asMap().entries.map((entry) {
-                          final idx = entry.key;
-                          final dur = entry.value;
-                          final active = _selectedDurationIdx == idx;
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 3,
-                              ),
-                              child: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _selectedDurationIdx = idx),
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    AnimatedContainer(
-                                      duration: const Duration(
-                                        milliseconds: 150,
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: t.card,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: active
-                                              ? t.primary
-                                              : t.inkMuted.withOpacity(0.15),
-                                          width: active ? 2 : 1,
-                                        ),
-                                      ),
-                                      child: Center(
-                                        child: Column(
-                                          children: [
-                                            Text(
-                                              dur['label'].split(' ')[0],
-                                              style: TextStyle(
-                                                color: t.ink,
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w900,
-                                              ),
-                                            ),
-                                            Text(
-                                              dur['label'].split(' ')[1],
-                                              style: TextStyle(
-                                                color: t.inkMuted,
-                                                fontSize: 11,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    if (active)
-                                      Positioned(
-                                        top: -6,
-                                        right: -6,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(2),
-                                          decoration: BoxDecoration(
-                                            color: t.primary,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.check,
-                                            color: Colors.white,
-                                            size: 10,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // ── Start / End Dates Bar ─────────────────────────────────
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: t.subBg,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: t.inkMuted.withOpacity(0.1),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
+                            child: Center(
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.calendar_today_rounded,
-                                    color: t.primary,
-                                    size: 16,
+                                    Icons.route_rounded,
+                                    size: 15,
+                                    color: _activeTab == 1 ? Colors.white : t.inkMuted,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'SIP Start Date',
-                                        style: TextStyle(
-                                          color: t.inkMuted,
-                                          fontSize: 10,
-                                        ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'My SIPs & Journey',
+                                    style: TextStyle(
+                                      color: _activeTab == 1 ? Colors.white : t.inkMuted,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  if (_mySips.isNotEmpty) ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: _activeTab == 1 ? Colors.white.withOpacity(0.25) : Colors.blueGrey.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
-                                      Text(
-                                        _fmtDate(_startDate),
+                                      child: Text(
+                                        '${_mySips.length}',
                                         style: TextStyle(
-                                          color: t.ink,
-                                          fontSize: 12,
+                                          color: _activeTab == 1 ? Colors.white : const Color(0xFF94A3B8),
+                                          fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
-                            Container(
-                              width: 1,
-                              height: 26,
-                              color: t.inkMuted.withOpacity(0.2),
-                            ),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'End Date',
-                                      style: TextStyle(
-                                        color: t.inkMuted,
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                    Text(
-                                      _fmtDate(_endDate),
-                                      style: TextStyle(
-                                        color: t.ink,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // ── SIP Summary Card ───────────────────────────────────────
-                      Text(
-                        'SIP Summary',
-                        style: TextStyle(
-                          color: t.ink,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: t.card,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: t.border),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 6,
-                              child: Column(
-                                children: [
-                                  _summaryRow(
-                                    'Monthly Investment',
-                                    '₹${_amount.toStringAsFixed(0)}',
-                                    t,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _summaryRow(
-                                    'Total Investment (Est.)',
-                                    '₹${_totalInvested.toStringAsFixed(0)}',
-                                    t,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _summaryRow(
-                                    'Wealth in Silver (Est.)',
-                                    '~ ${_totalGrams.toStringAsFixed(4)} g',
-                                    t,
-                                    highlightColor: t.primary,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _summaryRow(
-                                    'Expected Returns (Est.)',
-                                    '₹${_expectedReturns.toStringAsFixed(0)} (17.5%)',
-                                    t,
-                                    highlightColor: const Color(0xFF2ecc71),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 4,
-                              child: Container(
-                                height: 110,
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: t.bg,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Column(
-                                  children: [
-                                    const Text(
-                                      'Wealth grows\nwith time',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    SizedBox(
-                                      height: 60,
-                                      child: CustomPaint(
-                                        size: Size.infinite,
-                                        painter: _ChartPainter(dark),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // ── Why Choose Silver SIP ──────────────────────────────────
-                      Text(
-                        'Why Choose Silver SIP?',
-                        style: TextStyle(
-                          color: t.ink,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _trustFeature(
-                            Icons.trending_up_rounded,
-                            'Hedge Against\nInflation',
-                            'Protects wealth',
-                            t,
                           ),
-                          _trustFeature(
-                            Icons.track_changes_rounded,
-                            'Disciplined\nSaving',
-                            'Small steps',
-                            t,
-                          ),
-                          _trustFeature(
-                            Icons.verified_user_outlined,
-                            '999 Pure\nSilver',
-                            'Purity guaranteed',
-                            t,
-                          ),
-                          _trustFeature(
-                            Icons.shield_outlined,
-                            'Secure &\nTrusted',
-                            'Insured & safe',
-                            t,
-                          ),
-                        ],
+                        ),
                       ),
-                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
               ),
 
-              // ── Fixed Bottom Start Bar ────────────────────────────────────
-              Container(
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  12,
-                  16,
-                  MediaQuery.paddingOf(context).bottom + 12,
-                ),
-                decoration: BoxDecoration(
-                  color: t.card,
-                  border: Border(
-                    top: BorderSide(color: t.inkMuted.withOpacity(0.15)),
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: t.primary.withOpacity(0.08),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.calendar_today_outlined,
-                            color: t.primary,
-                            size: 18,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'You will invest ₹${_amount.toStringAsFixed(0)} / Month',
-                                style: TextStyle(
-                                  color: t.ink,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text.rich(
-                                TextSpan(
-                                  text: 'Starting from ',
-                                  style: TextStyle(
-                                    color: t.inkMuted,
-                                    fontSize: 10,
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text: _fmtDate(_startDate),
-                                      style: const TextStyle(
-                                        color: Color(0xFF2ecc71),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: _amount >= 100
-                              ? () async {
-                                  HapticFeedback.mediumImpact();
-                                  final ok = await WalletController.to
-                                      .buySilver(amount: _amount);
-                                  if (ok) {
-                                    _showSuccessDialog();
-                                  }
-                                }
-                              : null,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _amount >= 100
-                                  ? t.primary
-                                  : t.primary.withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Text(
-                                  'Start Silver SIP',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(width: 6),
-                                Icon(
-                                  Icons.chevron_right_rounded,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(
-                          Icons.lock_outline_rounded,
-                          color: Colors.grey,
-                          size: 12,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          '100% Secure Transaction',
-                          style: TextStyle(color: Colors.grey, fontSize: 10),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+              // ── Tab Content ───────────────────────────────────────────
+              Expanded(
+                child: _activeTab == 0
+                    ? _buildCreateSipTab(t, dark)
+                    : _buildMySipsTab(t, dark),
               ),
             ],
           ),
@@ -916,324 +391,596 @@ class _SilverSipViewState extends State<SilverSipView> {
     });
   }
 
-  // ─── Banner labels ─────────────────────────────────────────────────────────
-  Widget _bannerLabel(IconData icon, String text) => Row(
-    children: [
-      Icon(icon, color: Colors.white70, size: 12),
-      const SizedBox(width: 4),
-      Text(text, style: const TextStyle(color: Colors.white70, fontSize: 9)),
-    ],
-  );
-
-  // ─── Quick modifier chips ──────────────────────────────────────────────────
-  Widget _quickAddChip(double val, _T t) {
-    final active = _amount == val;
-    return GestureDetector(
-      onTap: () => setState(() {
-        _amountCtrl.text = val.toStringAsFixed(0);
-      }),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: active ? t.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: active ? Colors.transparent : Colors.grey.withOpacity(0.3),
-          ),
-        ),
-        child: Text(
-          '+${val.toInt()}',
-          style: TextStyle(
-            color: active ? Colors.white : Colors.grey,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ─── Summary dynamic row ───────────────────────────────────────────────────
-  Widget _summaryRow(String l, String v, _T t, {Color? highlightColor}) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(l, style: TextStyle(color: t.inkMuted, fontSize: 11)),
-      Text(
-        v,
-        style: TextStyle(
-          color: highlightColor ?? t.ink,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ],
-  );
-
-  // ─── Trust Feature Grid item ───────────────────────────────────────────────
-  Widget _trustFeature(IconData icon, String label, String sub, _T t) =>
-      Expanded(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: t.primary.withOpacity(0.06),
-                shape: BoxShape.circle,
+  // ════════════════════════════════════════════════════════════════════════════
+  // TAB 1: CREATE NEW SILVER SIP
+  // ════════════════════════════════════════════════════════════════════════════
+  Widget _buildCreateSipTab(_T t, bool dark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Live Rate & Banner ────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: dark
+                    ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                    : [const Color(0xFF1E293B), const Color(0xFF0F172A)],
               ),
-              child: Icon(icon, color: t.primary, size: 18),
+              borderRadius: BorderRadius.circular(20),
             ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: t.ink,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              sub,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: t.inkMuted, fontSize: 9),
-            ),
-          ],
-        ),
-      );
-
-  // ─── Success Dialog Modal ─────────────────────────────────────────────────
-  void _showSuccessDialog() {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierLabel: '',
-      transitionDuration: const Duration(milliseconds: 400),
-      pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
-      transitionBuilder: (context, anim1, anim2, child) {
-        final scaleCurve = CurvedAnimation(
-          parent: anim1,
-          curve: Curves.easeOutBack,
-        );
-        final opacityCurve = CurvedAnimation(
-          parent: anim1,
-          curve: Curves.easeOut,
-        );
-
-        final dark = ThemeController.to.isDark.value;
-        final t = _T.of(dark);
-
-        return FadeTransition(
-          opacity: opacityCurve,
-          child: ScaleTransition(
-            scale: scaleCurve,
-            child: AlertDialog(
-              backgroundColor: t.card,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              contentPadding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2ecc71).withOpacity(0.12),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      Image.asset(
-                        'assets/images/silver_coin.png',
-                        width: 50,
-                        height: 50,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.monetization_on_rounded,
-                          color: Colors.grey,
-                          size: 50,
-                        ),
-                      ),
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF2ecc71),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.check_rounded,
-                            color: Colors.white,
-                            size: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'SIP Started Successfully!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: t.primary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Your $_selectedFreq Silver SIP setup is active. Next payment will be processed automatically.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFF6B7A72),
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3F1EA),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFF6B7A72).withOpacity(0.1),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        _dialogRow('SIP Frequency', _selectedFreq, t),
-                        const SizedBox(height: 8),
-                        _dialogRow(
-                          'Installment Amt',
-                          '₹${_amount.toStringAsFixed(0)}',
-                          t,
-                          isHighlight: true,
-                        ),
-                        const SizedBox(height: 8),
-                        _dialogRow(
-                          'Duration',
-                          _durations[_selectedDurationIdx]['label'] as String,
-                          t,
-                        ),
-                        const SizedBox(height: 8),
-                        _dialogRow('Start Date', _fmtDate(_startDate), t),
-                        const SizedBox(height: 8),
-                        _dialogRow('End Date', _fmtDate(_endDate), t),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.bolt_rounded, color: Color(0xFF94A3B8), size: 14),
+                        SizedBox(width: 4),
+                        Text('LIVE 999 SILVER RATE', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                       ],
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '₹${_buyRate.toStringAsFixed(2)} / gram',
+                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, fontFamily: 'monospace'),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(height: 24),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                      Get.back();
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: t.primary,
-                        borderRadius: BorderRadius.circular(14),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.shield_rounded, color: Colors.white70, size: 14),
+                      SizedBox(width: 4),
+                      Text('100% Pure', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ── Frequency Selector ────────────────────────────────────────
+          Text('Select SIP Frequency', style: TextStyle(color: t.ink, fontSize: 13, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _frequencies.map((f) {
+                final isSel = _selectedFreq == f;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedFreq = f),
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSel ? const Color(0xFF334155) : t.card,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: isSel ? const Color(0xFF64748B) : t.border),
+                    ),
+                    child: Text(
+                      f,
+                      style: TextStyle(
+                        color: isSel ? Colors.white : t.ink,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
                       ),
-                      child: const Center(
-                        child: Text(
-                          'Done',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ── Amount Input Card ─────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: t.card,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: t.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Installment Amount (₹)', style: TextStyle(color: t.inkMuted, fontSize: 12, fontWeight: FontWeight.w600)),
+                    Text('Per $_selectedFreq', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _amountCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  style: TextStyle(color: t.ink, fontSize: 24, fontWeight: FontWeight.w900, fontFamily: 'monospace'),
+                  decoration: InputDecoration(
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.only(left: 12, right: 8),
+                      child: Text('₹', style: TextStyle(color: t.ink, fontSize: 24, fontWeight: FontWeight.w900)),
+                    ),
+                    prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+                    filled: true,
+                    fillColor: t.subBg,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [100.0, 500.0, 1000.0, 2500.0, 5000.0].map((val) {
+                    final active = _amount == val;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _amountCtrl.text = val.toInt().toString()),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          decoration: BoxDecoration(
+                            color: active ? const Color(0xFF334155) : t.subBg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: active ? const Color(0xFF64748B) : Colors.transparent),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '₹${val.toInt()}',
+                              style: TextStyle(color: active ? Colors.white : t.inkMuted, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                       ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ── Duration Selector ─────────────────────────────────────────
+          Text('Investment Duration', style: TextStyle(color: t.ink, fontSize: 13, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _durations.asMap().entries.map((e) {
+                final idx = e.key;
+                final dur = e.value;
+                final isSel = _selectedDurationIdx == idx;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedDurationIdx = idx),
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSel ? const Color(0xFF334155) : t.card,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: isSel ? const Color(0xFF64748B) : t.border),
                     ),
+                    child: Text(
+                      dur['label'] as String,
+                      style: TextStyle(
+                        color: isSel ? Colors.white : t.ink,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ── Projected Growth & Simulation ─────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: t.card,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: t.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Projected Summary', style: TextStyle(color: t.ink, fontSize: 13, fontWeight: FontWeight.w800)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _success.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text('Est. +16.0% Growth', style: TextStyle(color: _success, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Est. Silver Grams', style: TextStyle(color: t.inkMuted, fontSize: 11)),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${_totalGrams.toStringAsFixed(2)}g',
+                            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 16, fontWeight: FontWeight.w900),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Total Investment', style: TextStyle(color: t.inkMuted, fontSize: 11)),
+                          const SizedBox(height: 2),
+                          Text(
+                            '₹${_totalInvested.toStringAsFixed(0)}',
+                            style: TextStyle(color: t.ink, fontSize: 16, fontWeight: FontWeight.w900),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Total Cycles', style: TextStyle(color: t.inkMuted, fontSize: 11)),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$_cyclesCount $_selectedFreq',
+                            style: TextStyle(color: t.ink, fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // ── Start Silver SIP CTA ──────────────────────────────────────
+          GestureDetector(
+            onTap: _isStartingSip ? null : _handleStartSip,
+            child: Container(
+              height: 52,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF334155), Color(0xFF1E293B)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
+              child: Center(
+                child: _isStartingSip
+                    ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.stars_rounded, color: Colors.white, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Start Silver SIP (Pay ₹${_amount.toStringAsFixed(0)})',
+                            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
+                          ),
+                        ],
+                      ),
+              ),
             ),
           ),
-        );
-      },
+
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 
-  Widget _dialogRow(
-    String label,
-    String val,
-    _T t, {
-    bool isHighlight = false,
-  }) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(label, style: TextStyle(color: t.inkMuted, fontSize: 12)),
-      Text(
-        val,
-        style: TextStyle(
-          color: isHighlight ? t.primary : t.ink,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
+  // ════════════════════════════════════════════════════════════════════════════
+  // TAB 2: MY ACTIVE SILVER SIPS & JOURNEY
+  // ════════════════════════════════════════════════════════════════════════════
+  Widget _buildMySipsTab(_T t, bool dark) {
+    if (_loadingMySips) {
+      return const Center(child: CircularProgressIndicator(color: _silver));
+    }
+
+    if (_mySips.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: Colors.blueGrey.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.savings_outlined, color: Color(0xFF94A3B8), size: 36),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No Active Silver SIPs',
+                style: TextStyle(color: t.ink, fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Start your first Silver SIP to accumulate pure 999 fine silver grams systematically.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: t.inkMuted, fontSize: 12),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF334155),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: () => setState(() => _activeTab = 0),
+                icon: const Icon(Icons.add_rounded, color: Colors.white),
+                label: const Text('Start New Silver SIP', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
         ),
-      ),
-    ],
-  );
-}
+      );
+    }
 
-// ─── Custom Bezier Curve Painter for dynamic trend illustration ──────────
-class _ChartPainter extends CustomPainter {
-  final bool dark;
-  _ChartPainter(this.dark);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Silver Portfolio Summary Card ──
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: dark
+                    ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                    : [const Color(0xFF1E293B), const Color(0xFF0F172A)],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.blueGrey.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Silver SIP Portfolio Valuation', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11)),
+                const SizedBox(height: 4),
+                Text(
+                  '₹${_portfolioSummary.totalCurrentValue.toStringAsFixed(0)}',
+                  style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, fontFamily: 'monospace'),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Accumulated Silver', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 10)),
+                          Text('${_portfolioSummary.totalGramsSilver.toStringAsFixed(2)}g', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Total Invested', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 10)),
+                          Text('₹${_portfolioSummary.totalInvested.toStringAsFixed(0)}', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Active Plans', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 10)),
+                          Text('${_portfolioSummary.activeSipsCount}', style: const TextStyle(color: _success, fontSize: 14, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paintLine = Paint()
-      ..color = const Color(0xFF2ecc71)
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+          const SizedBox(height: 16),
+          Text('Your Active Silver SIP Plans', style: TextStyle(color: t.ink, fontSize: 14, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
 
-    final paintBg = Paint()
-      ..style = PaintingStyle.fill
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          const Color(0xFF2ecc71).withOpacity(0.25),
-          const Color(0xFF2ecc71).withOpacity(0.0),
+          // ── SIP Cards List ──
+          ..._mySips.map((sip) => _buildSipCard(sip, t, dark)),
+
+          const SizedBox(height: 24),
         ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    final path = Path()
-      ..moveTo(0, size.height * 0.9)
-      ..cubicTo(
-        size.width * 0.25,
-        size.height * 0.85,
-        size.width * 0.5,
-        size.height * 0.4,
-        size.width * 0.75,
-        size.height * 0.35,
-      )
-      ..lineTo(size.width, size.height * 0.1);
-
-    final bgPath = Path.from(path)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    canvas.drawPath(bgPath, paintBg);
-    canvas.drawPath(path, paintLine);
-
-    // Draw growth coins indicator circles at the end
-    final paintCircle = Paint()
-      ..color = const Color(0xFFFFD700)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(size.width, size.height * 0.1), 4, paintCircle);
+      ),
+    );
   }
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget _buildSipCard(SipModel sip, _T t, bool dark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: t.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: t.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blueGrey.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.layers_rounded, color: Color(0xFF94A3B8), size: 18),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '₹${sip.installmentAmount.toStringAsFixed(0)} / ${sip.frequency}',
+                        style: TextStyle(color: t.ink, fontSize: 14, fontWeight: FontWeight.w800),
+                      ),
+                      Text(
+                        '${sip.durationMonths} Months Plan',
+                        style: TextStyle(color: t.inkMuted, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: sip.isActive ? _success.withOpacity(0.15) : const Color(0xFF64748B).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  sip.status.toUpperCase(),
+                  style: TextStyle(
+                    color: sip.isActive ? _success : const Color(0xFF94A3B8),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Metrics
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Silver Accumulated', style: TextStyle(color: t.inkMuted, fontSize: 10)),
+                  Text('${sip.totalGrams.toStringAsFixed(2)}g', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Current Value', style: TextStyle(color: t.inkMuted, fontSize: 10)),
+                  Text('₹${sip.currentValuation.toStringAsFixed(0)}', style: TextStyle(color: t.ink, fontSize: 13, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('Next Due', style: TextStyle(color: t.inkMuted, fontSize: 10)),
+                  Text(_fmtDate(sip.nextDueDate), style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 12, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // Progress
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: sip.totalCycles > 0 ? (sip.cyclesCompleted / sip.totalCycles).clamp(0.0, 1.0) : 0.0,
+              minHeight: 6,
+              backgroundColor: t.subBg,
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF94A3B8)),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('${sip.cyclesCompleted} of ${sip.totalCycles} cycles completed', style: TextStyle(color: t.inkMuted, fontSize: 10)),
+              Text('${sip.progressPct.toStringAsFixed(0)}%', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10, fontWeight: FontWeight.bold)),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Action Button: View Full Journey
+          GestureDetector(
+            onTap: () async {
+              await Get.to(() => SipJourneyView(sipId: sip.id));
+              _loadMySips();
+            },
+            child: Container(
+              height: 42,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: t.subBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: t.border),
+              ),
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.route_rounded, size: 16, color: t.ink),
+                    const SizedBox(width: 6),
+                    Text('View Full SIP Journey & Timeline', style: TextStyle(color: t.ink, fontSize: 12, fontWeight: FontWeight.w800)),
+                    const SizedBox(width: 4),
+                    Icon(Icons.chevron_right_rounded, size: 16, color: t.inkMuted),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
