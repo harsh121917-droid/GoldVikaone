@@ -57,6 +57,7 @@ class _WhatsComingViewState extends State<WhatsComingView> {
     'assets/images/Mutual_Funds/motilal_oswal_mutual.png',
     'assets/images/Mutual_Funds/adiya_bilra_mutual.png',
     'assets/images/Mutual_Funds/edelweiss_mutual.png',
+    'assets/images/Mutual_Funds/BSE.gif',
   ];
 
   void _onNotifyPressed() {
