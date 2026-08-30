@@ -149,8 +149,18 @@ class CopperRepository {
   }
 
   Future<List<Map<String, dynamic>>> getPriceHistory(String symbol, String period) async {
+    try {
+      final res = await _dio.get('$_base/history', queryParameters: {
+        'symbol': symbol,
+        'period': period,
+      });
+      if (res.data != null && res.data['data'] != null) {
+        return List<Map<String, dynamic>>.from(res.data['data']);
+      }
+    } catch (_) {}
+
     final res = await _dio.get('$_rateBase/history', queryParameters: {
-      'symbol': symbol,
+      'symbol': symbol.isEmpty ? 'COPPER' : symbol,
       'period': period,
     });
     return List<Map<String, dynamic>>.from(res.data['data']);

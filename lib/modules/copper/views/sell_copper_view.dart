@@ -21,22 +21,22 @@ class _T {
   });
   factory _T.of(bool dark) => dark
       ? const _T(
-          bg: Color(0xFF060B16),
-          card: Color(0xFF0E1626),
-          primary: Color(0xFF8A95A5),
-          ink: Color(0xFFEDF0FF),
-          inkMuted: Color(0xFF8A95B0),
-          cardBorder: Color(0xFF1A2B45),
-          subBg: Color(0xFF0A0F1E),
+          bg: Color(0xFF0C0704),
+          card: Color(0xFF19100A),
+          primary: Color(0xFFC86D3B),
+          ink: Color(0xFFFFF7ED),
+          inkMuted: Color(0xFFA8988B),
+          cardBorder: Color(0x33D97706),
+          subBg: Color(0xFF140C07),
         )
       : const _T(
-          bg: Color(0xFFF9F9FB),
+          bg: Color(0xFFFBF8F5),
           card: Colors.white,
-          primary: Color(0xFF1A2340),
-          ink: Color(0xFF1A2340),
+          primary: Color(0xFFC86D3B),
+          ink: Color(0xFFC86D3B),
           inkMuted: Color(0xFF6B7280),
           cardBorder: Colors.transparent,
-          subBg: Color(0xFFF8F5EE),
+          subBg: Color(0xFFF5ECE4),
         );
 }
 

@@ -63,6 +63,8 @@ class PointsController extends GetxController {
   var spinsLeft = 3.obs;
   var pointTransactions = <PointTransaction>[].obs;
   var isLoading = false.obs;
+  var expiryNotice = ''.obs;
+  var expiringSoon = 0.obs;
 
   @override
   void onInit() {
@@ -82,10 +84,33 @@ class PointsController extends GetxController {
     try {
       final res = await _dio.get('/rewards/balance');
       if (res.data['success'] == true) {
-        points.value = (res.data['data']['rewardPoints'] as num).toInt();
-        final serverSpins = res.data['data']['spinsLeft'] as int?;
-        final canSpin = res.data['data']['canSpin'] as bool;
+        final d = res.data['data'];
+        points.value = (d['rewardPoints'] as num).toInt();
+        final serverSpins = d['spinsLeft'] as int?;
+        final canSpin = d['canSpin'] as bool;
         spinsLeft.value = serverSpins ?? (canSpin ? 3 : 0);
+
+        if (d['expirySettings'] != null) {
+          final exp = d['expirySettings'];
+          final enabled = exp['expiryEnabled'] as bool? ?? true;
+          final type = exp['expiryType'] as String? ?? 'monthly';
+          final days = (exp['expiryDays'] as num?)?.toInt() ?? 30;
+
+          if (!enabled || type == 'never') {
+            expiryNotice.value = 'Points never expire';
+          } else if (type == 'weekly') {
+            expiryNotice.value = 'Points valid for 7 days';
+          } else if (type == 'monthly') {
+            expiryNotice.value = 'Points valid for 30 days';
+          } else if (type == 'quarterly') {
+            expiryNotice.value = 'Points valid for 90 days';
+          } else if (type == 'yearly') {
+            expiryNotice.value = 'Points valid for 365 days';
+          } else {
+            expiryNotice.value = 'Points valid for ' + days.toString() + ' days';
+          }
+        }
+        expiringSoon.value = (d['expiringSoonPoints'] as num?)?.toInt() ?? 0;
       }
     } catch (_) {}
   }
@@ -358,6 +383,25 @@ class _RewardsViewState extends State<RewardsView>
                           ),
                         ),
                       ),
+                      Obx(() {
+                        if (pc.expiryNotice.value.isEmpty) return const SizedBox.shrink();
+                        return Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            pc.expiryNotice.value,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      }),
                     ],
                   ),
                   Container(

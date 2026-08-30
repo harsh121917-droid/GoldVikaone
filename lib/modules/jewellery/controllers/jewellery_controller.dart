@@ -191,8 +191,14 @@ class JewelleryController extends GetxController {
     return metalVal + making + gst;
   }
 
-  // Initiate Redeem Flow
-  Future<void> redeemItem(Map<String, dynamic> item, {String paymentMethod = 'razorpay'}) async {
+  // Initiate Purchase or Redeem Flow
+  Future<void> redeemItem(
+    Map<String, dynamic> item, {
+    String paymentMethod = 'razorpay',
+    bool useVault = false,
+    double vaultGramsToUse = 0.0,
+    String purchaseType = 'direct_buy',
+  }) async {
     try {
       isRedeeming.value = true;
       final itemId = item['_id']?.toString() ?? '';
@@ -200,17 +206,25 @@ class JewelleryController extends GetxController {
       final res = await _repo.initiateRedeemOrder(
         jewelleryId: itemId,
         paymentMethod: paymentMethod,
+        useVault: useVault,
+        vaultGramsToUse: vaultGramsToUse,
+        purchaseType: purchaseType,
       );
 
       if (res['paidViaWallet'] == true) {
         isRedeeming.value = false;
         Get.snackbar(
-          'Redeemed! 🎉',
-          res['message'] ?? 'Jewellery order confirmed using wallet balance.',
+          'Order Placed! 🎉',
+          res['message'] ?? 'Jewellery order confirmed successfully.',
           backgroundColor: const Color(0xFF2ECC71),
           colorText: Colors.white,
         );
-        // Refresh wallet
+        if (Get.isRegistered<GoldController>()) {
+          GoldController.to.loadBalance();
+        }
+        if (Get.isRegistered<SilverController>()) {
+          SilverController.to.loadBalance();
+        }
         if (Get.isRegistered<WalletController>()) {
           WalletController.to.loadWallet();
         }
@@ -273,12 +287,21 @@ class JewelleryController extends GetxController {
       isRedeeming.value = false;
       if (verifyRes['success'] == true) {
         Get.snackbar(
-          'Redemption Successful! 🥇',
+          'Order Confirmed! 🥇',
           'Your jewellery item is confirmed & will be dispatched soon.',
           backgroundColor: const Color(0xFF2ECC71),
           colorText: Colors.white,
           duration: const Duration(seconds: 4),
         );
+        if (Get.isRegistered<GoldController>()) {
+          GoldController.to.loadBalance();
+        }
+        if (Get.isRegistered<SilverController>()) {
+          SilverController.to.loadBalance();
+        }
+        if (Get.isRegistered<WalletController>()) {
+          WalletController.to.loadWallet();
+        }
         loadAll();
       } else {
         Get.snackbar(

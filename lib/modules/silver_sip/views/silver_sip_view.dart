@@ -9,7 +9,6 @@ import '../../gold_sip/views/sip_journey_view.dart';
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
 const _silver = Color(0xFF9E9E9E);
-const _silverLight = Color(0xFFE2E8F0);
 const _success = Color(0xFF10B981);
 const _danger = Color(0xFFEF4444);
 
@@ -55,6 +54,82 @@ class _SilverSipViewState extends State<SilverSipView> {
   final _sipRepo = SipRepository();
   int _activeTab = 0; // 0 = Create SIP, 1 = My Active SIPs & Journey
 
+
+  // ── Goal-Based Silver SIP State ──
+  final List<Map<String, dynamic>> _goals = [
+    {
+      'id': 'baby',
+      'title': "Baby's Silver Wealth",
+      'subtitle': "Child's 18th milestone silver accumulation",
+      'icon': Icons.child_care_rounded,
+      'badge': "Top Choice for Parents",
+      'color': Color(0xFF38BDF8),
+      'suggestedAmount': '1500',
+      'suggestedDurationIdx': 3, // 3 Years
+    },
+    {
+      'id': 'travel',
+      'title': "Dream Vacation Fund",
+      'subtitle': "Fund family travel with 999 fine silver bullion",
+      'icon': Icons.flight_takeoff_rounded,
+      'badge': "1-Year Goal",
+      'color': Color(0xFFF472B6),
+      'suggestedAmount': '2000',
+      'suggestedDurationIdx': 1, // 1 Year
+    },
+    {
+      'id': 'wedding',
+      'title': "Wedding Utensils & Silverware",
+      'subtitle': "Accumulate 999 pure silver for auspicious occasions",
+      'icon': Icons.diamond_outlined,
+      'badge': "Most Popular",
+      'color': Color(0xFF94A3B8),
+      'suggestedAmount': '3000',
+      'suggestedDurationIdx': 3, // 3 Years
+    },
+    {
+      'id': 'festival',
+      'title': "Festivals & Silver Coins",
+      'subtitle': "Dhanteras & Diwali silver coins ready in advance",
+      'icon': Icons.celebration_rounded,
+      'badge': "Auspicious Savings",
+      'color': Color(0xFFFB923C),
+      'suggestedAmount': '1000',
+      'suggestedDurationIdx': 1, // 1 Year
+    },
+    {
+      'id': 'home',
+      'title': "Dream House Silver Security",
+      'subtitle': "Substantial bullion backup for real estate",
+      'icon': Icons.cottage_rounded,
+      'badge': "High Growth",
+      'color': Color(0xFF34D399),
+      'suggestedAmount': '5000',
+      'suggestedDurationIdx': 4, // 5 Years
+    },
+    {
+      'id': 'education',
+      'title': "Higher Education Fund",
+      'subtitle': "College tuition & degree fund",
+      'icon': Icons.school_rounded,
+      'badge': "Education First",
+      'color': Color(0xFFA78BFA),
+      'suggestedAmount': '2500',
+      'suggestedDurationIdx': 3, // 3 Years
+    },
+    {
+      'id': 'wealth',
+      'title': "Silver Wealth & Reserve",
+      'subtitle': "Heavy weight physical silver vault reserve",
+      'icon': Icons.account_balance_rounded,
+      'badge': "Compounding Wealth",
+      'color': Color(0xFFCBD5E1),
+      'suggestedAmount': '3000',
+      'suggestedDurationIdx': 4, // 5 Years
+    },
+  ];
+  int _selectedGoalIdx = 0;
+
   // ── Create SIP State ──
   bool _isStartingSip = false;
   String _selectedFreq = 'Monthly';
@@ -94,8 +169,7 @@ class _SilverSipViewState extends State<SilverSipView> {
   double get _totalInvested => _amount * _cyclesCount;
   double get _gramsPerCycle => (_amount / 1.03) / _buyRate;
   double get _totalGrams => _gramsPerCycle * _cyclesCount;
-  double get _expectedReturns => _totalInvested * 0.16;
-
+  
   // ── My SIPs State ──
   bool _loadingMySips = false;
   SipPortfolioSummary _portfolioSummary = const SipPortfolioSummary();
@@ -148,11 +222,14 @@ class _SilverSipViewState extends State<SilverSipView> {
 
     setState(() => _isStartingSip = true);
     try {
+      final selectedGoal = _goals[_selectedGoalIdx];
       final created = await _sipRepo.createSip(
         metal: 'silver',
         frequency: _selectedFreq.toLowerCase(),
         installmentAmount: _amount,
         durationMonths: _months,
+        goalCategory: selectedGoal['id'] as String,
+        goalTitle: selectedGoal['title'] as String,
         paymentMethod: 'wallet',
       );
 
@@ -872,9 +949,13 @@ class _SilverSipViewState extends State<SilverSipView> {
                         '₹${sip.installmentAmount.toStringAsFixed(0)} / ${sip.frequency}',
                         style: TextStyle(color: t.ink, fontSize: 14, fontWeight: FontWeight.w800),
                       ),
-                      Text(
-                        '${sip.durationMonths} Months Plan',
-                        style: TextStyle(color: t.inkMuted, fontSize: 11),
+                      Row(
+                        children: [
+                          Text(
+                            sip.goalTitle.isNotEmpty ? sip.goalTitle : '${sip.durationMonths} Months Plan',
+                            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
                     ],
                   ),

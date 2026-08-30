@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 
 class AuthTextField extends StatefulWidget {
@@ -11,6 +12,7 @@ class AuthTextField extends StatefulWidget {
     this.controller,
     this.validator,
     this.textInputAction = TextInputAction.next,
+    this.inputFormatters,
   });
 
   final String hint;
@@ -20,6 +22,7 @@ class AuthTextField extends StatefulWidget {
   final TextEditingController? controller;
   final String? Function(String?)? validator;
   final TextInputAction textInputAction;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   State<AuthTextField> createState() => _AuthTextFieldState();
@@ -36,20 +39,38 @@ class _AuthTextFieldState extends State<AuthTextField> {
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
       validator: widget.validator,
+      inputFormatters: widget.inputFormatters,
+      // Always black text — never changes with theme
       style: const TextStyle(
-        color: AppColors.textPrimary,
+        color: Colors.black,
         fontSize: 15,
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
         hintText: widget.hint,
+        hintStyle: TextStyle(color: Colors.black.withOpacity(0.38)),
+        // Always white background — never changes with theme
+        filled: true,
+        fillColor: Colors.white,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.black.withOpacity(0.10)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+        ),
         prefixIcon: Padding(
           padding: const EdgeInsets.only(left: 4),
-          child: Icon(
-            widget.prefixIcon,
-            color: AppColors.inputIcon,
-            size: 20,
-          ),
+          child: Icon(widget.prefixIcon, color: AppColors.inputIcon, size: 20),
         ),
         suffixIcon: widget.isPassword
             ? GestureDetector(

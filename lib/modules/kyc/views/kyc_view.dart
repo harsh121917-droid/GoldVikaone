@@ -518,6 +518,12 @@ class _StatusBanner extends StatelessWidget {
       icon = Icons.verified_rounded;
       title = 'KYC Verified';
       subtitle = "You're all set to invest.";
+    } else if (status == 'revoked') {
+      color = const Color(0xFFE67E22);
+      icon = Icons.warning_amber_rounded;
+      title = 'KYC Revoked';
+      subtitle =
+          kyc?.rejectionReason ?? 'Your KYC verification was revoked. Please resubmit your details.';
     } else {
       color = const Color(0xFFE53E3E);
       icon = Icons.cancel_rounded;

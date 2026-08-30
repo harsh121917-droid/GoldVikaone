@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:pinput/pinput.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -25,11 +26,10 @@ class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
   final _otpFormKey = GlobalKey<FormState>();
 
-  final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _otpCtrl = TextEditingController();
-
   final _otpRepo = OtpRepository();
+  final _storage = GetStorage();
 
   _LoginStep _step = _LoginStep.credentials;
   bool _busy = false;
@@ -38,9 +38,17 @@ class _LoginViewState extends State<LoginView> {
   Timer? _cooldownTimer;
 
   @override
+  void initState() {
+    super.initState();
+    final lastPhone = _storage.read<String>('last_login_phone');
+    if (lastPhone != null && lastPhone.isNotEmpty) {
+      _phoneCtrl.text = lastPhone;
+    }
+  }
+
+  @override
   void dispose() {
     _cooldownTimer?.cancel();
-    _emailCtrl.dispose();
     _phoneCtrl.dispose();
     _otpCtrl.dispose();
     super.dispose();
@@ -71,6 +79,7 @@ class _LoginViewState extends State<LoginView> {
 
     try {
       await _otpRepo.sendOtp(phone: phone, purpose: 'login');
+      _storage.write('last_login_phone', phone);
       _startCooldown();
       HapticFeedback.mediumImpact();
       if (mounted) {
@@ -131,7 +140,6 @@ class _LoginViewState extends State<LoginView> {
       return;
     }
 
-    final email = _emailCtrl.text.trim();
     final phone = _phoneCtrl.text.trim();
 
     setState(() {
@@ -150,14 +158,15 @@ class _LoginViewState extends State<LoginView> {
       final ok = await authCtrl.loginWithOtp(
         phone: phone,
         otpRecordId: otpRecordId,
-        email: email,
       );
 
-      if (!ok && mounted) {
+      if (ok) {
+        _storage.write('last_login_phone', phone);
+      } else if (mounted) {
         setState(() {
           _errorMsg = authCtrl.errorMsg.value.isNotEmpty
               ? authCtrl.errorMsg.value
-              : 'Login failed. Please check your credentials.';
+              : 'Login failed. Please check your mobile number.';
         });
       }
     } catch (e) {
@@ -204,7 +213,7 @@ class _LoginViewState extends State<LoginView> {
         physics: const ClampingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children:[
             // ── Hero Section ──────────────────────────────────────────────
             SizedBox(
               height: size.height * 0.44,
@@ -263,7 +272,7 @@ class _LoginViewState extends State<LoginView> {
                           const SizedBox(height: 10),
                           Text(
                             _step == _LoginStep.credentials
-                                ? 'Enter your details to receive an OTP'
+                                ? 'Enter your registered mobile number to login'
                                 : 'OTP sent to ${_phoneCtrl.text.trim()}',
                             style: const TextStyle(
                               color: AppColors.textSecondary,
@@ -309,7 +318,7 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 
-  // ── Step 1: Email & Mobile Number Entry ─────────────────────────────────
+  // ── Step 1: Simple Mobile Number Only Entry ─────────────────────────────
   Widget _buildCredentialsStep() {
     return Form(
       key: _formKey,
@@ -318,48 +327,46 @@ class _LoginViewState extends State<LoginView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Login with OTP',
+            'Quick Mobile OTP Login',
             style: TextStyle(
               color: AppColors.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 16),
-
-          // Email Field
-          AuthTextField(
-            hint: 'Email Address',
-            prefixIcon: Icons.email_outlined,
-            controller: _emailCtrl,
-            keyboardType: TextInputType.emailAddress,
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Email is required';
-              if (!GetUtils.isEmail(v.trim())) {
-                return 'Enter a valid email address';
-              }
-              return null;
-            },
+          const SizedBox(height: 6),
+          const Text(
+            'We will send a 6-digit verification code to your phone',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+            ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 20),
 
           // Mobile Number Field
           AuthTextField(
-            hint: 'Mobile Number',
-            prefixIcon: Icons.phone_android_outlined,
+            hint: '10-Digit Mobile Number',
+            prefixIcon: Icons.phone_android_rounded,
             controller: _phoneCtrl,
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.done,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ],
             validator: (v) {
               if (v == null || v.trim().isEmpty) {
-                return 'Mobile number is required';
+                return 'Please enter your registered mobile number';
               }
-              final clean = v.trim().replaceAll(RegExp(r'[\s+\-()]'), '');
-              if (clean.length < 10) return 'Enter a valid 10-digit mobile number';
+              final clean = v.trim().replaceAll(RegExp(r'[^0-9]'), '');
+              if (clean.length != 10) {
+                return 'Please enter a valid 10-digit mobile number';
+              }
               return null;
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
           // Error Message Display
           if (_errorMsg != null && _errorMsg!.isNotEmpty) ...[
@@ -401,13 +408,20 @@ class _LoginViewState extends State<LoginView> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text(
-                      'Send OTP',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Get OTP',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
+                      ],
                     ),
             ),
           ),
@@ -435,14 +449,14 @@ class _LoginViewState extends State<LoginView> {
               onTap: () => Get.toNamed(AppRoutes.register),
               child: RichText(
                 text: const TextSpan(
-                  text: "Don't have an account?  ",
+                  text: "New to Payvika?  ",
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
                   ),
                   children: [
                     TextSpan(
-                      text: 'Register',
+                      text: 'Create Account',
                       style: TextStyle(
                         color: AppColors.accent,
                         fontWeight: FontWeight.w700,
@@ -609,7 +623,7 @@ class _LoginViewState extends State<LoginView> {
                   });
                 },
                 child: const Text(
-                  'Change Details',
+                  'Change Number',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 13,
@@ -621,7 +635,7 @@ class _LoginViewState extends State<LoginView> {
                 onPressed: _cooldownSeconds == 0 && !_busy ? _resendOtp : null,
                 child: Text(
                   _cooldownSeconds > 0
-                      ? 'Resend in ${_cooldownSeconds}s'
+                      ? 'Resend in ' + _cooldownSeconds.toString() + 's'
                       : 'Resend OTP',
                   style: TextStyle(
                     color: _cooldownSeconds > 0

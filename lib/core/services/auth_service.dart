@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:get_storage/get_storage.dart';
 import '../constants/api_constants.dart';
 import '../constants/storage_keys.dart';
@@ -147,4 +149,39 @@ class AuthService {
     _box.write(StorageKeys.token, data['token']);
     _box.write(StorageKeys.user, data['user']);
   }
+
+  Future<UserModel> uploadProfilePicture(File imageFile) async {
+    final fileName = imageFile.path.split(Platform.pathSeparator).last;
+    final formData = FormData.fromMap({
+      'image': await MultipartFile.fromFile(
+        imageFile.path,
+        filename: fileName,
+      ),
+    });
+
+    final res = await _dio.post(
+      '/users/profile-picture',
+      data: formData,
+    );
+
+    if (res.data['success'] == true && res.data['user'] != null) {
+      final updatedMap = Map<String, dynamic>.from(res.data['user']);
+      _box.write(StorageKeys.user, updatedMap);
+      return UserModel.fromJson(updatedMap);
+    } else {
+      throw Exception(res.data['message'] ?? 'Failed to upload profile picture');
+    }
+  }
+
+  Future<UserModel> removeProfilePicture() async {
+    final res = await _dio.delete('/users/profile-picture');
+    if (res.data['success'] == true && res.data['user'] != null) {
+      final updatedMap = Map<String, dynamic>.from(res.data['user']);
+      _box.write(StorageKeys.user, updatedMap);
+      return UserModel.fromJson(updatedMap);
+    } else {
+      throw Exception(res.data['message'] ?? 'Failed to remove profile picture');
+    }
+  }
+
 }

@@ -5,7 +5,6 @@ import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 
 const _gold = Color(0xFFD4A017);
-const _goldLight = Color(0xFFFFD700);
 const _silver = Color(0xFF9E9E9E);
 const _copper = Color(0xFFD97706);
 const _success = Color(0xFF10B981);

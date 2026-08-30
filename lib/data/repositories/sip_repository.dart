@@ -77,6 +77,8 @@ class SipMilestoneModel {
 
 class SipModel {
   final String id;
+  final String goalCategory;
+  final String goalTitle;
   final String metal;
   final String frequency;
   final double installmentAmount;
@@ -99,6 +101,8 @@ class SipModel {
 
   const SipModel({
     required this.id,
+    this.goalCategory = "wealth",
+    this.goalTitle = "Wealth Building",
     required this.metal,
     required this.frequency,
     required this.installmentAmount,
@@ -132,6 +136,8 @@ class SipModel {
     final rawInst = j['installments'] as List? ?? [];
     return SipModel(
       id: j['_id']?.toString() ?? j['id']?.toString() ?? '',
+      goalCategory: (j['goalCategory'] ?? 'wealth').toString().toLowerCase(),
+      goalTitle: (j['goalTitle'] ?? 'Wealth Building').toString(),
       metal: (j['metal'] ?? 'gold').toString().toLowerCase(),
       frequency: (j['frequency'] ?? 'monthly').toString().toLowerCase(),
       installmentAmount: (j['installmentAmount'] ?? 0) * 1.0,
@@ -200,10 +206,14 @@ class SipRepository {
     required String frequency,
     required double installmentAmount,
     required int durationMonths,
+    String goalCategory = 'wealth',
+    String goalTitle = 'Wealth Building',
     String paymentMethod = 'wallet',
   }) async {
     final res = await _client.post('/sip/create', data: {
       'metal': metal.toLowerCase(),
+      'goalCategory': goalCategory.toLowerCase(),
+      'goalTitle': goalTitle,
       'frequency': frequency.toLowerCase(),
       'installmentAmount': installmentAmount,
       'durationMonths': durationMonths,

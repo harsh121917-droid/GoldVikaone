@@ -1,3 +1,4 @@
+import 'package:vika1/services/notification_service.dart';
 import 'package:vika1/core/services/location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -22,6 +23,7 @@ class MainShellController extends GetxController {
     // Check for app updates on startup
     _checkForUpdate();
     LocationService.to.checkAndPromptLocation();
+    NotificationService.syncCurrentToken();
   }
 
   Future<void> _checkForUpdate() async {

@@ -1,4 +1,5 @@
-﻿import 'dart:ui';
+import 'package:image_picker/image_picker.dart';
+import 'dart:ui';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -53,7 +54,8 @@ class ProfileView extends StatelessWidget {
           ? const Color(0xFF1E352B)
           : const Color(0xFFE2EBE5);
 
-      final user = Get.find<AuthController>().user.value;
+      final authCtrl = Get.find<AuthController>();
+      final user = authCtrl.user.value;
       final initial = (user?.name?.isNotEmpty == true ? user!.name[0] : '?')
           .toUpperCase();
       final name = user?.name ?? 'Guest';
@@ -74,7 +76,7 @@ class ProfileView extends StatelessWidget {
           physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
-              // â”€â”€â”€ Header & Top App Bar â”€â”€â”€
+              // --------- Header & Top App Bar ---------
               Padding(
                 padding: EdgeInsets.fromLTRB(
                   20,
@@ -97,16 +99,7 @@ class ProfileView extends StatelessWidget {
                       children: [
                         _circleActionIcon(
                           icon: Icons.notifications_none_outlined,
-                          onTap: () {
-                            Get.snackbar(
-                              'Notifications',
-                              'No new notifications.',
-                              backgroundColor: dark
-                                  ? const Color(0xFF0C2017)
-                                  : Colors.white,
-                              colorText: textPrimary,
-                            );
-                          },
+                          onTap: () => Get.toNamed(AppRoutes.notifications),
                           border: borderSideColor,
                         ),
                         const SizedBox(width: 12),
@@ -121,7 +114,7 @@ class ProfileView extends StatelessWidget {
                 ),
               ),
 
-              // â”€â”€â”€ User Profile Card â”€â”€â”€
+              // --------- User Profile Card ---------
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -139,22 +132,119 @@ class ProfileView extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: _gold, width: 2),
-                        ),
-                        child: Center(
-                          child: Text(
-                            initial,
-                            style: const TextStyle(
-                              color: _gold,
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
+                                            // Interactive User Avatar with Camera / Photo Picker
+                      GestureDetector(
+                        onTap: () => _showProfilePhotoModal(context, authCtrl),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 76,
+                              height: 76,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const RadialGradient(
+                                  colors: [Color(0xFF133829), Color(0xFF042116)],
+                                ),
+                                border: Border.all(color: _gold, width: 2.2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _gold.withValues(alpha: 0.25),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: ClipOval(
+                                child: Obx(() {
+                                  if (authCtrl.isUploadingAvatar.value) {
+                                    return const Center(
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: _gold,
+                                        ),
+                                      ),
+                                    );
+                                  }
+
+                                  final avatarUrl = authCtrl.user.value?.avatarUrl;
+                                  if (avatarUrl != null && avatarUrl.isNotEmpty) {
+                                    return Image.network(
+                                      avatarUrl,
+                                      fit: BoxFit.cover,
+                                      width: 76,
+                                      height: 76,
+                                      errorBuilder: (context, error, stackTrace) => Center(
+                                        child: Text(
+                                          initial,
+                                          style: const TextStyle(
+                                            color: _gold,
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      loadingBuilder: (_, child, progress) {
+                                        if (progress == null) return child;
+                                        return const Center(
+                                          child: SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: _gold,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  }
+
+                                  return Center(
+                                    child: Text(
+                                      initial,
+                                      style: const TextStyle(
+                                        color: _gold,
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ),
                             ),
-                          ),
+                            // Camera Edit Badge Icon
+                            Positioned(
+                              bottom: -2,
+                              right: -2,
+                              child: Container(
+                                width: 26,
+                                height: 26,
+                                decoration: BoxDecoration(
+                                  color: _gold,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: const Color(0xFF042116), width: 2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.4),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.camera_alt_rounded,
+                                    size: 13,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -242,7 +332,7 @@ class ProfileView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // â”€â”€â”€ Gold Balance / Value Card â”€â”€â”€
+              // --------- Gold Balance / Value Card ---------
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -330,7 +420,7 @@ class ProfileView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // â”€â”€â”€ Wallet Balance Card â”€â”€â”€
+              // --------- Wallet Balance Card ---------
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -434,7 +524,7 @@ class ProfileView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // â”€â”€â”€ Horizontal Quick Actions Bar â”€â”€â”€
+              // --------- Horizontal Quick Actions Bar ---------
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -501,7 +591,7 @@ class ProfileView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // â”€â”€â”€ Settings Menu Cards List â”€â”€â”€
+              // --------- Settings Menu Cards List ---------
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -1082,4 +1172,194 @@ class ProfileView extends StatelessWidget {
       ),
     );
   }
+
+  void _showProfilePhotoModal(BuildContext context, AuthController authCtrl) {
+    final hasExistingPhoto = authCtrl.user.value?.avatarUrl?.isNotEmpty == true;
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        decoration: const BoxDecoration(
+          color: Color(0xFF0F172A),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: Color(0xFF1E293B), width: 1.5)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.account_circle_rounded, color: _gold, size: 22),
+                SizedBox(width: 8),
+                Text(
+                  'Profile Photo',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Choose how you want to set your profile picture',
+              style: TextStyle(color: Colors.white60, fontSize: 12.5),
+            ),
+            const SizedBox(height: 22),
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () async {
+                      Get.back();
+                      final picker = ImagePicker();
+                      final picked = await picker.pickImage(
+                        source: ImageSource.camera,
+                        imageQuality: 85,
+                        maxWidth: 1000,
+                        maxHeight: 1000,
+                      );
+                      if (picked != null) {
+                        final success = await authCtrl.uploadProfilePicture(File(picked.path));
+                        if (success) {
+                          Get.snackbar(
+                            'Photo Updated',
+                            'Profile picture updated successfully!',
+                            backgroundColor: const Color(0xFF1FAE7A),
+                            colorText: Colors.white,
+                            snackPosition: SnackPosition.BOTTOM,
+                            margin: const EdgeInsets.all(12),
+                          );
+                        }
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFF334155)),
+                      ),
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.camera_alt_rounded, color: _gold, size: 28),
+                          SizedBox(height: 8),
+                          Text(
+                            'Take Photo',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () async {
+                      Get.back();
+                      final picker = ImagePicker();
+                      final picked = await picker.pickImage(
+                        source: ImageSource.gallery,
+                        imageQuality: 85,
+                        maxWidth: 1000,
+                        maxHeight: 1000,
+                      );
+                      if (picked != null) {
+                        final success = await authCtrl.uploadProfilePicture(File(picked.path));
+                        if (success) {
+                          Get.snackbar(
+                            'Photo Updated',
+                            'Profile picture updated successfully!',
+                            backgroundColor: const Color(0xFF1FAE7A),
+                            colorText: Colors.white,
+                            snackPosition: SnackPosition.BOTTOM,
+                            margin: const EdgeInsets.all(12),
+                          );
+                        }
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFF334155)),
+                      ),
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.photo_library_rounded, color: _gold, size: 28),
+                          SizedBox(height: 8),
+                          Text(
+                            'From Gallery',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (hasExistingPhoto) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFEF4444),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () async {
+                    Get.back();
+                    final success = await authCtrl.removeProfilePicture();
+                    if (success) {
+                      Get.snackbar(
+                        'Photo Removed',
+                        'Profile picture has been removed.',
+                        backgroundColor: const Color(0xFF1E293B),
+                        colorText: Colors.white,
+                        snackPosition: SnackPosition.BOTTOM,
+                        margin: const EdgeInsets.all(12),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                  label: const Text(
+                    'Remove Current Photo',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
 }

@@ -23,6 +23,7 @@ class WalletController extends GetxController {
   final isAdding = false.obs;
   final isWithdrawing = false.obs;
   final wallet = Rxn<WalletModel>();
+  double get walletBalance => wallet.value?.balance ?? 0.0;
   final banks = <BankAccountModel>[].obs;
   final errorMsg = ''.obs;
 

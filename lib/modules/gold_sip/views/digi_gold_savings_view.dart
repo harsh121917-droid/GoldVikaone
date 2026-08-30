@@ -55,6 +55,82 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
   final _sipRepo = SipRepository();
   int _activeTab = 0; // 0 = Create SIP, 1 = My Active SIPs & Journey
 
+
+  // ── Goal-Based SIP State ──
+  final List<Map<String, dynamic>> _goals = [
+    {
+      'id': 'baby',
+      'title': "Baby's Golden Future",
+      'subtitle': "Child's 18th milestone & education reserve",
+      'icon': Icons.child_care_rounded,
+      'badge': "Top Choice for Parents",
+      'color': Color(0xFF38BDF8),
+      'suggestedAmount': '2500',
+      'suggestedDurationIdx': 3, // 3 Years
+    },
+    {
+      'id': 'travel',
+      'title': "Dream Vacation & Travel",
+      'subtitle': "Hedge world tours with rising gold bullion",
+      'icon': Icons.flight_takeoff_rounded,
+      'badge': "1-Year Goal",
+      'color': Color(0xFFF472B6),
+      'suggestedAmount': '3000',
+      'suggestedDurationIdx': 1, // 1 Year
+    },
+    {
+      'id': 'wedding',
+      'title': "Wedding & Bridal Jewellery",
+      'subtitle': "Accumulate 24K pure gold for wedding ornaments",
+      'icon': Icons.diamond_outlined,
+      'badge': "Most Popular",
+      'color': Color(0xFFD4A017),
+      'suggestedAmount': '5000',
+      'suggestedDurationIdx': 3, // 3 Years
+    },
+    {
+      'id': 'festival',
+      'title': "Festivals & Auspicious Days",
+      'subtitle': "Diwali, Dhanteras & Akshaya Tritiya ready",
+      'icon': Icons.celebration_rounded,
+      'badge': "Auspicious Savings",
+      'color': Color(0xFFFB923C),
+      'suggestedAmount': '2000',
+      'suggestedDurationIdx': 1, // 1 Year
+    },
+    {
+      'id': 'home',
+      'title': "Dream Home & Property",
+      'subtitle': "Substantial gold security for downpayment",
+      'icon': Icons.cottage_rounded,
+      'badge': "High Growth",
+      'color': Color(0xFF34D399),
+      'suggestedAmount': '10000',
+      'suggestedDurationIdx': 4, // 5 Years
+    },
+    {
+      'id': 'education',
+      'title': "Higher Education Fund",
+      'subtitle': "College tuition & university degree security",
+      'icon': Icons.school_rounded,
+      'badge': "Education First",
+      'color': Color(0xFFA78BFA),
+      'suggestedAmount': '4000',
+      'suggestedDurationIdx': 3, // 3 Years
+    },
+    {
+      'id': 'wealth',
+      'title': "Wealth & Retirement",
+      'subtitle': "Sovereign digital gold long-term reserve",
+      'icon': Icons.account_balance_rounded,
+      'badge': "Compounding Wealth",
+      'color': Color(0xFFFFD700),
+      'suggestedAmount': '5000',
+      'suggestedDurationIdx': 4, // 5 Years
+    },
+  ];
+  int _selectedGoalIdx = 0;
+
   // ── Create SIP State ──
   bool _isStartingSip = false;
   String _selectedFreq = 'Monthly';
@@ -148,11 +224,14 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
 
     setState(() => _isStartingSip = true);
     try {
+      final selectedGoal = _goals[_selectedGoalIdx];
       final created = await _sipRepo.createSip(
         metal: 'gold',
         frequency: _selectedFreq.toLowerCase(),
         installmentAmount: _amount,
         durationMonths: _months,
+        goalCategory: selectedGoal['id'] as String,
+        goalTitle: selectedGoal['title'] as String,
         paymentMethod: 'wallet',
       );
 
@@ -878,7 +957,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
                       color: _gold.withOpacity(0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.monetization_on_rounded, color: _gold, size: 18),
+                    child: Icon(_getGoalIcon(sip.goalCategory), color: _gold, size: 18),
                   ),
                   const SizedBox(width: 8),
                   Column(
@@ -888,9 +967,13 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
                         '₹${sip.installmentAmount.toStringAsFixed(0)} / ${sip.frequency}',
                         style: TextStyle(color: t.ink, fontSize: 14, fontWeight: FontWeight.w800),
                       ),
-                      Text(
-                        '${sip.durationMonths} Months Plan',
-                        style: TextStyle(color: t.inkMuted, fontSize: 11),
+                      Row(
+                        children: [
+                          Text(
+                            sip.goalTitle.isNotEmpty ? sip.goalTitle : '${sip.durationMonths} Months Plan',
+                            style: const TextStyle(color: _gold, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -998,5 +1081,19 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
         ],
       ),
     );
+  }
+}
+
+IconData _getGoalIcon(String cat) {
+  switch (cat.toLowerCase()) {
+    case 'baby': return Icons.child_care_rounded;
+    case 'travel': return Icons.flight_takeoff_rounded;
+    case 'wedding': return Icons.diamond_outlined;
+    case 'festival': return Icons.celebration_rounded;
+    case 'home': return Icons.cottage_rounded;
+    case 'education': return Icons.school_rounded;
+    case 'wealth':
+    default:
+      return Icons.account_balance_rounded;
   }
 }

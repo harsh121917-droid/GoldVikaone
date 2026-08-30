@@ -1,3 +1,4 @@
+import '../core/network/api_client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -170,18 +171,25 @@ class NotificationService {
   static Future<void> syncFcmTokenToBackend(String fcmToken) async {
     try {
       final storage = GetStorage();
-      final userToken = storage.read('token');
-      if (userToken == null || userToken.toString().isEmpty) return;
+      final userToken = storage.read<String>('bsqft_token');
+      if (userToken == null || userToken.isEmpty) return;
 
-      final dio = Dio();
-      await dio.post(
-        'https://bharatsqft-backend.onrender.com/api/notifications/fcm-token',
+      await ApiClient.instance.post(
+        '/notifications/fcm-token',
         data: {'fcmToken': fcmToken},
-        options: Options(headers: {'Authorization': 'Bearer $userToken'}),
       );
-      if (kDebugMode) print('✅ FCM token synced to backend');
+      if (kDebugMode) print('✅ FCM token synced to backend successfully');
     } catch (e) {
       if (kDebugMode) print('⚠️ FCM token sync error: $e');
     }
+  }
+
+  static Future<void> syncCurrentToken() async {
+    try {
+      String? token = await _messaging.getToken();
+      if (token != null && token.isNotEmpty) {
+        await syncFcmTokenToBackend(token);
+      }
+    } catch (_) {}
   }
 }

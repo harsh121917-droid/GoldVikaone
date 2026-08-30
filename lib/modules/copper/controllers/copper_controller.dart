@@ -20,10 +20,12 @@ class CopperController extends GetxController {
 
   final priceHistory = <Map<String, dynamic>>[].obs;
   final historyLoading = false.obs;
+  final selectedPeriod = '1M'.obs;
 
   @override
   void onInit() {
     super.onInit();
+    loadAll();
   }
 
   Future<void> loadAll() async {
@@ -32,7 +34,7 @@ class CopperController extends GetxController {
       loadRate(),
       loadBalance(),
       loadTransactions(),
-      loadPriceHistory('1m'),
+      loadPriceHistory(selectedPeriod.value.toLowerCase()),
     ]);
     isLoading.value = false;
   }
@@ -40,7 +42,8 @@ class CopperController extends GetxController {
   Future<void> loadPriceHistory(String period) async {
     try {
       historyLoading.value = true;
-      priceHistory.value = await _repo.getPriceHistory('HG', period);
+      selectedPeriod.value = period.toUpperCase();
+      priceHistory.value = await _repo.getPriceHistory('COPPER', period.toLowerCase());
     } catch (_) {} finally {
       historyLoading.value = false;
     }

@@ -22,7 +22,8 @@ const _termsContent = PolicyTexts.terms;
 
 // ─── Design tokens (same identity as home) ───────────────────────────────────
 const _copper = Color(0xFFEA580C);
-const _copperLight = Color(0xFFFB923C);
+const _copperPrimary = Color(0xFFC86D3B);
+const _copperLight = Color(0xFFFFA07A);
 const _danger = Color(0xFFE05A47);
 
 class _T {
@@ -38,22 +39,22 @@ class _T {
   });
   factory _T.of(bool dark) => dark
       ? const _T(
-          bg: Color(0xFF050B07),
-          card: Color(0xFF0C1710),
-          primary: Color(0xFF1FAE7A),
+          bg: Color(0xFF0C0704),
+          card: Color(0xFF19100A),
+          primary: Color(0xFFEA580C),
           ink: Color(0xFFEDF3EF),
           inkMuted: Color(0xFF7C9689),
           cardBorder: Color(0x2A1FAE7A),
-          subBg: Color(0xFF0A140D),
+          subBg: Color(0xFF140C07),
         )
       : const _T(
-          bg: Color(0xFFF9F9FB),
+          bg: Color(0xFFFBF8F5),
           card: Colors.white,
-          primary: Color(0xFF0B3D2E),
+          primary: Color(0xFFC86D3B),
           ink: Color(0xFF1A2B22),
           inkMuted: Color(0xFF6B7A72),
           cardBorder: Colors.transparent,
-          subBg: Color(0xFFF3F1EA),
+          subBg: Color(0xFFF5ECE4),
         );
 }
 
@@ -371,7 +372,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                         child: Text(
                           'Buy Copper',
                           style: TextStyle(
-                            color: Color(0xFF0B3D2E),
+                            color: Color(0xFFC86D3B),
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                           ),
@@ -393,14 +394,14 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                         children: const [
                           Icon(
                             Icons.show_chart_rounded,
-                            color: Color(0xFF0B3D2E),
+                            color: Color(0xFFC86D3B),
                             size: 14,
                           ),
                           SizedBox(width: 4),
                           Text(
                             'Live Rate',
                             style: TextStyle(
-                              color: Color(0xFF0B3D2E),
+                              color: Color(0xFFC86D3B),
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                             ),
@@ -420,7 +421,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                       child: const Center(
                         child: Icon(
                           Icons.card_giftcard_rounded,
-                          color: Color(0xFF0B3D2E),
+                          color: Color(0xFFC86D3B),
                           size: 16,
                         ),
                       ),
@@ -479,7 +480,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                                   Text(
                                     '₹ ${CopperController.to.buyRate.toStringAsFixed(2)}',
                                     style: const TextStyle(
-                                      color: Color(0xFFFFD700), // bright copper
+                                      color: Color(0xFFFFA07A), // bright copper
                                       fontSize: 26,
                                       fontWeight: FontWeight.w900,
                                     ),
@@ -691,7 +692,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF0B3D2E),
+                                      color: const Color(0xFFC86D3B),
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: Row(
@@ -997,7 +998,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                                   ),
                                   child: const Icon(
                                     Icons.account_balance_wallet_outlined,
-                                    color: Color(0xFF0B3D2E),
+                                    color: Color(0xFFC86D3B),
                                     size: 22,
                                   ),
                                 ),
@@ -1041,7 +1042,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                                       width: 10,
                                       height: 10,
                                       decoration: const BoxDecoration(
-                                        color: Color(0xFF0B3D2E),
+                                        color: Color(0xFFC86D3B),
                                         shape: BoxShape.circle,
                                       ),
                                     ),
@@ -1485,7 +1486,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                                         Text(
                                           '₹${_payableTotal.toStringAsFixed(2)}',
                                           style: const TextStyle(
-                                            color: Color(0xFF0B3D2E),
+                                            color: Color(0xFFC86D3B),
                                             fontSize: 20,
                                             fontWeight: FontWeight.w900,
                                           ),
@@ -1501,7 +1502,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                                             ? 'Hide Breakup'
                                             : 'View Breakup',
                                         style: const TextStyle(
-                                          color: Color(0xFF0B3D2E),
+                                          color: Color(0xFFC86D3B),
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -1511,7 +1512,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                                         _showBreakup
                                             ? Icons.keyboard_arrow_up_rounded
                                             : Icons.keyboard_arrow_down_rounded,
-                                        color: const Color(0xFF0B3D2E),
+                                        color: const Color(0xFFC86D3B),
                                         size: 16,
                                       ),
                                     ],
@@ -1681,12 +1682,12 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                               height: 20,
                               decoration: BoxDecoration(
                                 color: _agreedToTerms
-                                    ? const Color(0xFF0B3D2E)
+                                    ? const Color(0xFFC86D3B)
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(5),
                                 border: Border.all(
                                   color: _agreedToTerms
-                                      ? const Color(0xFF0B3D2E)
+                                      ? const Color(0xFFC86D3B)
                                       : t.inkMuted.withOpacity(0.5),
                                   width: 1.5,
                                 ),
@@ -1722,7 +1723,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                                         child: const Text(
                                           'Terms & Conditions',
                                           style: TextStyle(
-                                            color: Color(0xFF0B3D2E),
+                                            color: Color(0xFFC86D3B),
                                             fontSize: 11.5,
                                             fontWeight: FontWeight.bold,
                                             decoration:
@@ -1819,8 +1820,8 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
                           color: (_valid && _agreedToTerms && !_isBuyingLocal)
-                              ? const Color(0xFF0B3D2E)
-                              : const Color(0xFF0B3D2E).withOpacity(0.4),
+                              ? const Color(0xFFC86D3B)
+                              : const Color(0xFFC86D3B).withOpacity(0.4),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: _isBuyingLocal
@@ -1859,7 +1860,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                                   Text(
                                     '₹${_payableTotal.toStringAsFixed(2)}',
                                     style: const TextStyle(
-                                      color: Color(0xFFFFD700), // copper text
+                                      color: Color(0xFFFFA07A), // copper text
                                       fontSize: 14,
                                       fontWeight: FontWeight.w900,
                                     ),
@@ -1941,7 +1942,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
             color: t.inkMuted.withOpacity(0.06),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: const Color(0xFF0B3D2E), size: 14),
+          child: Icon(icon, color: const Color(0xFFC86D3B), size: 14),
         ),
         const SizedBox(height: 4),
         Text(
@@ -2039,7 +2040,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                     'Copper Purchased Successfully!',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: const Color(0xFF0B3D2E),
+                      color: const Color(0xFFC86D3B),
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
                     ),
@@ -2096,7 +2097,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                       width: double.infinity,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0B3D2E),
+                        color: const Color(0xFFC86D3B),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: const Center(
@@ -2132,7 +2133,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
       Text(
         val,
         style: TextStyle(
-          color: isHighlight ? const Color(0xFF0B3D2E) : t.ink,
+          color: isHighlight ? const Color(0xFFC86D3B) : t.ink,
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),

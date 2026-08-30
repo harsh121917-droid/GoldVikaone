@@ -48,6 +48,8 @@ class UserModel {
   final String email;
   final String? phone;
   final String role;
+  final String? avatar;
+  final String? profilePicture;
   final String? referralCode;
   final double referralBalance;
   final String kycStatus;
@@ -59,6 +61,8 @@ class UserModel {
     required this.email,
     this.phone,
     required this.role,
+    this.avatar,
+    this.profilePicture,
     this.referralCode,
     this.referralBalance = 0.0,
     this.kycStatus = 'not_submitted',
@@ -68,12 +72,24 @@ class UserModel {
   bool get hasLocation =>
       location != null && location!.latitude != null && location!.longitude != null;
 
+  String? get avatarUrl {
+    if (profilePicture != null && profilePicture!.trim().isNotEmpty) {
+      return profilePicture!.trim();
+    }
+    if (avatar != null && avatar!.trim().isNotEmpty) {
+      return avatar!.trim();
+    }
+    return null;
+  }
+
   factory UserModel.fromJson(Map<String, dynamic> j) => UserModel(
     id: j['_id'] ?? j['id'] ?? '',
     name: j['name'] ?? '',
     email: j['email'] ?? '',
     phone: j['phone'],
     role: j['role'] ?? 'user',
+    avatar: j['avatar']?.toString(),
+    profilePicture: j['profilePicture']?.toString(),
     referralCode: j['referralCode'],
     referralBalance: (j['referralBalance'] as num?)?.toDouble() ?? 0.0,
     kycStatus: j['kycStatus']?.toString() ?? 'not_submitted',
@@ -88,6 +104,8 @@ class UserModel {
     'email': email,
     'phone': phone,
     'role': role,
+    if (avatar != null) 'avatar': avatar,
+    if (profilePicture != null) 'profilePicture': profilePicture,
     'referralCode': referralCode,
     'referralBalance': referralBalance,
     'kycStatus': kycStatus,

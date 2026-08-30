@@ -1,3 +1,5 @@
+import '../../../services/notification_service.dart';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import '../../../core/services/auth_service.dart';
@@ -17,6 +19,7 @@ class AuthController extends GetxController {
   final isLoading = false.obs;
   final errorMsg = ''.obs;
   final user = Rx<UserModel?>(null);
+  final isUploadingAvatar = false.obs;
 
   @override
   void onInit() {
@@ -136,6 +139,9 @@ class AuthController extends GetxController {
 
   // After login/register: if no passcode set → go to setup, else → home
   void _afterAuth() {
+    // Sync push notification token to user record
+    NotificationService.syncCurrentToken();
+
     final lock = LockService.to;
     if (!lock.hasPasscode) {
       Get.offAllNamed(AppRoutes.passcodeSetup);
@@ -177,5 +183,48 @@ class AuthController extends GetxController {
 
     Get.offAllNamed(AppRoutes.login);
   }
+
+  Future<bool> uploadProfilePicture(File file) async {
+    try {
+      isUploadingAvatar.value = true;
+      final updated = await _auth.uploadProfilePicture(file);
+      user.value = updated;
+      return true;
+    } on DioException catch (e) {
+      Get.snackbar(
+        'Upload Failed',
+        e.response?.data?['message'] ?? 'Could not upload profile picture.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } catch (e) {
+      Get.snackbar(
+        'Upload Failed',
+        'Could not upload profile picture. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } finally {
+      isUploadingAvatar.value = false;
+    }
+  }
+
+  Future<bool> removeProfilePicture() async {
+    try {
+      isUploadingAvatar.value = true;
+      final updated = await _auth.removeProfilePicture();
+      user.value = updated;
+      return true;
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Could not remove profile picture.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } finally {
+      isUploadingAvatar.value = false;
+    }
+  }
+
 }
-  

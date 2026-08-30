@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:vika1/modules/copper/controllers/copper_controller.dart';
@@ -7,45 +6,44 @@ import 'package:get/get.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 import '../../../routes/app_routes.dart';
 
-// ─── Live data from CopperController ──────────────────────────────────────────
+// ─── Design Tokens for Copper ────────────────────────────────────────────────
+const _copperPrimary = Color(0xFFC86D3B);
+const _copperAccent = Color(0xFFEA580C);
+const _copperLight = Color(0xFFFFA07A);
+const _copperDark = Color(0xFF8C3E14);
 
-// Dummy chart data (7 points for 1M view)
-const _chart1M = [
-  17200.0,
-  17450.0,
-  17300.0,
-  17800.0,
-  18100.0,
-  18400.0,
-  18756.0,
-];
-const _chart3M = [
-  15800.0,
-  16200.0,
-  16800.0,
-  17100.0,
-  17500.0,
-  18100.0,
-  18756.0,
-];
-const _chart6M = [
-  14500.0,
-  15200.0,
-  15900.0,
-  16600.0,
-  17200.0,
-  17900.0,
-  18756.0,
-];
-const _chart1Y = [
-  12000.0,
-  13500.0,
-  14800.0,
-  15600.0,
-  16500.0,
-  17700.0,
-  18756.0,
-];
+class _CopperTheme {
+  final Color bg, card, cardBorder, tp, ts, subBg, statBg;
+  const _CopperTheme({
+    required this.bg,
+    required this.card,
+    required this.cardBorder,
+    required this.tp,
+    required this.ts,
+    required this.subBg,
+    required this.statBg,
+  });
+
+  factory _CopperTheme.of(bool dark) => dark
+      ? const _CopperTheme(
+          bg: Color(0xFF0C0704),
+          card: Color(0xFF19100A),
+          cardBorder: Color(0x33D97706),
+          tp: Color(0xFFFFF7ED),
+          ts: Color(0xFFA8988B),
+          subBg: Color(0xFF140C07),
+          statBg: Color(0xFF22150D),
+        )
+      : const _CopperTheme(
+          bg: Color(0xFFFBF8F5),
+          card: Colors.white,
+          cardBorder: Color(0xFFF0E4D8),
+          tp: Color(0xFF2C1810),
+          ts: Color(0xFF7A6A5E),
+          subBg: Color(0xFFF5ECE4),
+          statBg: Color(0xFFFAF2EB),
+        );
+}
 
 class MyCopperView extends StatefulWidget {
   const MyCopperView({super.key});
@@ -53,8 +51,7 @@ class MyCopperView extends StatefulWidget {
   State<MyCopperView> createState() => _MyCopperViewState();
 }
 
-class _MyCopperViewState extends State<MyCopperView>
-    with SingleTickerProviderStateMixin {
+class _MyCopperViewState extends State<MyCopperView> {
   int _tabIdx = 2; // Default to 1M
   bool _hideAmt = false;
   final _tabs = ['1D', '1W', '1M', '1Y', '3Y', '5Y'];
@@ -63,26 +60,23 @@ class _MyCopperViewState extends State<MyCopperView>
   Widget build(BuildContext context) {
     return Obx(() {
       final dark = ThemeController.to.isDark.value;
-      final bg = dark ? const Color(0xFF060B16) : const Color(0xFFF5F0E8);
-      final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
-      final tp = dark ? const Color(0xFFEDF0FF) : const Color(0xFF1A2340);
-      final ts = dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280);
-      final border = dark ? const Color(0xFF1A2B45) : const Color(0xFFE8DFC8);
+      final t = _CopperTheme.of(dark);
 
       return Scaffold(
-        backgroundColor: bg,
+        backgroundColor: t.bg,
         appBar: AppBar(
-          backgroundColor: dark ? const Color(0xFF0E1626) : Colors.white,
+          backgroundColor: t.card,
           elevation: 0,
           leading: GestureDetector(
             onTap: () => Get.back(),
             child: Container(
               margin: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: dark ? const Color(0xFF1A2B45) : const Color(0xFFF0EDE4),
+                color: t.subBg,
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: t.cardBorder),
               ),
-              child: Icon(Icons.arrow_back_rounded, color: tp, size: 20),
+              child: Icon(Icons.arrow_back_rounded, color: t.tp, size: 20),
             ),
           ),
           title: Column(
@@ -91,25 +85,26 @@ class _MyCopperViewState extends State<MyCopperView>
               Text(
                 'My Copper',
                 style: TextStyle(
-                  color: tp,
+                  color: t.tp,
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
                 ),
               ),
               Text(
-                'Track your copper holdings and growth',
-                style: TextStyle(color: ts, fontSize: 11),
+                'Track your 999 electrolytic copper holdings',
+                style: TextStyle(color: t.ts, fontSize: 11),
               ),
             ],
           ),
           actions: [
             IconButton(
-              icon: Icon(Icons.help_outline_rounded, color: ts),
+              icon: Icon(Icons.help_outline_rounded, color: t.ts),
               onPressed: () {},
             ),
             IconButton(
-              icon: Icon(Icons.notifications_outlined, color: ts),
-              onPressed: () {},
+              icon: Icon(Icons.notifications_outlined, color: t.ts),
+              onPressed: () => Get.toNamed(AppRoutes.notifications),
             ),
           ],
         ),
@@ -117,9 +112,9 @@ class _MyCopperViewState extends State<MyCopperView>
           physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
-              // ── Hero balance ─────────────────────────────────────────────────
+              // ── Hero balance card ────────────────────────────────────────────
               Container(
-                color: dark ? const Color(0xFF0E1626) : Colors.white,
+                color: t.card,
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,9 +125,35 @@ class _MyCopperViewState extends State<MyCopperView>
                         children: [
                           Row(
                             children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [_copperAccent, _copperPrimary],
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  '999 PURE',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
                               Text(
-                                'Total Copper',
-                                style: TextStyle(color: ts, fontSize: 13),
+                                'Total Copper Holdings',
+                                style: TextStyle(
+                                  color: t.ts,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               const SizedBox(width: 6),
                               GestureDetector(
@@ -144,80 +165,66 @@ class _MyCopperViewState extends State<MyCopperView>
                                   _hideAmt
                                       ? Icons.visibility_off_outlined
                                       : Icons.visibility_outlined,
-                                  color: ts,
+                                  color: t.ts,
                                   size: 16,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          // 3D grams
+                          const SizedBox(height: 10),
+                          // 3D Copper grams
                           _hideAmt
                               ? Container(
                                   height: 38,
-                                  width: 100,
+                                  width: 120,
                                   decoration: BoxDecoration(
-                                    color: dark
-                                        ? const Color(0xFF1A2B45)
-                                        : const Color(0xFFF0EDE4),
+                                    color: t.subBg,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 )
-                              : Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    Transform.translate(
-                                      offset: const Offset(2, 3),
-                                      child: Text(
-                                        '${CopperController.to.totalGrams.toStringAsFixed(4)}g',
-                                        style: TextStyle(
-                                          color: Color(0x44D4A017),
-                                          fontSize: 36,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: -1,
-                                        ),
-                                      ),
+                              : ShaderMask(
+                                  shaderCallback: (bounds) => const LinearGradient(
+                                    colors: [_copperAccent, _copperLight, _copperPrimary],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ).createShader(bounds),
+                                  child: Text(
+                                    '${CopperController.to.totalGrams.toStringAsFixed(4)}g',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 34,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -1,
                                     ),
-                                    Text(
-                                      '${CopperController.to.totalGrams.toStringAsFixed(4)}g',
-                                      style: TextStyle(
-                                        color: Color(0xFF8A95A5),
-                                        fontSize: 36,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: -1,
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                           const SizedBox(height: 4),
                           Text(
                             'Current Value  ₹${(CopperController.to.balance.value?.currentValue ?? 0).toStringAsFixed(2)}',
-                            style: TextStyle(color: ts, fontSize: 13),
+                            style: TextStyle(
+                              color: t.ts,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(height: 10),
                           Builder(
                             builder: (_) {
                               final gain =
-                                  CopperController.to.balance.value?.gainLoss ??
-                                  0;
+                                  CopperController.to.balance.value?.gainLoss ?? 0;
                               final gainPct =
-                                  CopperController
-                                      .to
-                                      .balance
-                                      .value
-                                      ?.gainLossPct ??
-                                  0;
+                                  CopperController.to.balance.value?.gainLossPct ?? 0;
                               final isUp = gain >= 0;
                               final c = isUp
                                   ? const Color(0xFF2ecc71)
                                   : const Color(0xFFe74c3c);
                               return Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 9,
-                                  vertical: 4,
+                                  horizontal: 10,
+                                  vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: c.withOpacity(0.10),
+                                  color: c.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(color: c.withOpacity(0.3)),
                                 ),
@@ -229,15 +236,15 @@ class _MyCopperViewState extends State<MyCopperView>
                                           ? Icons.trending_up_rounded
                                           : Icons.trending_down_rounded,
                                       color: c,
-                                      size: 13,
+                                      size: 14,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
                                       '${isUp ? '+' : ''}₹${gain.toStringAsFixed(2)} (${gainPct.toStringAsFixed(2)}%)',
                                       style: TextStyle(
                                         color: c,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                   ],
@@ -245,28 +252,76 @@ class _MyCopperViewState extends State<MyCopperView>
                               );
                             },
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 3),
                           Text(
-                            'since last purchase',
-                            style: TextStyle(color: ts, fontSize: 10),
+                            'overall returns on invested capital',
+                            style: TextStyle(color: t.ts, fontSize: 10),
                           ),
                         ],
                       ),
                     ),
-                    // Jar
-                    SizedBox(
-                      width: 110,
-                      height: 120,
-                      child: Image.asset(
-                        'assets/images/jar_img.png',
-                        fit: BoxFit.contain,
+                    // Copper Ingot Badge (Cu Atomic 29)
+                    Container(
+                      width: 90,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFD97706), Color(0xFFEA580C), Color(0xFF7C2D12)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _copperAccent.withOpacity(0.35),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Text(
+                                '29',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Text(
+                            'Cu',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              height: 1.0,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'COPPER',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
 
-              // ── Stats strip ──────────────────────────────────────────────────
+              // ── Stats Strip ──────────────────────────────────────────────────
               Container(
                 margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                 padding: const EdgeInsets.symmetric(
@@ -274,12 +329,12 @@ class _MyCopperViewState extends State<MyCopperView>
                   horizontal: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: cardBg,
+                  color: t.card,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: border),
+                  border: Border.all(color: t.cardBorder),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(dark ? 0.25 : 0.05),
+                      color: Colors.black.withOpacity(dark ? 0.25 : 0.04),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -290,17 +345,17 @@ class _MyCopperViewState extends State<MyCopperView>
                     _Stat(
                       '${CopperController.to.totalGrams.toStringAsFixed(4)}g',
                       'Available Copper',
-                      const Color(0xFF8A95A5),
-                      dark,
+                      _copperPrimary,
+                      t,
                     ),
-                    _VDivider(dark),
+                    _VDivider(t),
                     _Stat(
                       '₹${(CopperController.to.balance.value?.investedAmt ?? 0).toStringAsFixed(0)}',
                       'Invested Amount',
                       const Color(0xFF3B82F6),
-                      dark,
+                      t,
                     ),
-                    _VDivider(dark),
+                    _VDivider(t),
                     Builder(
                       builder: (_) {
                         final gain =
@@ -309,37 +364,28 @@ class _MyCopperViewState extends State<MyCopperView>
                             CopperController.to.balance.value?.gainLossPct ?? 0;
                         final isUp = gain >= 0;
                         return _Stat(
-                          '${isUp ? '+' : ''}₹${gain.toStringAsFixed(2)}\n${gainPct.toStringAsFixed(2)}%',
+                          '${isUp ? '+' : ''}₹${gain.toStringAsFixed(2)} (${gainPct.toStringAsFixed(2)}%)',
                           'Gain / Loss',
-                          isUp
-                              ? const Color(0xFF2ecc71)
-                              : const Color(0xFFe74c3c),
-                          dark,
+                          isUp ? const Color(0xFF2ecc71) : const Color(0xFFe74c3c),
+                          t,
                         );
                       },
                     ),
-                    // _VDivider(dark),
-                    // _Stat(
-                    //   '₹${(CopperController.to.balance.value?.avgBuyRate ?? 0)}/g',
-                    //   'Avg. Buy Price',
-                    //   const Color(0xFFAB47BC),
-                    //   dark,
-                    // ),
                   ],
                 ),
               ),
 
-              // ── Chart ────────────────────────────────────────────────────────
+              // ── Chart Container ──────────────────────────────────────────────
               Container(
                 margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: cardBg,
+                  color: t.card,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: border),
+                  border: Border.all(color: t.cardBorder),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(dark ? 0.25 : 0.05),
+                      color: Colors.black.withOpacity(dark ? 0.25 : 0.04),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -350,16 +396,20 @@ class _MyCopperViewState extends State<MyCopperView>
                   children: [
                     Row(
                       children: [
+                        const Icon(
+                          Icons.show_chart_rounded,
+                          color: _copperAccent,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 6),
                         Text(
-                          'Copper Value',
+                          'Live Copper Price Chart',
                           style: TextStyle(
-                            color: tp,
+                            color: t.tp,
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        // Icon(Icons.access_time_rounded, color: ts, size: 14),
                         const Spacer(),
                         // Time tabs
                         ..._tabs.asMap().entries.map(
@@ -375,21 +425,24 @@ class _MyCopperViewState extends State<MyCopperView>
                               duration: const Duration(milliseconds: 180),
                               margin: const EdgeInsets.only(left: 4),
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
+                                horizontal: 7,
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: _tabIdx == e.key
-                                    ? const Color(0xFF8A95A5)
-                                    : Colors.transparent,
+                                gradient: _tabIdx == e.key
+                                    ? const LinearGradient(
+                                        colors: [_copperAccent, _copperPrimary],
+                                      )
+                                    : null,
+                                color: _tabIdx == e.key ? null : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 e.value,
                                 style: TextStyle(
-                                  color: _tabIdx == e.key ? Colors.black : ts,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
+                                  color: _tabIdx == e.key ? Colors.white : t.ts,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                             ),
@@ -413,8 +466,7 @@ class _MyCopperViewState extends State<MyCopperView>
                         final lastItem = history.last;
                         currentPrice = (lastItem['price'] as num).toDouble();
                         final firstItem = history.first;
-                        final firstPrice = (firstItem['price'] as num)
-                            .toDouble();
+                        final firstPrice = (firstItem['price'] as num).toDouble();
                         changeAmt = currentPrice - firstPrice;
                         changePct = firstPrice > 0
                             ? (changeAmt / firstPrice) * 100
@@ -429,15 +481,29 @@ class _MyCopperViewState extends State<MyCopperView>
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            isLoading
-                                ? 'Loading...'
-                                : '₹${currentPrice.toStringAsFixed(2)}/g',
-                            style: TextStyle(
-                              color: tp,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                            ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                isLoading
+                                    ? 'Loading...'
+                                    : '₹${currentPrice.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  color: t.tp,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              Text(
+                                ' /gram',
+                                style: TextStyle(
+                                  color: t.ts,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 4),
                           if (!isLoading && history.isNotEmpty)
@@ -448,20 +514,20 @@ class _MyCopperViewState extends State<MyCopperView>
                                       ? Icons.arrow_upward_rounded
                                       : Icons.arrow_downward_rounded,
                                   color: chartGainColor,
-                                  size: 12,
+                                  size: 13,
                                 ),
                                 Text(
-                                  ' ${priceIsUp ? "+" : ""}₹${changeAmt.abs().toStringAsFixed(2)} (${priceIsUp ? "+" : ""}${changePct.toStringAsFixed(2)}% hike in ${_tabs[_tabIdx]})',
+                                  ' ${priceIsUp ? "+" : ""}₹${changeAmt.abs().toStringAsFixed(2)} (${priceIsUp ? "+" : ""}${changePct.toStringAsFixed(2)}% in ${_tabs[_tabIdx]})',
                                   style: TextStyle(
                                     color: chartGainColor,
-                                    fontSize: 13,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'as on ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-                                  style: TextStyle(color: ts, fontSize: 11),
+                                  '· Live API Setu Market',
+                                  style: TextStyle(color: t.ts, fontSize: 10),
                                 ),
                               ],
                             ),
@@ -474,40 +540,27 @@ class _MyCopperViewState extends State<MyCopperView>
                       () => _SpotPriceChart(
                         history: CopperController.to.priceHistory,
                         isLoading: CopperController.to.historyLoading.value,
-                        themeColor: const Color(0xFF8A95A5),
-                        bgColor: bg,
-                        inkColor: tp,
-                        inkMutedColor: ts,
+                        themeColor: _copperAccent,
+                        bgColor: t.card,
+                        inkColor: t.tp,
+                        inkMutedColor: t.ts,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    // X-axis labels
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: _xLabels
-                          .map(
-                            (l) => Text(
-                              l,
-                              style: TextStyle(color: ts, fontSize: 9),
-                            ),
-                          )
-                          .toList(),
                     ),
                   ],
                 ),
               ),
 
-              // ── Holdings ─────────────────────────────────────────────────────
+              // ── Holdings Card ────────────────────────────────────────────────
               Container(
                 margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: cardBg,
+                  color: t.card,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: border),
+                  border: Border.all(color: t.cardBorder),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(dark ? 0.25 : 0.05),
+                      color: Colors.black.withOpacity(dark ? 0.25 : 0.04),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -517,117 +570,106 @@ class _MyCopperViewState extends State<MyCopperView>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Your Holdings',
+                      'Your Holdings Breakdown',
                       style: TextStyle(
-                        color: tp,
+                        color: t.tp,
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 14),
                     // Holding row
-                    GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: dark
-                              ? const Color(0xFF0A0F1E)
-                              : const Color(0xFFF8F5EE),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: border),
-                        ),
-                        child: Row(
-                          children: [
-                            // Copper icon
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF8A95A5),
-                                    Color(0xFFD4D9DE),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFF8A95A5,
-                                    ).withOpacity(0.4),
-                                    blurRadius: 8,
-                                  ),
-                                ],
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: t.subBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: t.cardBorder),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [_copperAccent, _copperDark],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              child: const Center(
-                                child: Text(
-                                  'Au',
-                                  style: TextStyle(
-                                    color: Color(0xFF2A2E33),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _copperAccent.withOpacity(0.3),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Cu',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '999 (${99.99}% Purity)',
-                                    style: TextStyle(
-                                      color: tp,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '999 Pure Electrolytic Copper',
+                                  style: TextStyle(
+                                    color: t.tp,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(
-                                            0xFF8A95A5,
-                                          ).withOpacity(0.12),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'Primary',
-                                          style: TextStyle(
-                                            color: Color(0xFF8A95A5),
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w700,
-                                          ),
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: _copperAccent.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: const Text(
+                                        'Insured Vault',
+                                        style: TextStyle(
+                                          color: _copperAccent,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w800,
                                         ),
                                       ),
-                                    ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${CopperController.to.totalGrams.toStringAsFixed(4)}g  ·  ₹${(CopperController.to.balance.value?.currentValue ?? 0).toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    color: t.ts,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${CopperController.to.totalGrams}g  ·  ₹${(CopperController.to.balance.value?.currentValue ?? 0).toStringAsFixed(2)}',
-                                    style: TextStyle(color: ts, fontSize: 11),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                            Icon(
-                              Icons.chevron_right_rounded,
-                              color: ts,
-                              size: 20,
-                            ),
-                          ],
-                        ),
+                          ),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: t.ts,
+                            size: 20,
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -637,11 +679,9 @@ class _MyCopperViewState extends State<MyCopperView>
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: dark
-                              ? const Color(0xFF0A0F1E)
-                              : const Color(0xFFF8F5EE),
+                          color: t.subBg,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: border),
+                          border: Border.all(color: t.cardBorder),
                         ),
                         child: Row(
                           children: [
@@ -649,14 +689,10 @@ class _MyCopperViewState extends State<MyCopperView>
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFF3B82F6,
-                                ).withOpacity(0.10),
+                                color: const Color(0xFF3B82F6).withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: const Color(
-                                    0xFF3B82F6,
-                                  ).withOpacity(0.3),
+                                  color: const Color(0xFF3B82F6).withOpacity(0.3),
                                 ),
                               ),
                               child: const Icon(
@@ -668,9 +704,9 @@ class _MyCopperViewState extends State<MyCopperView>
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'View Transaction History',
+                                'View Copper Orders & Invoices',
                                 style: TextStyle(
-                                  color: tp,
+                                  color: t.tp,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -678,7 +714,7 @@ class _MyCopperViewState extends State<MyCopperView>
                             ),
                             Icon(
                               Icons.chevron_right_rounded,
-                              color: ts,
+                              color: t.ts,
                               size: 20,
                             ),
                           ],
@@ -689,20 +725,20 @@ class _MyCopperViewState extends State<MyCopperView>
                 ),
               ),
 
-              // ── Copper SIP Banner ───────────────────────────────────────────────
+              // ── Copper SIP Banner ────────────────────────────────────────────
               Container(
                 margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF1A1200), Color(0xFF2A2E33)],
+                    colors: [Color(0xFF2E1305), Color(0xFF4A200B)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF8A95A5).withOpacity(0.2),
+                      color: _copperAccent.withOpacity(0.2),
                       blurRadius: 14,
                       offset: const Offset(0, 5),
                     ),
@@ -712,15 +748,15 @@ class _MyCopperViewState extends State<MyCopperView>
                   children: [
                     const Icon(
                       Icons.savings_outlined,
-                      color: Color(0xFF8A95A5),
+                      color: _copperLight,
                       size: 28,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
+                        children: const [
+                          Text(
                             'Copper SIP is the smart way to grow wealth',
                             style: TextStyle(
                               color: Colors.white,
@@ -728,11 +764,11 @@ class _MyCopperViewState extends State<MyCopperView>
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Invest small, grow big. Start a SIP now.',
+                          SizedBox(height: 2),
+                          Text(
+                            'Automate daily or monthly copper purchases.',
                             style: TextStyle(
-                              color: Colors.white54,
+                              color: Colors.white70,
                               fontSize: 11,
                             ),
                           ),
@@ -741,7 +777,7 @@ class _MyCopperViewState extends State<MyCopperView>
                     ),
                     const SizedBox(width: 12),
                     GestureDetector(
-                      onTap: () => Get.toNamed(AppRoutes.myCopper),
+                      onTap: () => Get.toNamed(AppRoutes.buyCopper),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -749,20 +785,20 @@ class _MyCopperViewState extends State<MyCopperView>
                         ),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF8A95A5), Color(0xFFD4D9DE)],
+                            colors: [_copperAccent, _copperPrimary],
                           ),
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF8A95A5).withOpacity(0.45),
+                              color: _copperAccent.withOpacity(0.4),
                               blurRadius: 8,
                             ),
                           ],
                         ),
                         child: const Text(
-                          'Start SIP',
+                          'Buy Copper',
                           style: TextStyle(
-                            color: Color(0xFF2A2E33),
+                            color: Colors.white,
                             fontSize: 12,
                             fontWeight: FontWeight.w900,
                           ),
@@ -778,7 +814,7 @@ class _MyCopperViewState extends State<MyCopperView>
           ),
         ),
 
-        // ── Bottom action bar ─────────────────────────────────────────────────
+        // ── Bottom Action Bar ──────────────────────────────────────────────────
         bottomNavigationBar: Container(
           padding: EdgeInsets.fromLTRB(
             16,
@@ -787,12 +823,8 @@ class _MyCopperViewState extends State<MyCopperView>
             MediaQuery.paddingOf(context).bottom + 12,
           ),
           decoration: BoxDecoration(
-            color: dark ? const Color(0xFF0E1626) : Colors.white,
-            border: Border(
-              top: BorderSide(
-                color: dark ? const Color(0xFF1A2B45) : const Color(0xFFE8DFC8),
-              ),
-            ),
+            color: t.card,
+            border: Border(top: BorderSide(color: t.cardBorder)),
           ),
           child: Row(
             children: [
@@ -803,22 +835,22 @@ class _MyCopperViewState extends State<MyCopperView>
                     height: 50,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF8A95A5), Color(0xFFD4D9DE)],
+                        colors: [_copperAccent, _copperPrimary],
                       ),
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF8A95A5).withOpacity(0.45),
-                          blurRadius: 12,
-                          offset: const Offset(0, 5),
+                          color: _copperAccent.withOpacity(0.35),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
                     child: const Center(
                       child: Text(
-                        'Buy More Copper',
+                        'Buy Copper',
                         style: TextStyle(
-                          color: Color(0xFF2A2E33),
+                          color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
                         ),
@@ -827,26 +859,24 @@ class _MyCopperViewState extends State<MyCopperView>
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: GestureDetector(
                   onTap: () => Get.toNamed(AppRoutes.sellCopper),
                   child: Container(
                     height: 50,
                     decoration: BoxDecoration(
-                      color: const Color(
-                        0xFF3B82F6,
-                      ).withOpacity(dark ? 0.15 : 0.08),
+                      color: _copperAccent.withOpacity(dark ? 0.12 : 0.08),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: const Color(0xFF3B82F6).withOpacity(0.4),
+                        color: _copperAccent.withOpacity(0.4),
                       ),
                     ),
                     child: const Center(
                       child: Text(
                         'Sell Copper',
                         style: TextStyle(
-                          color: Color(0xFF3B82F6),
+                          color: _copperAccent,
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                         ),
@@ -861,128 +891,14 @@ class _MyCopperViewState extends State<MyCopperView>
       );
     });
   }
-
-  List<String> get _xLabels {
-    final labels = ['1M', '3M', '6M', '1Y'];
-    if (_tabIdx == 0)
-      return [
-        '17 Jun',
-        '24 Jun',
-        '01 Jul',
-        '08 Jul',
-        '11 Jul',
-        '14 Jul',
-        '17 Jul',
-      ];
-    if (_tabIdx == 1) return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
-    if (_tabIdx == 2) return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
-    return ['Jul 24', 'Oct 24', 'Jan 25', 'Apr 25', 'Jul 25'];
-  }
-}
-
-// ─── Copper Line Chart Painter ──────────────────────────────────────────────────
-class _CopperChartPainter extends CustomPainter {
-  const _CopperChartPainter({required this.data, required this.dark});
-  final List<double> data;
-  final bool dark;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (data.isEmpty) return;
-    final minV = data.reduce(min);
-    final maxV = data.reduce(max);
-    final range = (maxV - minV).clamp(1.0, double.infinity);
-
-    List<Offset> pts = [];
-    for (int i = 0; i < data.length; i++) {
-      final x = size.width * i / (data.length - 1);
-      final y = size.height * (1 - (data[i] - minV) / range);
-      pts.add(Offset(x, y));
-    }
-
-    // Fill gradient
-    final fillPath = Path()..moveTo(pts.first.dx, size.height);
-    fillPath.lineTo(pts.first.dx, pts.first.dy);
-    for (int i = 1; i < pts.length; i++) {
-      final cp = Offset(
-        (pts[i - 1].dx + pts[i].dx) / 2,
-        (pts[i - 1].dy + pts[i].dy) / 2,
-      );
-      fillPath.quadraticBezierTo(pts[i - 1].dx, pts[i - 1].dy, cp.dx, cp.dy);
-    }
-    fillPath.lineTo(pts.last.dx, size.height);
-    fillPath.close();
-
-    canvas.drawPath(
-      fillPath,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            const Color(0xFF8A95A5).withOpacity(0.35),
-            const Color(0xFF8A95A5).withOpacity(0.0),
-          ],
-        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
-    );
-
-    // Line
-    final linePath = Path()..moveTo(pts.first.dx, pts.first.dy);
-    for (int i = 1; i < pts.length; i++) {
-      final cp = Offset(
-        (pts[i - 1].dx + pts[i].dx) / 2,
-        (pts[i - 1].dy + pts[i].dy) / 2,
-      );
-      linePath.quadraticBezierTo(pts[i - 1].dx, pts[i - 1].dy, cp.dx, cp.dy);
-    }
-    canvas.drawPath(
-      linePath,
-      Paint()
-        ..color = const Color(0xFF8A95A5)
-        ..strokeWidth = 2.5
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round,
-    );
-
-    // Dot at last point
-    canvas.drawCircle(pts.last, 6, Paint()..color = Colors.white);
-    canvas.drawCircle(
-      pts.last,
-      6,
-      Paint()
-        ..color = const Color(0xFF8A95A5)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5,
-    );
-    canvas.drawCircle(
-      pts.last,
-      10,
-      Paint()..color = const Color(0xFF8A95A5).withOpacity(0.2),
-    );
-
-    // Grid lines (horizontal)
-    for (int i = 0; i < 4; i++) {
-      final y = size.height * i / 3;
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        Paint()
-          ..color = (dark ? Colors.white : Colors.black).withOpacity(0.05)
-          ..strokeWidth = 1,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _CopperChartPainter old) => old.data != data;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 class _Stat extends StatelessWidget {
-  const _Stat(this.val, this.lbl, this.color, this.dark);
+  const _Stat(this.val, this.lbl, this.color, this.t);
   final String val, lbl;
   final Color color;
-  final bool dark;
+  final _CopperTheme t;
   @override
   Widget build(BuildContext context) => Expanded(
     child: Column(
@@ -992,7 +908,7 @@ class _Stat extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: color,
-            fontSize: 12,
+            fontSize: 12.5,
             fontWeight: FontWeight.w900,
             height: 1.3,
           ),
@@ -1002,8 +918,9 @@ class _Stat extends StatelessWidget {
           lbl,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: dark ? const Color(0xFF8A95B0) : const Color(0xFF6B7280),
-            fontSize: 9,
+            color: t.ts,
+            fontSize: 9.5,
+            fontWeight: FontWeight.w500,
             height: 1.2,
           ),
         ),
@@ -1013,13 +930,13 @@ class _Stat extends StatelessWidget {
 }
 
 class _VDivider extends StatelessWidget {
-  const _VDivider(this.dark);
-  final bool dark;
+  const _VDivider(this.t);
+  final _CopperTheme t;
   @override
   Widget build(BuildContext context) => Container(
     width: 1,
     height: 36,
-    color: dark ? const Color(0xFF1A2B45) : const Color(0xFFE8DFC8),
+    color: t.cardBorder,
   );
 }
 
@@ -1044,16 +961,16 @@ class _SpotPriceChart extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isLoading) {
       return const SizedBox(
-        height: 140,
+        height: 150,
         child: Center(
-          child: CircularProgressIndicator(color: Color(0xFF8A95A5)),
+          child: CircularProgressIndicator(color: _copperAccent),
         ),
       );
     }
 
     if (history.isEmpty) {
       return SizedBox(
-        height: 140,
+        height: 150,
         child: Center(
           child: Text(
             'No price data available.',
@@ -1066,7 +983,7 @@ class _SpotPriceChart extends StatelessWidget {
     final prices = history.map((e) => (e['price'] as num).toDouble()).toList();
     final minPrice = prices.reduce((a, b) => a < b ? a : b);
     final maxPrice = prices.reduce((a, b) => a > b ? a : b);
-    final priceRange = maxPrice - minPrice;
+    final priceRange = (maxPrice - minPrice).clamp(0.01, double.infinity);
 
     final yMin = minPrice - (priceRange * 0.05);
     final yMax = maxPrice + (priceRange * 0.05);
@@ -1077,11 +994,20 @@ class _SpotPriceChart extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 140,
+      height: 150,
       width: double.infinity,
       child: LineChart(
         LineChartData(
-          gridData: const FlGridData(show: false),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: priceRange / 3,
+            getDrawingHorizontalLine: (value) => FlLine(
+              color: inkMutedColor.withOpacity(0.1),
+              strokeWidth: 1,
+              dashArray: [4, 4],
+            ),
+          ),
           titlesData: const FlTitlesData(
             leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -1102,14 +1028,14 @@ class _SpotPriceChart extends StatelessWidget {
                   final index = spot.x.toInt();
                   if (index >= 0 && index < history.length) {
                     final dateStr = history[index]['date'] as String;
-                    final dt = DateTime.parse(dateStr);
+                    final dt = DateTime.tryParse(dateStr) ?? DateTime.now();
                     final formattedDate =
                         "${dt.day}/${dt.month} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
                     return LineTooltipItem(
-                      '₹${spot.y.toStringAsFixed(2)}\n$formattedDate',
+                      '₹${spot.y.toStringAsFixed(2)}/g\n$formattedDate',
                       TextStyle(
                         color: inkColor,
-                        fontSize: 10,
+                        fontSize: 10.5,
                         fontWeight: FontWeight.bold,
                       ),
                     );
@@ -1123,6 +1049,7 @@ class _SpotPriceChart extends StatelessWidget {
             LineChartBarData(
               spots: spots,
               isCurved: true,
+              curveSmoothness: 0.35,
               color: themeColor,
               barWidth: 3,
               isStrokeCapRound: true,
@@ -1133,7 +1060,7 @@ class _SpotPriceChart extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    themeColor.withOpacity(0.22),
+                    themeColor.withOpacity(0.28),
                     themeColor.withOpacity(0.0),
                   ],
                 ),

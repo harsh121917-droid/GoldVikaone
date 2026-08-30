@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import '../../core/network/api_client.dart';
 
 class JewelleryRepository {
@@ -48,10 +47,16 @@ class JewelleryRepository {
   Future<Map<String, dynamic>> initiateRedeemOrder({
     required String jewelleryId,
     required String paymentMethod,
+    bool useVault = false,
+    double vaultGramsToUse = 0.0,
+    String purchaseType = 'direct_buy',
   }) async {
     final res = await _dio.post('/jewellery/redeem/initiate', data: {
       'jewelleryId': jewelleryId,
       'paymentMethod': paymentMethod,
+      'useVault': useVault,
+      'vaultGramsToUse': vaultGramsToUse,
+      'purchaseType': purchaseType,
     });
     return res.data;
   }

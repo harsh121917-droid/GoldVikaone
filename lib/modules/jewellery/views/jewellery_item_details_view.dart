@@ -1,44 +1,55 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 import '../../digi_gold/controllers/digi_gold_controller.dart';
 import '../../silver/controllers/silver_controller.dart';
+import '../../wallet/controllers/wallet_controller.dart';
 import '../controllers/jewellery_controller.dart';
 
 const _gold = Color(0xFFD4A017);
+const _goldLight = Color(0xFFFFD54F);
+const _emerald = Color(0xFF10B981);
 
-class _T {
-  final Color bg, card, primary, ink, inkMuted, cardBorder, subBg, ctaText;
-  const _T({
+class _Palette {
+  final Color bg, card, cardInner, primary, ink, inkMuted, cardBorder, subBg, chipBg, accentGlow;
+  const _Palette({
     required this.bg,
     required this.card,
+    required this.cardInner,
     required this.primary,
     required this.ink,
     required this.inkMuted,
     required this.cardBorder,
     required this.subBg,
-    required this.ctaText,
+    required this.chipBg,
+    required this.accentGlow,
   });
-  factory _T.of(bool dark) => dark
-      ? const _T(
-          bg: Color(0xFF0A0A0C),
-          card: Color(0xFF16161B),
+
+  factory _Palette.of(bool dark) => dark
+      ? const _Palette(
+          bg: Color(0xFF09090C),
+          card: Color(0xFF13131A),
+          cardInner: Color(0xFF1B1B24),
           primary: _gold,
-          ink: Color(0xFFF5F5F5),
-          inkMuted: Color(0xFF8A8A93),
-          cardBorder: Color(0x2ED4A017),
-          subBg: Color(0xFF1C1C22),
-          ctaText: Color(0xFF3D2B00),
+          ink: Color(0xFFF9FAFB),
+          inkMuted: Color(0xFF9CA3AF),
+          cardBorder: Color(0x33D4A017),
+          subBg: Color(0xFF181822),
+          chipBg: Color(0x1AD4A017),
+          accentGlow: Color(0x29D4A017),
         )
-      : const _T(
-          bg: Color(0xFFF8F9FA),
+      : const _Palette(
+          bg: Color(0xFFF7F8FA),
           card: Colors.white,
-          primary: Color(0xFF0B3D2E),
-          ink: Color(0xFF1A2B22),
-          inkMuted: Color(0xFF6B7A72),
-          cardBorder: Color(0xFFE5E7EB),
-          subBg: Color(0xFFF3F4F6),
-          ctaText: Colors.white,
+          cardInner: Color(0xFFF8FAFC),
+          primary: Color(0xFF0F3E2E),
+          ink: Color(0xFF111827),
+          inkMuted: Color(0xFF64748B),
+          cardBorder: Color(0xFFE2E8F0),
+          subBg: Color(0xFFF1F5F9),
+          chipBg: Color(0xFFF0FDF4),
+          accentGlow: Color(0x150F3E2E),
         );
 }
 
@@ -51,9 +62,10 @@ class JewelleryItemDetailsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = JewelleryController.to;
     final dark = ThemeController.to.isDark.value;
-    final t = _T.of(dark);
+    final p = _Palette.of(dark);
 
     final metalType = (item['metalType'] ?? 'gold').toString().toLowerCase();
+    final isGold = metalType == 'gold';
     final weightGrams = (item['weightGrams'] ?? 0.0) is num
         ? (item['weightGrams'] as num).toDouble()
         : double.tryParse(item['weightGrams'].toString()) ?? 0.0;
@@ -64,10 +76,11 @@ class JewelleryItemDetailsView extends StatelessWidget {
         ? (item['gstPercentage'] as num).toDouble()
         : 3.0;
 
-    double liveRatePerGram = 7500.0;
+    // Live metal rate and user's vault balance
+    double liveRatePerGram = isGold ? 7500.0 : 90.0;
     double vaultGrams = 0.0;
 
-    if (metalType == 'gold') {
+    if (isGold) {
       if (Get.isRegistered<GoldController>()) {
         liveRatePerGram = GoldController.to.buyRate;
         vaultGrams = GoldController.to.totalGrams;
@@ -76,477 +89,765 @@ class JewelleryItemDetailsView extends StatelessWidget {
       if (Get.isRegistered<SilverController>()) {
         liveRatePerGram = SilverController.to.buyRate;
         vaultGrams = SilverController.to.totalGrams;
-      } else {
-        liveRatePerGram = 236.0;
       }
     }
 
-    final metalValue = weightGrams * liveRatePerGram;
-    final gstAmount = (makingCharges * gstPct) / 100;
-    final totalProductPrice = metalValue + makingCharges + gstAmount;
-    final totalPayableNow = makingCharges + gstAmount;
+    final hasAnyVault = vaultGrams > 0.0001;
 
-    final selectedMethod = 'razorpay'.obs;
+    // Observables
+    final applyVault = (hasAnyVault).obs;
+    final selectedPaymentMethod = 'razorpay'.obs;
+    final isFavorite = false.obs;
 
     return Scaffold(
-      backgroundColor: t.bg,
-      appBar: AppBar(
-        backgroundColor: t.bg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: t.ink, size: 20),
-          onPressed: () => Get.back(),
-        ),
-        centerTitle: true,
-        title: Text(
-          'Item Details',
-          style: TextStyle(
-            color: t.ink,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'DM Serif Display',
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.share_outlined, color: t.ink, size: 20),
-            onPressed: () {
-              Get.snackbar(
-                'Share Item',
-                'Sharing "${item['name']}"',
-                backgroundColor: t.subBg,
-                colorText: t.ink,
-              );
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Product Multi-Image Showcase Carousel ──
-            _JewelleryImageShowcase(
-              images: _extractImages(item),
-              metalType: metalType,
-              purity: (item['purity'] ?? '22K Gold').toString(),
-              t: t,
-            ),
-
-            const SizedBox(height: 16),
-
-            // ── Item Title & Category Tag ──
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
+      backgroundColor: p.bg,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // ── 1. Luxury Collapsible Hero Sliver App Bar ──
+          SliverAppBar(
+            expandedHeight: 380,
+            pinned: true,
+            backgroundColor: p.bg,
+            elevation: 0,
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GestureDetector(
+                onTap: () => Get.back(),
+                child: Container(
                   decoration: BoxDecoration(
-                    color: t.primary.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.black.withValues(alpha: 0.45),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white24),
                   ),
-                  child: Text(
-                    (item['category'] ?? 'Jewellery').toString(),
-                    style: TextStyle(
-                      color: t.primary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                  child: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white,
+                    size: 17,
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              // Wishlist Heart Icon
+              Obx(() => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GestureDetector(
+                      onTap: () {
+                        isFavorite.value = !isFavorite.value;
+                        Get.snackbar(
+                          isFavorite.value ? 'Added to Wishlist ❤️' : 'Removed from Wishlist',
+                          item['name'] ?? 'Jewellery item',
+                          snackPosition: SnackPosition.TOP,
+                          backgroundColor: p.card,
+                          colorText: p.ink,
+                          duration: const Duration(seconds: 2),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Icon(
+                          isFavorite.value ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          color: isFavorite.value ? Colors.redAccent : Colors.white,
+                          size: 19,
+                        ),
+                      ),
+                    ),
+                  )),
+              // Share Button
+              Padding(
+                padding: const EdgeInsets.only(right: 14),
+                child: GestureDetector(
+                  onTap: () {
+                    Get.snackbar(
+                      'Share Item',
+                      'Sharing "${item['name']}"',
+                      snackPosition: SnackPosition.TOP,
+                      backgroundColor: p.card,
+                      colorText: p.ink,
+                      duration: const Duration(seconds: 2),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: const Icon(
+                      Icons.share_outlined,
+                      color: Colors.white,
+                      size: 19,
                     ),
                   ),
                 ),
-                Text(
-                  item['inStock'] == false ? 'Out of Stock' : 'In Stock ✓',
-                  style: TextStyle(
-                    color: item['inStock'] == false ? Colors.red : Colors.green,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            Text(
-              (item['name'] ?? '').toString(),
-              style: TextStyle(
-                color: t.ink,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'DM Serif Display',
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: _HeroGalleryShowcase(
+                images: _extractImages(item),
+                metalType: metalType,
+                purity: (item['purity'] ?? (isGold ? '24K Gold (999)' : '999 Fine Silver')).toString(),
+                p: p,
               ),
             ),
+          ),
 
-            const SizedBox(height: 6),
-
-            Text(
-              (item['description'] ??
-                      'Certified hallmarked pure metal item handcrafted by master artisans. Certified for authenticity and purity.')
-                  .toString(),
-              style: TextStyle(color: t.inkMuted, fontSize: 12.5, height: 1.4),
-            ),
-
-            const SizedBox(height: 16),
-
-            // ── Live Price Calculation Breakdown Card ──
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: t.card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: t.cardBorder),
-              ),
+          // ── 2. Main Body Content ──
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Category Tag & Live Stock Status ──
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Live Price Calculation',
-                        style: TextStyle(
-                          color: t.ink,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: _gold.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: _gold.withValues(alpha: 0.35)),
                         ),
-                      ),
-                      Text(
-                        'Total: ₹${totalProductPrice.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          color: t.ink,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  const Divider(),
-                  const SizedBox(height: 8),
-
-                  _row('Pure Weight', '$weightGrams grams', t),
-                  _row(
-                    'Today Live Metal Rate',
-                    '₹${liveRatePerGram.toStringAsFixed(2)} / g',
-                    t,
-                  ),
-                  _row(
-                    'Metal Value (Deducted from Vault)',
-                    '₹${metalValue.toStringAsFixed(0)}',
-                    t,
-                  ),
-                  _row(
-                    'Making Charges',
-                    '₹${makingCharges.toStringAsFixed(0)}',
-                    t,
-                  ),
-                  _row(
-                    'GST ($gstPct% on Making)',
-                    '₹${gstAmount.toStringAsFixed(0)}',
-                    t,
-                  ),
-
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _gold.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _gold.withValues(alpha: 0.4)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                        child: Row(
+                          children: [
+                            Icon(
+                              isGold ? Icons.diamond_outlined : Icons.circle_outlined,
+                              size: 13,
+                              color: _gold,
+                            ),
+                            const SizedBox(width: 5),
                             Text(
-                              'Payable Now for Redeem',
-                              style: TextStyle(
+                              (item['category'] ?? 'Jewellery').toString().toUpperCase(),
+                              style: const TextStyle(
                                 color: _gold,
                                 fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'Making Charges + GST',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
                               ),
                             ),
                           ],
                         ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: (item['inStock'] == false ? Colors.red : _emerald).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: (item['inStock'] == false ? Colors.red : _emerald).withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: item['inStock'] == false ? Colors.red : _emerald,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              item['inStock'] == false ? 'Out of Stock' : 'In Stock • Ready to Dispatch',
+                              style: TextStyle(
+                                color: item['inStock'] == false ? Colors.red : _emerald,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // ── Product Title & Live Rate Pill ──
+                  Text(
+                    (item['name'] ?? '').toString(),
+                    style: TextStyle(
+                      color: p.ink,
+                      fontSize: 23,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'DM Serif Display',
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Live Rate Chip
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: p.cardInner,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: p.cardBorder),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.show_chart_rounded, color: _gold, size: 16),
+                        const SizedBox(width: 6),
                         Text(
-                          '₹${totalPayableNow.toStringAsFixed(0)}',
+                          'Live MCX ${metalType.toUpperCase()} Rate: ',
+                          style: TextStyle(color: p.inkMuted, fontSize: 11.5, fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          '₹${liveRatePerGram.toStringAsFixed(2)} / g',
                           style: const TextStyle(
                             color: _gold,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 12),
+
+                  Text(
+                    (item['description'] ??
+                            'Handcrafted certified hallmarked pure bullion with tamper-proof security packaging. Guaranteed 100% purity with lifetime buyback.')
+                        .toString(),
+                    style: TextStyle(color: p.inkMuted, fontSize: 13, height: 1.5),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ── 3. Metal Specs & Certification Grid ──
+                  _buildSpecsMatrix(item, isGold, weightGrams, p),
+
+                  const SizedBox(height: 20),
+
+                  // ── 4. Interactive Digital Vault Deduction Card ──
+                  _buildVaultDeductionCard(
+                    applyVault: applyVault,
+                    hasAnyVault: hasAnyVault,
+                    vaultGrams: vaultGrams,
+                    weightGrams: weightGrams,
+                    liveRate: liveRatePerGram,
+                    metalType: metalType,
+                    p: p,
+                    dark: dark,
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ── 5. Transparent Live Price Breakdown Invoice ──
+                  _buildPriceBreakdownCard(
+                    applyVault: applyVault,
+                    hasAnyVault: hasAnyVault,
+                    weightGrams: weightGrams,
+                    vaultGrams: vaultGrams,
+                    liveRate: liveRatePerGram,
+                    makingCharges: makingCharges,
+                    gstPct: gstPct,
+                    p: p,
+                    dark: dark,
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ── 6. Purity, Insurance & Buyback Assurance Tiles ──
+                  _buildAssuranceRow(p),
+
+                  const SizedBox(height: 20),
+
+                  // ── 7. Payment Gateway & Wallet Selector ──
+                  _buildPaymentMethodSection(selectedPaymentMethod, p),
                 ],
               ),
             ),
+          ),
+        ],
+      ),
 
-            const SizedBox(height: 16),
+      // ── 8. Luxury Floating Bottom Checkout Bar ──
+      bottomNavigationBar: _buildBottomBar(
+        controller: controller,
+        item: item,
+        applyVault: applyVault,
+        hasAnyVault: hasAnyVault,
+        weightGrams: weightGrams,
+        vaultGrams: vaultGrams,
+        liveRate: liveRatePerGram,
+        makingCharges: makingCharges,
+        gstPct: gstPct,
+        selectedPaymentMethod: selectedPaymentMethod,
+        p: p,
+        dark: dark,
+      ),
+    );
+  }
 
-            // ── Trust & Quality Badges ──
+  // ── Spec Grid Builder ──
+  Widget _buildSpecsMatrix(Map<String, dynamic> item, bool isGold, double weight, _Palette p) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: p.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.tune_rounded, color: _gold, size: 16),
+              SizedBox(width: 6),
+              Text(
+                'Product Specifications',
+                style: TextStyle(
+                  color: _gold,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _specTile(
+                Icons.scale_rounded,
+                'Net Weight',
+                '${weight.toStringAsFixed(3)} g',
+                p,
+              ),
+              const SizedBox(width: 8),
+              _specTile(
+                Icons.verified_rounded,
+                'Purity',
+                (item['purity'] ?? (isGold ? '22K Gold' : '999 Silver')).toString(),
+                p,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _specTile(
+                Icons.qr_code_2_rounded,
+                'Item SKU',
+                (item['sku'] ?? 'VIKA-JWL-${(item['_id'] ?? '001').toString().substring(max(0, (item['_id'] ?? '001').toString().length - 4)).toUpperCase()}').toString(),
+                p,
+              ),
+              const SizedBox(width: 8),
+              _specTile(
+                Icons.shield_outlined,
+                'Hallmark',
+                'BIS 100% Certified',
+                p,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _specTile(IconData icon, String label, String value, _Palette p) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: p.cardInner,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: _gold),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: TextStyle(color: p.inkMuted, fontSize: 10.5)),
+                  const SizedBox(height: 1),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.ink, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Digital Vault Deduction Card ──
+  Widget _buildVaultDeductionCard({
+    required RxBool applyVault,
+    required bool hasAnyVault,
+    required double vaultGrams,
+    required double weightGrams,
+    required double liveRate,
+    required String metalType,
+    required _Palette p,
+    required bool dark,
+  }) {
+    return Obx(() {
+      final isApplying = applyVault.value && hasAnyVault;
+      final usedGrams = isApplying ? min(vaultGrams, weightGrams) : 0.0;
+      final vaultDiscountVal = usedGrams * liveRate;
+      final isFullCovered = usedGrams >= weightGrams;
+
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isApplying
+                ? (dark
+                    ? [const Color(0xFF062316), const Color(0xFF0F3B27)]
+                    : [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)])
+                : (dark
+                    ? [const Color(0xFF13131A), const Color(0xFF1A1A24)]
+                    : [Colors.white, const Color(0xFFF8FAFC)]),
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isApplying
+                ? _emerald.withValues(alpha: 0.7)
+                : p.cardBorder,
+            width: isApplying ? 1.8 : 1.0,
+          ),
+          boxShadow: isApplying
+              ? [
+                  BoxShadow(
+                    color: _emerald.withValues(alpha: 0.15),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : [],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _badgeTile(Icons.verified_outlined, '100% BIS\nHallmarked', t),
-                const SizedBox(width: 8),
-                _badgeTile(
-                  Icons.local_shipping_outlined,
-                  'Insured Express\nDelivery',
-                  t,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: isApplying
+                            ? _emerald.withValues(alpha: 0.2)
+                            : _gold.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.account_balance_wallet_rounded,
+                        color: isApplying ? _emerald : _gold,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'My ${metalType.toUpperCase()} Vault Savings',
+                          style: TextStyle(
+                            color: p.ink,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${vaultGrams.toStringAsFixed(3)} g available (Worth ₹${(vaultGrams * liveRate).toStringAsFixed(0)})',
+                          style: TextStyle(
+                            color: isApplying ? _emerald : p.inkMuted,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                _badgeTile(
-                  Icons.published_with_changes_rounded,
-                  'Lifetime\nBuyback Policy',
-                  t,
-                ),
+                if (hasAnyVault)
+                  Switch.adaptive(
+                    value: applyVault.value,
+                    activeTrackColor: _emerald,
+                    onChanged: (val) => applyVault.value = val,
+                  ),
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 10),
 
-            // ── Vault Balance Check & Redeem Card ──
-            Obx(() {
-              return Container(
-                padding: const EdgeInsets.all(16),
+            if (!hasAnyVault)
+              Text(
+                'You currently have 0.000g in your vault. You can purchase this item directly using UPI / Card / Wallet.',
+                style: TextStyle(color: p.inkMuted, fontSize: 12, height: 1.35),
+              )
+            else if (isApplying)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                 decoration: BoxDecoration(
-                  color: t.card,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: t.cardBorder),
+                  color: _emerald.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _emerald.withValues(alpha: 0.3)),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded, color: _emerald, size: 17),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        isFullCovered
+                            ? '✨ 100% Pure Metal (${usedGrams.toStringAsFixed(3)}g) deducted from your vault! You only pay making charges & GST.'
+                            : '✨ ${usedGrams.toStringAsFixed(3)}g deducted from vault (Saved ₹${vaultDiscountVal.toStringAsFixed(0)}!). Pay the remaining metal in cash.',
+                        style: const TextStyle(
+                          color: _emerald,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Text(
+                '💡 Turn ON the switch above to deduct your ${vaultGrams.toStringAsFixed(3)}g vault gold and reduce your cash payment.',
+                style: TextStyle(color: p.inkMuted, fontSize: 12, height: 1.35),
+              ),
+          ],
+        ),
+      );
+    });
+  }
+
+  // ── Price Breakdown Card ──
+  Widget _buildPriceBreakdownCard({
+    required RxBool applyVault,
+    required bool hasAnyVault,
+    required double weightGrams,
+    required double vaultGrams,
+    required double liveRate,
+    required double makingCharges,
+    required double gstPct,
+    required _Palette p,
+    required bool dark,
+  }) {
+    return Obx(() {
+      final isApplying = applyVault.value && hasAnyVault;
+      final metalValue = weightGrams * liveRate;
+      final usedGrams = isApplying ? min(vaultGrams, weightGrams) : 0.0;
+      final vaultDiscountVal = usedGrams * liveRate;
+
+      final remainingGrams = max(0.0, weightGrams - usedGrams);
+      final remainingMetalValue = remainingGrams * liveRate;
+
+      final taxableCash = remainingMetalValue + makingCharges;
+      final gstAmount = (taxableCash * gstPct) / 100;
+      final netCashPayable = taxableCash + gstAmount;
+
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: p.card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: p.cardBorder),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: dark ? 0.3 : 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.receipt_long_rounded, size: 18, color: _gold),
+                    SizedBox(width: 8),
+                    Text(
+                      'Price Breakdown',
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'DM Serif Display',
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isApplying ? _emerald.withValues(alpha: 0.15) : _gold.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    isApplying ? 'Vault Applied' : 'Direct Buy',
+                    style: TextStyle(
+                      color: isApplying ? _emerald : _gold,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+
+            _rowItem('Total Item Metal Weight', '${weightGrams.toStringAsFixed(3)} g', p),
+            _rowItem('Today Live Metal Rate', '₹${liveRate.toStringAsFixed(2)} / g', p),
+            _rowItem('Gross Pure Metal Value', '₹${metalValue.toStringAsFixed(0)}', p),
+
+            if (isApplying && usedGrams > 0) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        const Icon(
-                          Icons.account_balance_wallet_outlined,
-                          color: _gold,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_downward_rounded, size: 14, color: _emerald),
+                        const SizedBox(width: 4),
                         Text(
-                          'Vault Balance Check',
-                          style: TextStyle(
-                            color: t.ink,
-                            fontSize: 13.5,
+                          'Minus Vault Gold (${usedGrams.toStringAsFixed(3)}g)',
+                          style: const TextStyle(
+                            color: _emerald,
+                            fontSize: 12.5,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
                     Text(
-                      'Your $metalType vault balance: ${vaultGrams.toStringAsFixed(3)} g | Required: ${weightGrams.toStringAsFixed(3)} g',
-                      style: TextStyle(color: t.inkMuted, fontSize: 11.5),
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // Payment Method Option Selection
-                    Text(
-                      'Choose Payment Option for Making Charges',
-                      style: TextStyle(
-                        color: t.ink,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Razorpay Option (Default)
-                    GestureDetector(
-                      onTap: () => selectedMethod.value = 'razorpay',
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: selectedMethod.value == 'razorpay'
-                              ? _gold.withValues(alpha: 0.12)
-                              : t.subBg,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selectedMethod.value == 'razorpay'
-                                ? _gold
-                                : t.cardBorder,
-                            width: selectedMethod.value == 'razorpay'
-                                ? 1.5
-                                : 1.0,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              selectedMethod.value == 'razorpay'
-                                  ? Icons.radio_button_checked
-                                  : Icons.radio_button_unchecked,
-                              color: selectedMethod.value == 'razorpay'
-                                  ? _gold
-                                  : t.inkMuted,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Pay via Razorpay (UPI / Card / NetBanking)',
-                                    style: TextStyle(
-                                      color: t.ink,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Direct payment — does not cut from Payvika Wallet',
-                                    style: TextStyle(
-                                      color: t.inkMuted,
-                                      fontSize: 10.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Payvika Wallet Option
-                    GestureDetector(
-                      onTap: () => selectedMethod.value = 'wallet',
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: selectedMethod.value == 'wallet'
-                              ? _gold.withValues(alpha: 0.12)
-                              : t.subBg,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selectedMethod.value == 'wallet'
-                                ? _gold
-                                : t.cardBorder,
-                            width: selectedMethod.value == 'wallet' ? 1.5 : 1.0,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              selectedMethod.value == 'wallet'
-                                  ? Icons.radio_button_checked
-                                  : Icons.radio_button_unchecked,
-                              color: selectedMethod.value == 'wallet'
-                                  ? _gold
-                                  : t.inkMuted,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Pay via Payvika Wallet',
-                                    style: TextStyle(
-                                      color: t.ink,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Deduct ₹${totalPayableNow.toStringAsFixed(0)} from wallet balance',
-                                    style: TextStyle(
-                                      color: t.inkMuted,
-                                      fontSize: 10.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Big Action Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: controller.isRedeeming.value
-                            ? null
-                            : () {
-                                controller.redeemItem(
-                                  item,
-                                  paymentMethod: selectedMethod.value,
-                                );
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: t.primary,
-                          foregroundColor: t.ctaText,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        child: controller.isRedeeming.value
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              )
-                            : Text(
-                                selectedMethod.value == 'razorpay'
-                                    ? 'Pay ₹${totalPayableNow.toStringAsFixed(0)} via Razorpay & Redeem'
-                                    : 'Pay ₹${totalPayableNow.toStringAsFixed(0)} from Wallet & Redeem',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                      '-₹${vaultDiscountVal.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        color: _emerald,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                   ],
                 ),
-              );
-            }),
-            const SizedBox(height: 30),
+              ),
+              if (remainingGrams > 0)
+                _rowItem(
+                  'Remaining Metal to Pay in Cash (${remainingGrams.toStringAsFixed(3)}g)',
+                  '₹${remainingMetalValue.toStringAsFixed(0)}',
+                  p,
+                  highlight: true,
+                ),
+            ],
+
+            _rowItem('Making & Artistry Charges', '₹${makingCharges.toStringAsFixed(0)}', p),
+            _rowItem('GST (${gstPct.toStringAsFixed(0)}% on Cash Amount)', '₹${gstAmount.toStringAsFixed(0)}', p),
+
+            const SizedBox(height: 16),
+
+            // Grand Total Highlight Banner
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isApplying
+                      ? [const Color(0xFF0F3B27), const Color(0xFF062316)]
+                      : [const Color(0xFF241E0D), const Color(0xFF161205)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isApplying ? _emerald.withValues(alpha: 0.5) : _gold.withValues(alpha: 0.5),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isApplying ? 'Net Cash Amount to Pay' : 'Total Amount to Pay',
+                        style: TextStyle(
+                          color: isApplying ? const Color(0xFFA7F3D0) : _goldLight,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isApplying
+                            ? 'Deducts ${usedGrams.toStringAsFixed(3)}g from your vault'
+                            : 'All metal, making & taxes included',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '₹${netCashPayable.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      color: isApplying ? const Color(0xFFA7F3D0) : _goldLight,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'DM Serif Display',
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
-    );
+      );
+    });
   }
 
-  Widget _row(String label, String val, _T t) {
+  Widget _rowItem(String label, String value, _Palette p, {bool highlight = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: t.inkMuted, fontSize: 12)),
+          Text(label, style: TextStyle(color: p.inkMuted, fontSize: 12.5)),
           Text(
-            val,
+            value,
             style: TextStyle(
-              color: t.ink,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
+              color: highlight ? _gold : p.ink,
+              fontWeight: highlight ? FontWeight.w800 : FontWeight.w600,
+              fontSize: 12.5,
             ),
           ),
         ],
@@ -554,41 +855,348 @@ class JewelleryItemDetailsView extends StatelessWidget {
     );
   }
 
-  Widget _badgeTile(IconData icon, String text, _T t) {
+  // ── Assurance Icons Row ──
+  Widget _buildAssuranceRow(_Palette p) {
+    return Row(
+      children: [
+        _trustTile(Icons.verified_rounded, '100% BIS Hallmarked', p),
+        const SizedBox(width: 8),
+        _trustTile(Icons.local_shipping_rounded, 'Insured Express Delivery', p),
+        const SizedBox(width: 8),
+        _trustTile(Icons.published_with_changes_rounded, 'Lifetime 100% Buyback', p),
+      ],
+    );
+  }
+
+  Widget _trustTile(IconData icon, String title, _Palette p) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
         decoration: BoxDecoration(
-          color: t.card,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: t.cardBorder),
+          color: p.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: p.cardBorder),
         ),
         child: Column(
           children: [
-            Icon(icon, color: _gold, size: 20),
-            const SizedBox(height: 4),
+            Icon(icon, color: _gold, size: 22),
+            const SizedBox(height: 6),
             Text(
-              text,
+              title,
               textAlign: TextAlign.center,
-              style: TextStyle(color: t.inkMuted, fontSize: 9.5, height: 1.2),
+              style: TextStyle(color: p.inkMuted, fontSize: 10, height: 1.3),
             ),
           ],
         ),
       ),
     );
   }
+
+  // ── Payment Method Selection ──
+  Widget _buildPaymentMethodSection(RxString selectedPaymentMethod, _Palette p) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: p.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Select Payment Option',
+                style: TextStyle(
+                  color: p.ink,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (Get.isRegistered<WalletController>())
+                Obx(() {
+                  final bal = WalletController.to.wallet.value?.balance ?? 0.0;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: _gold.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Wallet: ₹${bal.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        color: _gold,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                }),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Razorpay (UPI, GPay, PhonePe, Cards, NetBanking)
+          Obx(() {
+            final isRzp = selectedPaymentMethod.value == 'razorpay';
+            return GestureDetector(
+              onTap: () => selectedPaymentMethod.value = 'razorpay',
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isRzp ? _gold.withValues(alpha: 0.12) : p.subBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isRzp ? _gold : p.cardBorder,
+                    width: isRzp ? 1.6 : 1.0,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isRzp ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                      color: isRzp ? _gold : p.inkMuted,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'UPI / Cards / NetBanking (Razorpay)',
+                            style: TextStyle(
+                              color: p.ink,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'GPay, PhonePe, Paytm, Credit/Debit Card, NetBanking',
+                            style: TextStyle(color: p.inkMuted, fontSize: 10.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.shield_outlined, size: 16, color: _gold),
+                  ],
+                ),
+              ),
+            );
+          }),
+
+          // Payvika In-App Wallet
+          Obx(() {
+            final isWallet = selectedPaymentMethod.value == 'wallet';
+            return GestureDetector(
+              onTap: () => selectedPaymentMethod.value = 'wallet',
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isWallet ? _gold.withValues(alpha: 0.12) : p.subBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isWallet ? _gold : p.cardBorder,
+                    width: isWallet ? 1.6 : 1.0,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isWallet ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                      color: isWallet ? _gold : p.inkMuted,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Payvika In-App Wallet',
+                            style: TextStyle(
+                              color: p.ink,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Instant 1-tap checkout deducted from your wallet',
+                            style: TextStyle(color: p.inkMuted, fontSize: 10.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.account_balance_wallet_outlined, size: 16, color: _gold),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // ── Bottom Sticky Bar ──
+  Widget _buildBottomBar({
+    required JewelleryController controller,
+    required Map<String, dynamic> item,
+    required RxBool applyVault,
+    required bool hasAnyVault,
+    required double weightGrams,
+    required double vaultGrams,
+    required double liveRate,
+    required double makingCharges,
+    required double gstPct,
+    required RxString selectedPaymentMethod,
+    required _Palette p,
+    required bool dark,
+  }) {
+    return Obx(() {
+      final isApplying = applyVault.value && hasAnyVault;
+      final usedGrams = isApplying ? min(vaultGrams, weightGrams) : 0.0;
+      final remainingGrams = max(0.0, weightGrams - usedGrams);
+      final remainingMetalValue = remainingGrams * liveRate;
+
+      final taxableCash = remainingMetalValue + makingCharges;
+      final gstAmount = (taxableCash * gstPct) / 100;
+      final netCashPayable = taxableCash + gstAmount;
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: BoxDecoration(
+          color: p.card,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          border: Border.all(color: p.cardBorder),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: dark ? 0.45 : 0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -6),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isApplying && usedGrams > 0 ? 'Cash to Pay' : 'Total Payable',
+                    style: TextStyle(color: p.inkMuted, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    '₹${netCashPayable.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      color: isApplying ? _emerald : _gold,
+                      fontSize: 23,
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'DM Serif Display',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Container(
+                  height: 52,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    gradient: LinearGradient(
+                      colors: isApplying
+                          ? [const Color(0xFF10B981), const Color(0xFF047857)]
+                          : [const Color(0xFFE5B020), const Color(0xFFC48F0A)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isApplying ? _emerald : _gold).withValues(alpha: 0.35),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: controller.isRedeeming.value
+                        ? null
+                        : () {
+                            controller.redeemItem(
+                              item,
+                              paymentMethod: selectedPaymentMethod.value,
+                              useVault: isApplying,
+                              vaultGramsToUse: usedGrams,
+                              purchaseType: isApplying
+                                  ? (usedGrams >= weightGrams ? 'vault_redeem' : 'hybrid')
+                                  : 'direct_buy',
+                            );
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: controller.isRedeeming.value
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                isApplying && usedGrams > 0
+                                    ? 'Pay ₹${netCashPayable.toStringAsFixed(0)} & Order'
+                                    : 'Buy Now • ₹${netCashPayable.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(Icons.arrow_forward_rounded, size: 17, color: Colors.white),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
   List<String> _extractImages(Map<String, dynamic> item) {
     final List<String> list = [];
     final Set<String> seen = {};
 
-    // 1. Primary / Main Image first
     final primary = item['imageUrl']?.toString().trim() ?? '';
     if (primary.isNotEmpty && (primary.startsWith('http') || primary.startsWith('data:'))) {
       list.add(primary);
       seen.add(primary);
     }
 
-    // 2. Multi-image gallery list
     if (item['images'] is List && (item['images'] as List).isNotEmpty) {
       for (final img in item['images'] as List) {
         final s = img?.toString().trim();
@@ -599,7 +1207,6 @@ class JewelleryItemDetailsView extends StatelessWidget {
       }
     }
 
-    // 3. Fallback bullion coin image
     final fallbackImg = item['image']?.toString().trim() ?? '';
     if (fallbackImg.isNotEmpty && (fallbackImg.startsWith('http') || fallbackImg.startsWith('data:')) && !seen.contains(fallbackImg)) {
       list.add(fallbackImg);
@@ -610,26 +1217,25 @@ class JewelleryItemDetailsView extends StatelessWidget {
   }
 }
 
-// ─── Swipeable Multi-Image Carousel with Page Indicator ───────────────────────
-class _JewelleryImageShowcase extends StatefulWidget {
+// ─── Luxury Hero Gallery with Smooth Carousel ────────────────────────────────
+class _HeroGalleryShowcase extends StatefulWidget {
   final List<String> images;
   final String metalType;
   final String purity;
-  final _T t;
+  final _Palette p;
 
-  const _JewelleryImageShowcase({
-    Key? key,
+  const _HeroGalleryShowcase({
     required this.images,
     required this.metalType,
     required this.purity,
-    required this.t,
-  }) : super(key: key);
+    required this.p,
+  });
 
   @override
-  State<_JewelleryImageShowcase> createState() => _JewelleryImageShowcaseState();
+  State<_HeroGalleryShowcase> createState() => _HeroGalleryShowcaseState();
 }
 
-class _JewelleryImageShowcaseState extends State<_JewelleryImageShowcase> {
+class _HeroGalleryShowcaseState extends State<_HeroGalleryShowcase> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
@@ -641,30 +1247,42 @@ class _JewelleryImageShowcaseState extends State<_JewelleryImageShowcase> {
 
   @override
   Widget build(BuildContext context) {
-    final t = widget.t;
+    final p = widget.p;
     final images = widget.images;
 
     return Container(
       width: double.infinity,
-      height: 300,
-      decoration: BoxDecoration(
-        color: t.subBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: t.cardBorder),
-      ),
+      color: p.subBg,
       child: Stack(
         children: [
+          // Background subtle radiant glow
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.center,
+                  radius: 0.8,
+                  colors: [
+                    _gold.withValues(alpha: 0.12),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Swiper / Image Viewer
           if (images.isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: images.length,
-                onPageChanged: (idx) => setState(() => _currentPage = idx),
-                itemBuilder: (ctx, idx) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Center(
+            PageView.builder(
+              controller: _pageController,
+              itemCount: images.length,
+              onPageChanged: (idx) => setState(() => _currentPage = idx),
+              itemBuilder: (ctx, idx) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 48, 28, 40),
+                  child: Center(
+                    child: Hero(
+                      tag: 'jewel_${images[idx]}',
                       child: Image.network(
                         images[idx],
                         fit: BoxFit.contain,
@@ -676,109 +1294,111 @@ class _JewelleryImageShowcaseState extends State<_JewelleryImageShowcase> {
                               value: progress.expectedTotalBytes != null
                                   ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
                                   : null,
-                              strokeWidth: 2,
+                              strokeWidth: 2.5,
                               color: _gold,
                             ),
                           );
                         },
                         errorBuilder: (context, error, stackTrace) => Icon(
                           widget.metalType == 'gold' ? Icons.diamond_outlined : Icons.circle_outlined,
-                          size: 90,
+                          size: 110,
                           color: _gold,
                         ),
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             )
           else
             Center(
               child: Icon(
                 widget.metalType == 'gold' ? Icons.diamond_outlined : Icons.circle_outlined,
-                size: 90,
+                size: 110,
                 color: _gold,
               ),
             ),
 
-          // Purity Badge Top Left
+          // Purity Pill Top Left
           Positioned(
-            top: 14,
-            left: 14,
+            top: 56,
+            left: 56,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: _gold.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _gold.withValues(alpha: 0.5)),
+                color: Colors.black.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _gold.withValues(alpha: 0.6), width: 1.2),
               ),
-              child: Text(
-                widget.purity,
-                style: const TextStyle(
-                  color: _gold,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Row(
+                children: [
+                  const Icon(Icons.verified_rounded, size: 13, color: _gold),
+                  const SizedBox(width: 5),
+                  Text(
+                    widget.purity,
+                    style: const TextStyle(
+                      color: _gold,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
 
-          // Metal Badge Top Right
+          // Metal Pill Top Right
           Positioned(
-            top: 14,
-            right: 14,
+            top: 56,
+            right: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: widget.metalType == 'silver'
-                    ? Colors.grey.withValues(alpha: 0.25)
-                    : Colors.amber.withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(8),
+                    ? Colors.blueGrey.withValues(alpha: 0.4)
+                    : Colors.amber.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white24),
               ),
               child: Text(
                 widget.metalType.toUpperCase(),
                 style: TextStyle(
-                  color: widget.metalType == 'silver' ? Colors.white70 : Colors.amber,
+                  color: widget.metalType == 'silver' ? Colors.white : Colors.amber,
                   fontSize: 10.5,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
           ),
 
-          // Multi-Image Dots & Page Counter (if multiple images)
+          // Page Indicator & Dots (if multi-image)
           if (images.length > 1) ...[
-            // Photo count pill bottom-right
+            // Counter Pill
             Positioned(
-              bottom: 14,
-              right: 14,
+              bottom: 16,
+              right: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.65),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.white24),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.photo_library_outlined, size: 12, color: Colors.white),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${_currentPage + 1}/${images.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  '${_currentPage + 1} / ${images.length}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-            // Dots Indicator at Bottom Center
+            // Dots
             Positioned(
-              bottom: 14,
+              bottom: 16,
               left: 0,
               right: 0,
               child: Row(
@@ -788,10 +1408,10 @@ class _JewelleryImageShowcaseState extends State<_JewelleryImageShowcase> {
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     margin: const EdgeInsets.symmetric(horizontal: 3),
-                    width: active ? 18 : 6,
+                    width: active ? 22 : 7,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: active ? _gold : Colors.white.withValues(alpha: 0.4),
+                      color: active ? _gold : Colors.white.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(3),
                     ),
                   );
@@ -803,5 +1423,4 @@ class _JewelleryImageShowcaseState extends State<_JewelleryImageShowcase> {
       ),
     );
   }
-
 }

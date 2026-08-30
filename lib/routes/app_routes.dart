@@ -1,3 +1,5 @@
+import 'package:vika1/modules/notifications/bindings/notification_binding.dart';
+import 'package:vika1/modules/notifications/views/notification_history_view.dart';
 import 'package:get/get.dart';
 import 'package:vika1/modules/update/views/app_update_view.dart';
 import 'package:vika1/modules/home/bindings/home_binding.dart';
@@ -100,6 +102,7 @@ abstract class AppRoutes {
   static const bankAccounts = '/wallet/banks';
   static const addBankAccount = '/wallet/banks/add';
   static const update = '/update';
+  static const notifications = '/notifications';
 }
 
 final appPages = [
@@ -266,5 +269,10 @@ final appPages = [
     binding: BindingsBuilder(() {
       if (!Get.isRegistered<WalletController>()) Get.put(WalletController());
     }),
+  ),
+  GetPage(
+    name: AppRoutes.notifications,
+    page: () => const NotificationHistoryView(),
+    binding: NotificationBinding(),
   ),
 ];
