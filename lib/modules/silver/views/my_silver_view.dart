@@ -110,7 +110,6 @@ class _MySilverViewState extends State<MySilverView>
             IconButton(
               icon: Icon(Icons.notifications_outlined, color: ts),
               onPressed: () => Get.toNamed(AppRoutes.notifications),
-              onPressed: () {},
             ),
           ],
         ),
