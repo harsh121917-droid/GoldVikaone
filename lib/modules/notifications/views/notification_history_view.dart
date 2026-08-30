@@ -22,19 +22,19 @@ class _Palette {
 
   factory _Palette.of(bool dark) => dark
       ? const _Palette(
-          bg: Color(0xFF09090C),
-          card: Color(0xFF13131A),
-          cardInner: Color(0xFF1C1C26),
-          ink: Color(0xFFF9FAFB),
-          inkMuted: Color(0xFF9CA3AF),
-          cardBorder: Color(0x33D4A017),
-          subBg: Color(0xFF181822),
+          bg: Color(0xFF070B09),
+          card: Color(0xFF0E1612),
+          cardInner: Color(0xFF15221B),
+          ink: Color(0xFFEDF3EF),
+          inkMuted: Color(0xFF88A093),
+          cardBorder: Color(0x2AD4A017),
+          subBg: Color(0xFF0A120E),
           accentGlow: Color(0x22D4A017),
         )
       : const _Palette(
-          bg: Color(0xFFF7F8FA),
+          bg: Color(0xFFF8F9FA),
           card: Colors.white,
-          cardInner: Color(0xFFF8FAFC),
+          cardInner: Color(0xFFF9FBFA),
           ink: Color(0xFF111827),
           inkMuted: Color(0xFF64748B),
           cardBorder: Color(0xFFE2E8F0),
@@ -48,7 +48,7 @@ class NotificationHistoryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(NotificationInboxController());
+    final controller = NotificationInboxController.to;
     final dark = ThemeController.to.isDark.value;
     final p = _Palette.of(dark);
 
@@ -57,87 +57,81 @@ class NotificationHistoryView extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: p.bg,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: p.ink, size: 19),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: p.ink, size: 18),
           onPressed: () => Get.back(),
         ),
-        centerTitle: true,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Notification Inbox',
-              style: TextStyle(
-                color: p.ink,
-                fontSize: 17.5,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'DM Serif Display',
-              ),
-            ),
-            const SizedBox(width: 8),
-            Obx(() {
-              final count = controller.unreadCount;
-              if (count == 0) return const SizedBox.shrink();
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _gold,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '$count NEW',
-                  style: const TextStyle(
-                    color: Color(0xFF1F1600),
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              );
-            }),
-          ],
+        title: Text(
+          'Notifications',
+          style: TextStyle(
+            color: p.ink,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+          ),
         ),
         actions: [
           Obx(() {
             if (controller.notifications.isEmpty) return const SizedBox.shrink();
+            final unread = controller.unreadCount;
             return TextButton.icon(
-              onPressed: controller.markAllAsRead,
-              icon: const Icon(Icons.done_all_rounded, size: 16, color: _gold),
-              label: const Text(
-                'Mark Read',
-                style: TextStyle(color: _gold, fontSize: 12, fontWeight: FontWeight.bold),
+              onPressed: () {
+                controller.markAllAsRead();
+                Get.snackbar(
+                  'Marked as Read',
+                  'All notifications marked as read',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: _emerald,
+                  colorText: Colors.white,
+                  duration: const Duration(seconds: 2),
+                );
+              },
+              icon: Icon(
+                unread > 0 ? Icons.done_all_rounded : Icons.check_rounded,
+                size: 16,
+                color: _gold,
+              ),
+              label: Text(
+                unread > 0 ? 'Read all ($unread)' : 'All read',
+                style: const TextStyle(
+                  color: _gold,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             );
           }),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
-          // ── Filter Pills Row ──
+          // ── Category Filters (Without Personal) ──
           Container(
-            height: 48,
-            margin: const EdgeInsets.symmetric(vertical: 6),
+            height: 44,
+            margin: const EdgeInsets.symmetric(vertical: 8),
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
+              physics: const BouncingScrollPhysics(),
               children: [
-                _filterChip('all', 'All Alerts', Icons.inbox_rounded, controller, p),
+                _filterPill('all', 'All Alerts', Icons.notifications_active_outlined, controller, p),
                 const SizedBox(width: 8),
-                _filterChip('personal', 'Personal & Account', Icons.person_outline_rounded, controller, p),
+                _filterPill('rates', 'Rates & Market', Icons.trending_up_rounded, controller, p),
                 const SizedBox(width: 8),
-                _filterChip('offers', 'Offers & Rewards', Icons.card_giftcard_rounded, controller, p),
+                _filterPill('offers', 'Offers & Rewards', Icons.card_giftcard_rounded, controller, p),
                 const SizedBox(width: 8),
-                _filterChip('market', 'Rates & Bullion', Icons.trending_up_rounded, controller, p),
+                _filterPill('orders', 'SIP & Orders', Icons.shopping_bag_outlined, controller, p),
               ],
             ),
           ),
 
-          const SizedBox(height: 6),
-
-          // ── Notifications List with Refresh Indicator ──
+          // ── Notification List ──
           Expanded(
             child: Obx(() {
               if (controller.isLoading.value && controller.notifications.isEmpty) {
-                return Center(
+                return const Center(
                   child: CircularProgressIndicator(color: _gold, strokeWidth: 2.5),
                 );
               }
@@ -156,7 +150,7 @@ class NotificationHistoryView extends StatelessWidget {
                   physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
                   itemCount: list.length,
-                  separatorBuilder: (ctx, idx) => const SizedBox(height: 12),
+                  separatorBuilder: (ctx, idx) => const SizedBox(height: 10),
                   itemBuilder: (ctx, idx) {
                     final notif = list[idx];
                     return _NotificationCard(
@@ -175,7 +169,7 @@ class NotificationHistoryView extends StatelessWidget {
     );
   }
 
-  Widget _filterChip(
+  Widget _filterPill(
     String key,
     String label,
     IconData icon,
@@ -201,8 +195,8 @@ class NotificationHistoryView extends StatelessWidget {
                     BoxShadow(
                       color: _gold.withValues(alpha: 0.3),
                       blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
+                      offset: const Offset(0, 2),
+                    )
                   ]
                 : [],
           ),
@@ -211,16 +205,16 @@ class NotificationHistoryView extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: 14,
-                color: isSelected ? const Color(0xFF1F1600) : p.inkMuted,
+                size: 15,
+                color: isSelected ? const Color(0xFF1A1200) : p.inkMuted,
               ),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? const Color(0xFF1F1600) : p.ink,
+                  color: isSelected ? const Color(0xFF1A1200) : p.ink,
                   fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
             ],
@@ -233,51 +227,50 @@ class NotificationHistoryView extends StatelessWidget {
   Widget _buildEmptyState(_Palette p) {
     return Center(
       child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: _gold.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: _gold.withValues(alpha: 0.3)),
-                ),
-                child: const Icon(
-                  Icons.notifications_off_outlined,
-                  size: 44,
-                  color: _gold,
-                ),
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: _gold.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: _gold.withValues(alpha: 0.25)),
               ),
-              const SizedBox(height: 20),
-              Text(
-                'All Caught Up!',
-                style: TextStyle(
-                  color: p.ink,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'DM Serif Display',
-                ),
+              child: const Icon(
+                Icons.notifications_none_rounded,
+                size: 38,
+                color: _gold,
               ),
-              const SizedBox(height: 8),
-              Text(
-                'You do not have any notifications right now.\nCheck back later for live gold rates, offers and personal account updates.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: p.inkMuted, fontSize: 13, height: 1.45),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              "You're All Caught Up!",
+              style: TextStyle(
+                color: p.ink,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "No new notifications right now. Check back later for live bullion rate alerts, offers, and SIP updates.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: p.inkMuted,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// ── Single Notification Item Card with Swipe-to-Dismiss ──────────────────────
 class _NotificationCard extends StatelessWidget {
   final AppNotificationModel notification;
   final _Palette p;
@@ -293,9 +286,8 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasImage = notification.imageUrl != null && notification.imageUrl!.isNotEmpty;
     final isUnread = !notification.isRead;
-    final isPersonal = notification.targetType == 'user';
+    final hasImage = notification.imageUrl != null && notification.imageUrl!.isNotEmpty;
 
     return Dismissible(
       key: Key('notif_${notification.id}'),
@@ -305,95 +297,54 @@ class _NotificationCard extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.85),
+          color: Colors.red.shade700,
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 24),
       ),
       child: GestureDetector(
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+        child: Container(
           decoration: BoxDecoration(
-            color: p.card,
+            color: isUnread ? p.card : p.card.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isUnread ? _gold.withValues(alpha: 0.6) : p.cardBorder,
-              width: isUnread ? 1.5 : 1.0,
+              color: isUnread ? _gold.withValues(alpha: 0.4) : p.cardBorder,
+              width: isUnread ? 1.4 : 1.0,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: isUnread
-                    ? _gold.withValues(alpha: 0.12)
-                    : Colors.black.withValues(alpha: 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            boxShadow: isUnread
+                ? [
+                    BoxShadow(
+                      color: _gold.withValues(alpha: 0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    )
+                  ]
+                : [],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Optional Full Banner Image ──
               if (hasImage)
                 ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(15),
-                    topRight: Radius.circular(15),
-                  ),
-                  child: AspectRatio(
-                    aspectRatio: 16 / 8,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: Image.network(
-                            notification.imageUrl!,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (ctx, child, progress) {
-                              if (progress == null) return child;
-                              return Container(
-                                color: p.cardInner,
-                                child: const Center(
-                                  child: CircularProgressIndicator(color: _gold, strokeWidth: 2),
-                                ),
-                              );
-                            },
-                            errorBuilder: (ctx, err, stack) => Container(
-                              color: p.cardInner,
-                              child: const Icon(Icons.broken_image_rounded, color: Colors.grey, size: 36),
-                            ),
-                          ),
-                        ),
-                        // Gradient Overlay on Image Bottom
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          height: 40,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Colors.transparent, Colors.black.withValues(alpha: 0.6)],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                  child: Image.network(
+                    notification.imageUrl!,
+                    height: 140,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                   ),
                 ),
-
-              // ── Notification Text & Details ──
               Padding(
                 padding: const EdgeInsets.all(14),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Icon Avatar with Category Tint
+                    // Type Icon Avatar
                     Container(
-                      padding: const EdgeInsets.all(9),
+                      width: 38,
+                      height: 38,
                       decoration: BoxDecoration(
                         color: _getIconBg(notification.deepLink),
                         shape: BoxShape.circle,
@@ -403,14 +354,12 @@ class _NotificationCard extends StatelessWidget {
                       ),
                       child: Icon(
                         _getIcon(notification.deepLink),
-                        size: 18,
                         color: _getIconColor(notification.deepLink),
+                        size: 18,
                       ),
                     ),
-
                     const SizedBox(width: 12),
-
-                    // Title, Body, Timestamp & Deep Link
+                    // Content
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -423,27 +372,10 @@ class _NotificationCard extends StatelessWidget {
                                   style: TextStyle(
                                     color: p.ink,
                                     fontSize: 14,
-                                    fontWeight: isUnread ? FontWeight.w900 : FontWeight.bold,
+                                    fontWeight: isUnread ? FontWeight.w700 : FontWeight.w600,
                                   ),
                                 ),
                               ),
-                              if (isPersonal)
-                                Container(
-                                  margin: const EdgeInsets.only(left: 6),
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: _emerald.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    'PERSONAL',
-                                    style: TextStyle(
-                                      color: _emerald,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
                               if (isUnread) ...[
                                 const SizedBox(width: 6),
                                 Container(
@@ -457,45 +389,45 @@ class _NotificationCard extends StatelessWidget {
                               ],
                             ],
                           ),
-
                           const SizedBox(height: 4),
-
                           Text(
                             notification.body,
                             style: TextStyle(
-                              color: p.inkMuted,
+                              color: isUnread ? p.ink.withValues(alpha: 0.85) : p.inkMuted,
                               fontSize: 12.5,
-                              height: 1.4,
+                              height: 1.35,
                             ),
                           ),
-
-                          const SizedBox(height: 10),
-
+                          const SizedBox(height: 8),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 _formatTime(notification.createdAt),
                                 style: TextStyle(
-                                  color: p.inkMuted.withValues(alpha: 0.75),
+                                  color: p.inkMuted,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              Row(
-                                children: [
-                                  Text(
-                                    _getActionText(notification.deepLink),
-                                    style: const TextStyle(
-                                      color: _gold,
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.bold,
+                              if (notification.deepLink.isNotEmpty)
+                                Row(
+                                  children: [
+                                    Text(
+                                      _getActionText(notification.deepLink),
+                                      style: const TextStyle(
+                                        color: _gold,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 3),
-                                  const Icon(Icons.arrow_forward_rounded, size: 12, color: _gold),
-                                ],
-                              ),
+                                    const Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: _gold,
+                                      size: 14,
+                                    ),
+                                  ],
+                                ),
                             ],
                           ),
                         ],
@@ -511,55 +443,68 @@ class _NotificationCard extends StatelessWidget {
     );
   }
 
-  IconData _getIcon(String link) {
-    switch (link.toLowerCase()) {
+  IconData _getIcon(String deepLink) {
+    switch (deepLink.toLowerCase()) {
       case 'buy_gold':
-        return Icons.monetization_on_outlined;
-      case 'jewellery':
-        return Icons.diamond_outlined;
-      case 'schemes':
-        return Icons.savings_outlined;
-      case 'wallet':
-        return Icons.account_balance_wallet_outlined;
+      case 'silver':
+      case 'copper':
+        return Icons.trending_up_rounded;
       case 'rewards':
-        return Icons.card_giftcard_outlined;
+      case 'schemes':
+        return Icons.card_giftcard_rounded;
+      case 'sip':
+        return Icons.event_repeat_rounded;
+      case 'wallet':
+        return Icons.account_balance_wallet_rounded;
       case 'kyc':
-        return Icons.verified_user_outlined;
+        return Icons.verified_user_rounded;
       default:
         return Icons.notifications_active_outlined;
     }
   }
 
-  Color _getIconColor(String link) {
-    switch (link.toLowerCase()) {
+  Color _getIconBg(String deepLink) {
+    switch (deepLink.toLowerCase()) {
+      case 'buy_gold':
+      case 'sip':
+        return _gold.withValues(alpha: 0.15);
       case 'rewards':
-        return Colors.purpleAccent;
+        return _emerald.withValues(alpha: 0.15);
       case 'wallet':
-      case 'kyc':
+        return const Color(0xFF3B82F6).withValues(alpha: 0.15);
+      default:
+        return _gold.withValues(alpha: 0.12);
+    }
+  }
+
+  Color _getIconColor(String deepLink) {
+    switch (deepLink.toLowerCase()) {
+      case 'buy_gold':
+      case 'sip':
+        return _gold;
+      case 'rewards':
         return _emerald;
+      case 'wallet':
+        return const Color(0xFF3B82F6);
       default:
         return _gold;
     }
   }
 
-  Color _getIconBg(String link) {
-    return _getIconColor(link).withValues(alpha: 0.12);
-  }
-
-  String _getActionText(String link) {
-    switch (link.toLowerCase()) {
+  String _getActionText(String deepLink) {
+    switch (deepLink.toLowerCase()) {
       case 'buy_gold':
-        return 'Buy Gold';
-      case 'jewellery':
-        return 'View Catalogue';
-      case 'schemes':
-        return 'Explore Schemes';
-      case 'wallet':
-        return 'Open Wallet';
+        return 'View Bullion';
       case 'rewards':
         return 'Claim Reward';
+      case 'schemes':
+        return 'View Scheme';
+      case 'sip':
+        return 'Manage SIP';
+      case 'wallet':
+        return 'Check Wallet';
       case 'kyc':
-        return 'Verify KYC';
+        return 'Complete KYC';
       default:
         return 'View Details';
     }
@@ -568,18 +513,11 @@ class _NotificationCard extends StatelessWidget {
   String _formatTime(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-
-    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inSeconds < 60) return 'Just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays == 1) return 'Yesterday';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
-    
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final m = months[dt.month - 1];
-    final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final ampm = dt.hour >= 12 ? 'pm' : 'am';
-    final min = dt.minute.toString().padLeft(2, '0');
-    return '${dt.day} $m, $h:$min $ampm';
+    return '${dt.day}/${dt.month}/${dt.year}';
   }
 }

@@ -1,3 +1,4 @@
+import 'package:vika1/modules/notifications/controllers/notification_inbox_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -127,20 +128,58 @@ class _MyGoldViewState extends State<MyGoldView> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: t.card,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: t.cardBorder),
-                      ),
-                      child: Icon(
-                        Icons.notifications_none_rounded,
-                        color: t.ink,
-                        size: 18,
-                      ),
-                    ),
+                    Obx(() {
+                      final notifCtrl = NotificationInboxController.to;
+                      final unread = notifCtrl.unreadCount;
+
+                      return GestureDetector(
+                        onTap: () => Get.toNamed(AppRoutes.notifications),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: t.card,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: t.cardBorder),
+                              ),
+                              child: Icon(
+                                Icons.notifications_none_rounded,
+                                color: t.ink,
+                                size: 18,
+                              ),
+                            ),
+                            if (unread > 0)
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _gold,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: t.card, width: 1.5),
+                                  ),
+                                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                  child: Center(
+                                    child: Text(
+                                      unread > 9 ? '9+' : '$unread',
+                                      style: const TextStyle(
+                                        color: Color(0xFF1F1600),
+                                        fontSize: 8.5,
+                                        fontWeight: FontWeight.w900,
+                                        height: 1.0,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    }),
                   ],
                 ),
                 const SizedBox(height: 20),

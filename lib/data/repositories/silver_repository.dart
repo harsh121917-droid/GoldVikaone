@@ -1,6 +1,39 @@
 import 'package:dio/dio.dart';
 import 'package:vika1/core/network/api_client.dart';
 
+class SilverBuyInitiateResult {
+  final Map<String, dynamic> order;
+  final String transactionId;
+  final double grams, silverValue, gstAmt, totalAmt, ratePerGram;
+  final String key;
+
+  const SilverBuyInitiateResult({
+    required this.order,
+    required this.transactionId,
+    required this.grams,
+    required this.silverValue,
+    required this.gstAmt,
+    required this.totalAmt,
+    required this.ratePerGram,
+    required this.key,
+  });
+
+  factory SilverBuyInitiateResult.fromJson(Map<String, dynamic> j) {
+    final b = j['breakdown'] as Map<String, dynamic>;
+    return SilverBuyInitiateResult(
+      order: j['order'] as Map<String, dynamic>,
+      transactionId: j['transaction']['id'] as String,
+      grams: (b['grams'] ?? 0) * 1.0,
+      silverValue: (b['silverValue'] ?? 0) * 1.0,
+      gstAmt: (b['gstAmt'] ?? 0) * 1.0,
+      totalAmt: (b['totalAmt'] ?? 0) * 1.0,
+      ratePerGram: (b['ratePerGram'] ?? 0) * 1.0,
+      key: j['key'] as String,
+    );
+  }
+}
+
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 class SilverRateModel {
   final double buyRate, sellRate, change24h, changePct;
@@ -194,4 +227,43 @@ class SilverRepository {
     );
     return res.data!;
   }
+
+  Future<SilverBuyInitiateResult> initiateBuy({
+    double? amountInRupees,
+    double? grams,
+    bool redeemReferral = false,
+    String? couponCode,
+    int? pointsRedeemed,
+  }) async {
+    final res = await _dio.post(
+      '$_base/buy/initiate',
+      data: {
+        if (amountInRupees != null) 'amountInRupees': amountInRupees,
+        if (grams != null) 'grams': grams,
+        'redeemReferral': redeemReferral,
+        if (couponCode != null) 'couponCode': couponCode,
+        if (pointsRedeemed != null) 'pointsRedeemed': pointsRedeemed,
+      },
+    );
+    return SilverBuyInitiateResult.fromJson(res.data['data']);
+  }
+
+  Future<bool> verifyBuy({
+    required String orderId,
+    required String paymentId,
+    required String signature,
+    required String transactionId,
+  }) async {
+    final res = await _dio.post(
+      '$_base/buy/verify',
+      data: {
+        'razorpayOrderId': orderId,
+        'razorpayPaymentId': paymentId,
+        'razorpaySignature': signature,
+        'transactionId': transactionId,
+      },
+    );
+    return res.data['success'] == true;
+  }
+
 }

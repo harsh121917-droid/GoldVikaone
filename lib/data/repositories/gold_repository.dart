@@ -231,6 +231,8 @@ class GoldRepository {
     double? amountInRupees,
     double? grams,
     bool redeemReferral = false,
+    String? couponCode,
+    int? pointsRedeemed,
   }) async {
     final res = await _dio.post(
       '$_base/buy/initiate',
@@ -238,6 +240,8 @@ class GoldRepository {
         if (amountInRupees != null) 'amountInRupees': amountInRupees,
         if (grams != null) 'grams': grams,
         'redeemReferral': redeemReferral,
+        if (couponCode != null) 'couponCode': couponCode,
+        if (pointsRedeemed != null) 'pointsRedeemed': pointsRedeemed,
       },
     );
     return GoldBuyInitiateResult.fromJson(res.data['data']);

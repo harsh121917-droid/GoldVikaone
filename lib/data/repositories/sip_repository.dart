@@ -97,6 +97,7 @@ class SipModel {
   final double returnsPct;
   final double progressPct;
   final bool isDue;
+  final bool isAutopay;
   final List<SipInstallmentModel> installments;
 
   const SipModel({
@@ -121,6 +122,7 @@ class SipModel {
     this.returnsPct = 0.0,
     this.progressPct = 0.0,
     this.isDue = false,
+    this.isAutopay = false,
     this.installments = const [],
   });
 
@@ -156,6 +158,7 @@ class SipModel {
       returnsPct: (j['returnsPct'] ?? 0) * 1.0,
       progressPct: (j['progressPct'] ?? 0) * 1.0,
       isDue: j['isDue'] ?? false,
+      isAutopay: j['isAutopay'] ?? false,
       installments: rawInst.map((i) => SipInstallmentModel.fromJson(i as Map<String, dynamic>)).toList(),
     );
   }
@@ -223,6 +226,59 @@ class SipRepository {
       return SipModel.fromJson(res.data['data'] as Map<String, dynamic>);
     }
     throw Exception(res.data['message'] ?? 'Failed to start SIP');
+  }
+
+
+  Future<Map<String, dynamic>> createAutoPaySip({
+    required String metal,
+    required String frequency,
+    required double installmentAmount,
+    required int durationMonths,
+    String goalCategory = 'wealth',
+    String goalTitle = 'Wealth Building',
+  }) async {
+    final res = await _client.post('/sip/create-autopay', data: {
+      'metal': metal.toLowerCase(),
+      'frequency': frequency.toLowerCase(),
+      'installmentAmount': installmentAmount,
+      'durationMonths': durationMonths,
+      'goalCategory': goalCategory.toLowerCase(),
+      'goalTitle': goalTitle,
+    });
+    if (res.data['success'] == true) {
+      return res.data as Map<String, dynamic>;
+    }
+    throw Exception(res.data['message'] ?? 'Failed to initialize AutoPay');
+  }
+
+  Future<SipModel> verifyAutoPaySip({
+    required String razorpayPaymentId,
+    String razorpaySubscriptionId = '',
+    String razorpayOrderId = '',
+    required String razorpaySignature,
+    required String metal,
+    required String frequency,
+    required double installmentAmount,
+    required int durationMonths,
+    String goalCategory = 'wealth',
+    String goalTitle = 'Wealth Building',
+  }) async {
+    final res = await _client.post('/sip/verify-autopay', data: {
+      'razorpayPaymentId': razorpayPaymentId,
+      'razorpaySubscriptionId': razorpaySubscriptionId,
+      'razorpayOrderId': razorpayOrderId,
+      'razorpaySignature': razorpaySignature,
+      'metal': metal.toLowerCase(),
+      'frequency': frequency.toLowerCase(),
+      'installmentAmount': installmentAmount,
+      'durationMonths': durationMonths,
+      'goalCategory': goalCategory.toLowerCase(),
+      'goalTitle': goalTitle,
+    });
+    if (res.data['success'] == true && res.data['data'] != null) {
+      return SipModel.fromJson(res.data['data'] as Map<String, dynamic>);
+    }
+    throw Exception(res.data['message'] ?? 'Failed to activate AutoPay SIP');
   }
 
   Future<Map<String, dynamic>> getMySips() async {

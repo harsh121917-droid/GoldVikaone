@@ -1,3 +1,5 @@
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:vika1/data/repositories/silver_repository.dart';
 import 'package:vika1/core/network/api_client.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -64,6 +66,18 @@ class BuySilverView extends StatefulWidget {
 }
 
 class _BuySilverViewState extends State<BuySilverView> {
+  PointsController get _pointsCtrl => Get.isRegistered<PointsController>()
+      ? Get.find<PointsController>()
+      : Get.put(PointsController(), permanent: true);
+
+  KycController get _kycCtrl => Get.isRegistered<KycController>()
+      ? Get.find<KycController>()
+      : Get.put(KycController(), permanent: true);
+
+  String _paymentMethod = 'razorpay'; // 'razorpay' or 'wallet'
+  final _silverRepo = SilverRepository();
+  late Razorpay _razorpay;
+  SilverBuyInitiateResult? _pendingDirectBuy;
   bool _isBuyingLocal = false;
   bool _byAmount = true;
   bool _showBreakup = true;
@@ -78,14 +92,14 @@ class _BuySilverViewState extends State<BuySilverView> {
   @override
   void initState() {
     super.initState();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handleRzpSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handleRzpError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleRzpExternalWallet);
     _ctrl = TextEditingController();
     _ctrl.addListener(_onAmountInputChanged);
-    if (!Get.isRegistered<PointsController>()) {
-      Get.put(PointsController());
-    }
-    if (!Get.isRegistered<KycController>()) {
-      Get.put(KycController());
-    }
+    Get.put(PointsController(), permanent: true);
+    Get.put(KycController(), permanent: true);
     _initDefaultAmount();
   }
 
@@ -125,8 +139,51 @@ class _BuySilverViewState extends State<BuySilverView> {
     _ctrl.text = initialAmt.toStringAsFixed(0);
   }
 
+  void _handleRzpSuccess(PaymentSuccessResponse response) async {
+    if (_pendingDirectBuy == null) return;
+    setState(() => _isBuyingLocal = true);
+    try {
+      final ok = await _silverRepo.verifyBuy(
+        orderId: response.orderId ?? response.data?['razorpay_order_id'] ?? _pendingDirectBuy!.order['id'] ?? '',
+        paymentId: response.paymentId ?? response.data?['razorpay_payment_id'] ?? '',
+        signature: response.signature ?? response.data?['razorpay_signature'] ?? '',
+        transactionId: _pendingDirectBuy!.transactionId,
+      );
+      if (ok) {
+        if (_redeemedPoints > 0) {
+          _pointsCtrl.redeemPoints(_redeemedPoints, 'Silver Purchase');
+        }
+        _showSuccessDialog(_grams, _payableTotal);
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Verification Error',
+        e.toString().replaceAll('Exception: ', ''),
+        backgroundColor: _danger,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      if (mounted) setState(() => _isBuyingLocal = false);
+    }
+  }
+
+  void _handleRzpError(PaymentFailureResponse response) {
+    if (mounted) setState(() => _isBuyingLocal = false);
+    Get.snackbar(
+      'Payment Cancelled',
+      response.message ?? 'Payment was not completed.',
+      backgroundColor: _danger,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
+
+  void _handleRzpExternalWallet(ExternalWalletResponse response) {}
+
   @override
   void dispose() {
+    _razorpay.clear();
     _ctrl.dispose();
     super.dispose();
   }
@@ -1265,7 +1322,7 @@ class _BuySilverViewState extends State<BuySilverView> {
 
                       // ── Reward Points Redemption Section ──────────────────────
                       Obx(() {
-                        final pc = PointsController.to;
+                        final pc = _pointsCtrl;
                         final availPoints = pc.points.value;
 
                         final List<int> pointOptions = [0];
@@ -1645,6 +1702,162 @@ class _BuySilverViewState extends State<BuySilverView> {
                           ],
                         ),
                       ),
+                      
+                      // ── Payment Method Selector (In Scroll View) ──
+                      const SizedBox(height: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Select Payment Method',
+                                style: TextStyle(
+                                  color: t.ink,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                _paymentMethod == 'razorpay' ? 'Instant Online' : 'Wallet Deduction',
+                                style: TextStyle(
+                                  color: _silver,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              // Direct Online Pay Option
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _paymentMethod = 'razorpay'),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: _paymentMethod == 'razorpay' ? _silver.withOpacity(0.12) : t.subBg,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: _paymentMethod == 'razorpay' ? _silver : t.cardBorder,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Icon(
+                                              Icons.bolt_rounded,
+                                              color: _paymentMethod == 'razorpay' ? _silver : t.inkMuted,
+                                              size: 20,
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF10B981).withOpacity(0.2),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: const Text(
+                                                'INSTANT',
+                                                style: TextStyle(
+                                                  color: Color(0xFF10B981),
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.w900,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Direct Pay',
+                                          style: TextStyle(
+                                            color: t.ink,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'UPI / Cards / NetBanking',
+                                          style: TextStyle(
+                                            color: t.inkMuted,
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              // In-App Wallet Option
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _paymentMethod = 'wallet'),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: _paymentMethod == 'wallet' ? _silver.withOpacity(0.12) : t.subBg,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: _paymentMethod == 'wallet' ? _silver : t.cardBorder,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Icon(
+                                              Icons.account_balance_wallet_rounded,
+                                              color: _paymentMethod == 'wallet' ? _silver : t.inkMuted,
+                                              size: 20,
+                                            ),
+                                            Text(
+                                              '₹${_walletBal.toStringAsFixed(0)}',
+                                              style: TextStyle(
+                                                color: _hasEnoughBalance ? const Color(0xFF10B981) : _danger,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Wallet Balance',
+                                          style: TextStyle(
+                                            color: t.ink,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _hasEnoughBalance ? 'Available to pay' : 'Insufficient',
+                                          style: TextStyle(
+                                            color: t.inkMuted,
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -1740,6 +1953,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                         ),
                       ),
                     ),
+                    
                     const SizedBox(height: 10),
                     GestureDetector(
                       onTap: _valid && _agreedToTerms && !_isBuyingLocal
@@ -1750,17 +1964,6 @@ class _BuySilverViewState extends State<BuySilverView> {
                                 Get.snackbar(
                                   "Invalid Amount",
                                   "Minimum purchase is ₹55",
-                                  backgroundColor: const Color(0xFFE05A47),
-                                  colorText: Colors.white,
-                                  snackPosition: SnackPosition.BOTTOM,
-                                );
-                                return;
-                              }
-
-                              if (!_hasEnoughBalance) {
-                                Get.snackbar(
-                                  "Insufficient Balance",
-                                  "Wallet has ₹${_walletBal.toStringAsFixed(2)}, need ₹${_total.toStringAsFixed(2)}.",
                                   backgroundColor: const Color(0xFFE05A47),
                                   colorText: Colors.white,
                                   snackPosition: SnackPosition.BOTTOM,
@@ -1782,34 +1985,73 @@ class _BuySilverViewState extends State<BuySilverView> {
                                 return;
                               }
 
-                              setState(() {
-                                _isBuyingLocal = true;
-                              });
+                              if (_paymentMethod == 'razorpay') {
+                                setState(() => _isBuyingLocal = true);
+                                try {
+                                  final initRes = await _silverRepo.initiateBuy(
+                                    amountInRupees: _byAmount ? _amount : null,
+                                    grams: _byAmount ? null : _grams,
+                                    redeemReferral: _redeemReferral,
+                                    couponCode: _appliedCoupon?['code'],
+                                    pointsRedeemed: _redeemedPoints > 0 ? _redeemedPoints : null,
+                                  );
+                                  _pendingDirectBuy = initRes;
 
-                              try {
-                                final pointsToRedeem = _redeemedPoints;
-                                final ok = await WalletController.to.buySilver(
-                                  amount: _amount,
-                                  pointsRedeemed: pointsToRedeem > 0
-                                      ? pointsToRedeem
-                                      : null,
-                                  redeemReferral: _redeemReferral,
-                                  couponCode: _appliedCoupon?['code'],
-                                );
-                                if (ok) {
-                                  if (pointsToRedeem > 0) {
-                                    PointsController.to.redeemPoints(
-                                      pointsToRedeem,
-                                      'Silver Purchase',
-                                    );
-                                  }
-                                  _showSuccessDialog(_grams, _payableTotal);
+                                  final options = <String, dynamic>{
+                                    'key': initRes.key,
+                                    'amount': (initRes.totalAmt * 100).round(),
+                                    'name': 'Payvika 999 Silver',
+                                    'description': 'Buy ${initRes.grams.toStringAsFixed(4)}g 999 Fine Silver',
+                                    'order_id': initRes.order['id'],
+                                    'theme': {'color': '#9E9E9E'},
+                                  };
+                                  _razorpay.open(options);
+                                } catch (e) {
+                                  setState(() => _isBuyingLocal = false);
+                                  Get.snackbar(
+                                    'Checkout Error',
+                                    e.toString().replaceAll('Exception: ', ''),
+                                    backgroundColor: _danger,
+                                    colorText: Colors.white,
+                                    snackPosition: SnackPosition.BOTTOM,
+                                  );
                                 }
-                              } finally {
-                                if (mounted) {
-                                  setState(() {
-                                    _isBuyingLocal = false;
-                                  });
+                              } else {
+                                if (!_hasEnoughBalance) {
+                                  Get.snackbar(
+                                    "Insufficient Balance",
+                                    "Wallet has ₹${_walletBal.toStringAsFixed(2)}, need ₹${_total.toStringAsFixed(2)}.",
+                                    backgroundColor: const Color(0xFFE05A47),
+                                    colorText: Colors.white,
+                                    snackPosition: SnackPosition.BOTTOM,
+                                  );
+                                  return;
+                                }
+
+                                setState(() => _isBuyingLocal = true);
+                                try {
+                                  final pointsToRedeem = _redeemedPoints;
+                                  final ok = await WalletController.to.buySilver(
+                                    amount: _amount,
+                                    pointsRedeemed: pointsToRedeem > 0
+                                        ? pointsToRedeem
+                                        : null,
+                                    redeemReferral: _redeemReferral,
+                                    couponCode: _appliedCoupon?['code'],
+                                  );
+                                  if (ok) {
+                                    if (pointsToRedeem > 0) {
+                                      _pointsCtrl.redeemPoints(
+                                        pointsToRedeem,
+                                        'Silver Purchase',
+                                      );
+                                    }
+                                    _showSuccessDialog(_grams, _payableTotal);
+                                  }
+                                } finally {
+                                  if (mounted) {
+                                    setState(() => _isBuyingLocal = false);
+                                  }
                                 }
                               }
                             }

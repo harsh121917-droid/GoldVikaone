@@ -1,3 +1,4 @@
+import 'package:vika1/modules/notifications/controllers/notification_inbox_controller.dart';
 import 'package:get/get.dart';
 import 'package:vika1/modules/digi_gold/bindings/digi_gold_binding.dart';
 import 'package:vika1/modules/silver/bindings/silver_binding.dart';
@@ -14,5 +15,6 @@ class HomeBinding extends Bindings {
     // Silver is now a direct shell tab (not a separately-routed page), so its
     // controller must be ready before the shell renders too.
     SilverBinding().dependencies();
+    Get.lazyPut<NotificationInboxController>(() => NotificationInboxController(), fenix: true);
   }
 }

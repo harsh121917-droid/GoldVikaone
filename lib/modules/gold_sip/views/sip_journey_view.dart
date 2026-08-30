@@ -339,6 +339,26 @@ class _SipJourneyViewState extends State<SipJourneyView> {
                   ],
                 ),
                 const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: metalColor.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: metalColor.withOpacity(0.4)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_getGoalIcon(s.goalCategory), color: metalColor, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        s.goalTitle.isNotEmpty ? '🎯 ${s.goalTitle}' : '🎯 Wealth Building Goal',
+                        style: TextStyle(color: metalColor, fontSize: 12.5, fontWeight: FontWeight.w900),
+                      ),
+                    ],
+                  ),
+                ),
                 Text(
                   'Current Portfolio Value',
                   style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
@@ -759,5 +779,19 @@ class _SipJourneyViewState extends State<SipJourneyView> {
         ],
       ),
     );
+  }
+}
+
+IconData _getGoalIcon(String cat) {
+  switch (cat.toLowerCase()) {
+    case 'baby': return Icons.child_care_rounded;
+    case 'travel': return Icons.flight_takeoff_rounded;
+    case 'wedding': return Icons.diamond_outlined;
+    case 'festival': return Icons.celebration_rounded;
+    case 'home': return Icons.cottage_rounded;
+    case 'education': return Icons.school_rounded;
+    case 'wealth':
+    default:
+      return Icons.account_balance_rounded;
   }
 }

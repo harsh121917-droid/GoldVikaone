@@ -1,3 +1,4 @@
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -51,6 +52,9 @@ class SilverSipView extends StatefulWidget {
 }
 
 class _SilverSipViewState extends State<SilverSipView> {
+  late Razorpay _razorpay;
+  String _paymentMode = 'autopay'; // 'autopay' or 'wallet'
+  Map<String, dynamic>? _pendingAutoPayData;
   final _sipRepo = SipRepository();
   int _activeTab = 0; // 0 = Create SIP, 1 = My Active SIPs & Journey
 
@@ -178,8 +182,67 @@ class _SilverSipViewState extends State<SilverSipView> {
   @override
   void initState() {
     super.initState();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handleRzpSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handleRzpError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleRzpExternal);
+    _selectedGoalIdx = 0;
+    _amountCtrl.text = _goals[0]['suggestedAmount'] as String;
+    _selectedDurationIdx = _goals[0]['suggestedDurationIdx'] as int;
     _loadMySips();
   }
+
+  @override
+  void dispose() {
+    _razorpay.clear();
+    _amountCtrl.dispose();
+    super.dispose();
+  }
+
+  void _handleRzpSuccess(PaymentSuccessResponse response) async {
+    if (_pendingAutoPayData == null) return;
+    setState(() => _isStartingSip = true);
+    try {
+      final selectedGoal = _goals[_selectedGoalIdx];
+      final created = await _sipRepo.verifyAutoPaySip(
+        razorpayPaymentId: response.paymentId ?? '',
+        razorpaySubscriptionId: response.data?['razorpay_subscription_id'] ?? _pendingAutoPayData?['subscriptionId'] ?? '',
+        razorpayOrderId: response.orderId ?? _pendingAutoPayData?['orderId'] ?? '',
+        razorpaySignature: response.signature ?? response.data?['razorpay_signature'] ?? '',
+        metal: 'silver',
+        frequency: _selectedFreq.toLowerCase(),
+        installmentAmount: _amount,
+        durationMonths: _months,
+        goalCategory: selectedGoal['id'] as String,
+        goalTitle: selectedGoal['title'] as String,
+      );
+
+      setState(() => _isStartingSip = false);
+      _loadMySips();
+
+      Get.snackbar(
+        '🎉 AutoPay Active!',
+        'Your Silver SIP is scheduled on Auto-Debit and first installment is credited to your vault.',
+        backgroundColor: _success,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 4),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+
+      setState(() => _activeTab = 1);
+      Get.to(() => SipJourneyView(sipId: created.id));
+    } catch (e) {
+      setState(() => _isStartingSip = false);
+      Get.snackbar('Verification Error', e.toString().replaceAll('Exception: ', ''), backgroundColor: _danger, colorText: Colors.white);
+    }
+  }
+
+  void _handleRzpError(PaymentFailureResponse response) {
+    setState(() => _isStartingSip = false);
+    Get.snackbar('AutoPay Setup Cancelled', response.message ?? 'Payment/e-Mandate was not completed', backgroundColor: _danger, colorText: Colors.white);
+  }
+
+  void _handleRzpExternal(ExternalWalletResponse response) {}
 
   Future<void> _loadMySips() async {
     setState(() => _loadingMySips = true);
@@ -196,11 +259,11 @@ class _SilverSipViewState extends State<SilverSipView> {
     }
   }
 
-  Future<void> _handleStartSip() async {
-    if (_amount < 100) {
+    Future<void> _handleStartSip() async {
+    if (_amount < 1) {
       Get.snackbar(
         'Minimum Amount',
-        'Minimum SIP installment is ₹100',
+        'Minimum SIP installment is ₹1',
         backgroundColor: _danger,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -208,7 +271,55 @@ class _SilverSipViewState extends State<SilverSipView> {
       return;
     }
 
-    final walletBal = Get.isRegistered<WalletController>() ? (WalletController.to.wallet.value?.availableBalance ?? WalletController.to.wallet.value?.balance ?? 0.0) : 0.0;
+    final selectedGoal = _goals[_selectedGoalIdx];
+
+    // ── Mode 1: Razorpay AutoPay (UPI / NetBanking e-Mandate) ─────────────
+    if (_paymentMode == 'autopay') {
+      setState(() => _isStartingSip = true);
+      try {
+        final data = await _sipRepo.createAutoPaySip(
+          metal: 'silver',
+          frequency: _selectedFreq.toLowerCase(),
+          installmentAmount: _amount,
+          durationMonths: _months,
+          goalCategory: selectedGoal['id'] as String,
+          goalTitle: selectedGoal['title'] as String,
+        );
+
+        _pendingAutoPayData = data;
+
+        final options = <String, dynamic>{
+          'key': data['keyId'] ?? '',
+          'name': 'Payvika 999 Silver SIP',
+          'description': '${selectedGoal['title']} (₹${_amount.toStringAsFixed(0)}/$_selectedFreq)',
+          'theme': {'color': '#94A3B8'},
+        };
+
+        if (data['subscriptionId'] != null && (data['subscriptionId'] as String).isNotEmpty) {
+          options['subscription_id'] = data['subscriptionId'];
+        } else if (data['orderId'] != null && (data['orderId'] as String).isNotEmpty) {
+          options['order_id'] = data['orderId'];
+          options['amount'] = ((data['amount'] as num) * 100).round();
+        }
+
+        _razorpay.open(options);
+      } catch (e) {
+        setState(() => _isStartingSip = false);
+        Get.snackbar(
+          'AutoPay Error',
+          e.toString().replaceAll('Exception: ', ''),
+          backgroundColor: _danger,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+      return;
+    }
+
+    // ── Mode 2: In-App Wallet Balance ─────────────────────────────────────
+    final walletBal = Get.isRegistered<WalletController>()
+        ? (WalletController.to.wallet.value?.availableBalance ?? WalletController.to.wallet.value?.balance ?? 0.0)
+        : 0.0;
     if (walletBal < _amount) {
       Get.snackbar(
         'Low Wallet Balance',
@@ -222,7 +333,6 @@ class _SilverSipViewState extends State<SilverSipView> {
 
     setState(() => _isStartingSip = true);
     try {
-      final selectedGoal = _goals[_selectedGoalIdx];
       final created = await _sipRepo.createSip(
         metal: 'silver',
         frequency: _selectedFreq.toLowerCase(),
@@ -256,7 +366,7 @@ class _SilverSipViewState extends State<SilverSipView> {
         snackPosition: SnackPosition.BOTTOM,
       );
     } finally {
-      setState(() => _isStartingSip = false);
+      if (mounted) setState(() => _isStartingSip = false);
     }
   }
 
@@ -269,11 +379,7 @@ class _SilverSipViewState extends State<SilverSipView> {
     return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
   }
 
-  @override
-  void dispose() {
-    _amountCtrl.dispose();
-    super.dispose();
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -530,6 +636,211 @@ class _SilverSipViewState extends State<SilverSipView> {
 
           const SizedBox(height: 16),
 
+                    // ── Goal-Based Silver Bullion Savings Selector ─────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.track_changes_rounded, color: Color(0xFF94A3B8), size: 18),
+                  SizedBox(width: 6),
+                  Text(
+                    'Select Goal',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [const Color(0xFF94A3B8).withOpacity(0.2), const Color(0xFF94A3B8).withOpacity(0.05)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF94A3B8).withOpacity(0.4)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_getGoalIcon(_goals[_selectedGoalIdx]['id'] as String), size: 12, color: const Color(0xFF94A3B8)),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          _goals[_selectedGoalIdx]['title'] as String,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          SizedBox(
+            height: 148,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: _goals.length,
+              separatorBuilder: (ctx, idx) => const SizedBox(width: 12),
+              itemBuilder: (ctx, idx) {
+                final g = _goals[idx];
+                final isSelected = _selectedGoalIdx == idx;
+                final Color gColor = g['color'] as Color;
+
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedGoalIdx = idx;
+                      _amountCtrl.text = g['suggestedAmount'] as String;
+                      _selectedDurationIdx = g['suggestedDurationIdx'] as int;
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
+                    width: 200,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: isSelected
+                            ? (dark
+                                ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                                : [const Color(0xFFE2E8F0), const Color(0xFFCBD5E1)])
+                            : (dark
+                                ? [const Color(0xFF131D18), const Color(0xFF0D1410)]
+                                : [Colors.white, const Color(0xFFF8FAFC)]),
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFF94A3B8) : t.border,
+                        width: isSelected ? 2.2 : 1.0,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF94A3B8).withOpacity(0.3),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(dark ? 0.2 : 0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: gColor.withOpacity(0.18),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: gColor.withOpacity(0.3)),
+                              ),
+                              child: Icon(g['icon'] as IconData, size: 20, color: gColor),
+                            ),
+                            if (isSelected)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF94A3B8),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.check_rounded, size: 12, color: Colors.black),
+                                    SizedBox(width: 2),
+                                    Text('SELECTED', style: TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.w900)),
+                                  ],
+                                ),
+                              )
+                            else
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: t.subBg,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  g['badge'] as String,
+                                  style: TextStyle(color: t.inkMuted, fontSize: 9, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              g['title'] as String,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: t.ink,
+                                fontSize: 13.5,
+                                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '₹${g['suggestedAmount']}/mo',
+                                  style: TextStyle(
+                                    color: isSelected ? const Color(0xFF94A3B8) : t.ink,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? const Color(0xFF94A3B8).withOpacity(0.2) : t.subBg,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    _durations[g['suggestedDurationIdx'] as int]['label'] as String,
+                                    style: TextStyle(
+                                      color: isSelected ? const Color(0xFF94A3B8) : t.inkMuted,
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           // ── Frequency Selector ────────────────────────────────────────
           Text('Select SIP Frequency', style: TextStyle(color: t.ink, fontSize: 13, fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
@@ -603,7 +914,7 @@ class _SilverSipViewState extends State<SilverSipView> {
                 ),
                 const SizedBox(height: 10),
                 Row(
-                  children: [100.0, 500.0, 1000.0, 2500.0, 5000.0].map((val) {
+                  children: [1.0, 100.0, 500.0, 1000.0, 2500.0].map((val) {
                     final active = _amount == val;
                     return Expanded(
                       child: GestureDetector(
@@ -742,6 +1053,150 @@ class _SilverSipViewState extends State<SilverSipView> {
             ),
           ),
 
+          const SizedBox(height: 16),
+
+          // ── Payment & Auto-Debit Method Selector ──────────────────────
+          Text(
+            'Select Payment & Auto-Debit Method',
+            style: TextStyle(color: t.ink, fontSize: 13.5, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+
+          // Option 1: Razorpay AutoPay
+          GestureDetector(
+            onTap: () => setState(() => _paymentMode = 'autopay'),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _paymentMode == 'autopay'
+                    ? (dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0))
+                    : t.card,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: _paymentMode == 'autopay' ? const Color(0xFF94A3B8) : t.border,
+                  width: _paymentMode == 'autopay' ? 2.0 : 1.0,
+                ),
+                boxShadow: _paymentMode == 'autopay'
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF94A3B8).withOpacity(0.18),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : [],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF94A3B8).withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.bolt_rounded, color: Color(0xFF94A3B8), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              'Razorpay AutoPay (UPI / e-Mandate)',
+                              style: TextStyle(color: t.ink, fontSize: 13, fontWeight: FontWeight.w800),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(color: const Color(0xFF94A3B8), borderRadius: BorderRadius.circular(6)),
+                              child: const Text('RECOMMENDED', style: TextStyle(color: Colors.black, fontSize: 8, fontWeight: FontWeight.w900)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Authorize once with UPI or NetBanking. Next installments auto-debited on schedule.',
+                          style: TextStyle(color: t.inkMuted, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    _paymentMode == 'autopay' ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                    color: _paymentMode == 'autopay' ? const Color(0xFF94A3B8) : t.inkMuted,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Option 2: In-App Wallet
+          GestureDetector(
+            onTap: () => setState(() => _paymentMode = 'wallet'),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _paymentMode == 'wallet'
+                    ? (dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0))
+                    : t.card,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: _paymentMode == 'wallet' ? const Color(0xFF94A3B8) : t.border,
+                  width: _paymentMode == 'wallet' ? 2.0 : 1.0,
+                ),
+                boxShadow: _paymentMode == 'wallet'
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF94A3B8).withOpacity(0.18),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : [],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.blue, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'In-App Wallet Balance',
+                          style: TextStyle(color: t.ink, fontSize: 13.5, fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Deduct each installment manually from your Payvika wallet.',
+                          style: TextStyle(color: t.inkMuted, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    _paymentMode == 'wallet' ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                    color: _paymentMode == 'wallet' ? const Color(0xFF94A3B8) : t.inkMuted,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           const SizedBox(height: 20),
 
           // ── Start Silver SIP CTA ──────────────────────────────────────
@@ -772,7 +1227,11 @@ class _SilverSipViewState extends State<SilverSipView> {
                           const Icon(Icons.stars_rounded, color: Colors.white, size: 20),
                           const SizedBox(width: 8),
                           Text(
-                            'Start Silver SIP (Pay ₹${_amount.toStringAsFixed(0)})',
+                            _isStartingSip
+                                ? 'Connecting Razorpay AutoPay...'
+                                : _paymentMode == 'autopay'
+                                    ? 'Enable AutoPay & Start Silver SIP ⚡'
+                                    : 'Start Silver SIP from Wallet (₹${_amount.toStringAsFixed(0)})',
                             style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
                           ),
                         ],
@@ -916,152 +1375,206 @@ class _SilverSipViewState extends State<SilverSipView> {
     );
   }
 
-  Widget _buildSipCard(SipModel sip, _T t, bool dark) {
+    Widget _buildSipCard(SipModel sip, _T t, bool dark) {
+    final goalIcon = _getGoalIcon(sip.goalCategory);
+    final goalName = sip.goalTitle.isNotEmpty ? sip.goalTitle : 'Silver Savings Goal';
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: t.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: t.border),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFF94A3B8).withOpacity(0.35), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(dark ? 0.3 : 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Top Goal Banner Header ──
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: dark
+                      ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                      : [const Color(0xFFE2E8F0), const Color(0xFFCBD5E1)],
+                ),
+                border: Border(bottom: BorderSide(color: const Color(0xFF94A3B8).withOpacity(0.2))),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.blueGrey.withOpacity(0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.layers_rounded, color: Color(0xFF94A3B8), size: 18),
-                  ),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      Text(
-                        '₹${sip.installmentAmount.toStringAsFixed(0)} / ${sip.frequency}',
-                        style: TextStyle(color: t.ink, fontSize: 14, fontWeight: FontWeight.w800),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF94A3B8).withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(goalIcon, color: const Color(0xFF94A3B8), size: 16),
                       ),
-                      Row(
+                      const SizedBox(width: 8),
+                      Text(
+                        goalName,
+                        style: const TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: sip.isActive ? _success.withOpacity(0.18) : const Color(0xFF64748B).withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      sip.status.toUpperCase(),
+                      style: TextStyle(
+                        color: sip.isActive ? _success : const Color(0xFF94A3B8),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Card Main Content ──
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Text('Monthly Installment', style: TextStyle(color: t.inkMuted, fontSize: 11)),
+                          const SizedBox(height: 2),
                           Text(
-                            sip.goalTitle.isNotEmpty ? sip.goalTitle : '${sip.durationMonths} Months Plan',
-                            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.bold),
+                            '₹${sip.installmentAmount.toStringAsFixed(0)} / ${sip.frequency}',
+                            style: TextStyle(color: t.ink, fontSize: 18, fontWeight: FontWeight.w900, fontFamily: 'monospace'),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('Accumulated Silver', style: TextStyle(color: t.inkMuted, fontSize: 11)),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${sip.totalGrams.toStringAsFixed(2)}g',
+                            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 18, fontWeight: FontWeight.w900, fontFamily: 'monospace'),
                           ),
                         ],
                       ),
                     ],
                   ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: sip.isActive ? _success.withOpacity(0.15) : const Color(0xFF64748B).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  sip.status.toUpperCase(),
-                  style: TextStyle(
-                    color: sip.isActive ? _success : const Color(0xFF94A3B8),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
+                  const SizedBox(height: 14),
+
+                  // ── Valuation & Next Due Row ──
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: t.subBg,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Current Valuation', style: TextStyle(color: t.inkMuted, fontSize: 10)),
+                            const SizedBox(height: 2),
+                            Text('₹${sip.currentValuation.toStringAsFixed(0)}', style: TextStyle(color: t.ink, fontSize: 13, fontWeight: FontWeight.w800)),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text('Next Due Date', style: TextStyle(color: t.inkMuted, fontSize: 10)),
+                            const SizedBox(height: 2),
+                            Text(_fmtDate(sip.nextDueDate), style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 12, fontWeight: FontWeight.w800)),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-            ],
-          ),
+                  const SizedBox(height: 14),
 
-          const SizedBox(height: 12),
+                  // ── Progress Bar ──
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: sip.totalCycles > 0 ? (sip.cyclesCompleted / sip.totalCycles).clamp(0.0, 1.0) : 0.0,
+                      backgroundColor: t.subBg,
+                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF94A3B8)),
+                      minHeight: 6,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('${sip.cyclesCompleted} of ${sip.totalCycles} cycles completed', style: TextStyle(color: t.inkMuted, fontSize: 11)),
+                      Text('${sip.progressPct.toStringAsFixed(0)}%', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w900)),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
 
-          // Metrics
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Silver Accumulated', style: TextStyle(color: t.inkMuted, fontSize: 10)),
-                  Text('${sip.totalGrams.toStringAsFixed(2)}g', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.bold)),
+                  // ── Action Button ──
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: dark ? const Color(0xFF1E293B) : const Color(0xFF0F172A),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: () async {
+                        await Get.to(() => SipJourneyView(sipId: sip.id));
+                        _loadMySips();
+                      },
+                      icon: const Icon(Icons.route_rounded, size: 16, color: Color(0xFF94A3B8)),
+                      label: const Text('Track Goal Milestone Journey', style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w800)),
+                    ),
+                  ),
                 ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Current Value', style: TextStyle(color: t.inkMuted, fontSize: 10)),
-                  Text('₹${sip.currentValuation.toStringAsFixed(0)}', style: TextStyle(color: t.ink, fontSize: 13, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('Next Due', style: TextStyle(color: t.inkMuted, fontSize: 10)),
-                  Text(_fmtDate(sip.nextDueDate), style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          // Progress
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: sip.totalCycles > 0 ? (sip.cyclesCompleted / sip.totalCycles).clamp(0.0, 1.0) : 0.0,
-              minHeight: 6,
-              backgroundColor: t.subBg,
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF94A3B8)),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('${sip.cyclesCompleted} of ${sip.totalCycles} cycles completed', style: TextStyle(color: t.inkMuted, fontSize: 10)),
-              Text('${sip.progressPct.toStringAsFixed(0)}%', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10, fontWeight: FontWeight.bold)),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Action Button: View Full Journey
-          GestureDetector(
-            onTap: () async {
-              await Get.to(() => SipJourneyView(sipId: sip.id));
-              _loadMySips();
-            },
-            child: Container(
-              height: 42,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: t.subBg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: t.border),
-              ),
-              child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.route_rounded, size: 16, color: t.ink),
-                    const SizedBox(width: 6),
-                    Text('View Full SIP Journey & Timeline', style: TextStyle(color: t.ink, fontSize: 12, fontWeight: FontWeight.w800)),
-                    const SizedBox(width: 4),
-                    Icon(Icons.chevron_right_rounded, size: 16, color: t.inkMuted),
-                  ],
-                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+}
+
+IconData _getGoalIcon(String cat) {
+  switch (cat.toLowerCase()) {
+    case 'baby': return Icons.child_care_rounded;
+    case 'travel': return Icons.flight_takeoff_rounded;
+    case 'wedding': return Icons.diamond_outlined;
+    case 'festival': return Icons.celebration_rounded;
+    case 'home': return Icons.cottage_rounded;
+    case 'education': return Icons.school_rounded;
+    case 'wealth':
+    default:
+      return Icons.account_balance_rounded;
   }
 }

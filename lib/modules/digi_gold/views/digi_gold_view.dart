@@ -1,3 +1,4 @@
+import 'package:vika1/modules/notifications/controllers/notification_inbox_controller.dart';
 import '../../whats_coming/views/whats_coming_view.dart';
 import 'package:vika1/core/network/api_client.dart';
 import 'dart:convert';
@@ -253,23 +254,58 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () {},
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: t.card,
-                shape: BoxShape.circle,
-                border: Border.all(color: t.cardBorder),
+          Obx(() {
+            final notifCtrl = NotificationInboxController.to;
+            final unread = notifCtrl.unreadCount;
+
+            return GestureDetector(
+              onTap: () => Get.toNamed(AppRoutes.notifications),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: t.card,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: t.cardBorder),
+                    ),
+                    child: Icon(
+                      Icons.notifications_none_rounded,
+                      color: t.ink,
+                      size: 20,
+                    ),
+                  ),
+                  if (unread > 0)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _gold,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: t.card, width: 1.5),
+                        ),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Center(
+                          child: Text(
+                            unread > 9 ? '9+' : '$unread',
+                            style: const TextStyle(
+                              color: Color(0xFF1F1600),
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w900,
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              child: Icon(
-                Icons.notifications_none_rounded,
-                color: t.ink,
-                size: 20,
-              ),
-            ),
-          ),
+            );
+          }),
           const SizedBox(width: 10),
           GestureDetector(
             onTap: () => Get.find<MainShellController>().changeTab(4),
