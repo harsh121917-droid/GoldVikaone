@@ -2001,7 +2001,7 @@ class _BuyCopperViewState extends State<BuyCopperView> {
                                   final options = <String, dynamic>{
                                     'key': initRes.key,
                                     'amount': (initRes.totalAmt * 100).round(),
-                                    'name': 'Payvika 999 Pure Copper',
+                                    'name': 'Payvika India Technology Pvt Ltd',
                                     'description': 'Buy ${initRes.grams.toStringAsFixed(4)}g Pure Copper',
                                     'order_id': initRes.order['id'],
                                     'theme': {'color': '#C86D3B'},

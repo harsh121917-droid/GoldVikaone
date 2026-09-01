@@ -2000,7 +2000,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                   final options = <String, dynamic>{
                                     'key': initRes.key,
                                     'amount': (initRes.totalAmt * 100).round(),
-                                    'name': 'Payvika 999 Silver',
+                                    'name': 'Payvika India Technology Pvt Ltd',
                                     'description': 'Buy ${initRes.grams.toStringAsFixed(4)}g 999 Fine Silver',
                                     'order_id': initRes.order['id'],
                                     'theme': {'color': '#9E9E9E'},

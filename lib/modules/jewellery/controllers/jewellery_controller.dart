@@ -158,37 +158,61 @@ class JewelleryController extends GetxController {
     applyFilters();
   }
 
-  // Calculate product price based on live rates or direct price
+  // Calculate product price based on live rates, purity, making charges, GST & admin price adjustment
   double calculateProductPrice(Map<String, dynamic> item) {
+    final priceAdj = (item['priceAdjustment'] ?? 0.0) is num
+        ? (item['priceAdjustment'] as num).toDouble()
+        : double.tryParse(item['priceAdjustment']?.toString() ?? '0') ?? 0.0;
+
     final directPrice = (item['price'] ?? 0.0) is num
         ? (item['price'] as num).toDouble()
-        : double.tryParse(item['price'].toString()) ?? 0.0;
-    if (directPrice > 0) return directPrice;
+        : double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
+    if (directPrice > 0) {
+      return (directPrice + priceAdj).clamp(0.0, double.infinity);
+    }
 
     final metal = (item['metalType'] ?? 'gold').toString().toLowerCase();
+    final purity = (item['purity'] ?? '').toString().toLowerCase();
     final weight = (item['weightGrams'] ?? 0.0) is num
         ? (item['weightGrams'] as num).toDouble()
-        : double.tryParse(item['weightGrams'].toString()) ?? 0.0;
+        : double.tryParse(item['weightGrams']?.toString() ?? '0') ?? 0.0;
     final making = (item['makingCharges'] ?? 1500) is num
         ? (item['makingCharges'] as num).toDouble()
-        : double.tryParse(item['makingCharges'].toString()) ?? 1500.0;
+        : double.tryParse(item['makingCharges']?.toString() ?? '1500') ?? 1500.0;
+    final gstPct = (item['gstPercentage'] ?? 3) is num
+        ? (item['gstPercentage'] as num).toDouble()
+        : double.tryParse(item['gstPercentage']?.toString() ?? '3') ?? 3.0;
 
-    double ratePerGram = 7500.0; // Default Gold rate per g
+    double baseRate = 7500.0; // Default Gold rate per g
     if (metal == 'gold') {
       if (Get.isRegistered<GoldController>()) {
-        ratePerGram = GoldController.to.buyRate;
+        baseRate = GoldController.to.buyRate;
+      }
+      if (purity.contains('18k') || purity.contains('750')) {
+        baseRate = baseRate * 18 / 24;
+      } else if (purity.contains('14k') || purity.contains('585')) {
+        baseRate = baseRate * 14 / 24;
+      } else if (!purity.contains('24k') && !purity.contains('999') && !purity.contains('99.9')) {
+        baseRate = baseRate * 22 / 24; // Default 22K
       }
     } else {
       if (Get.isRegistered<SilverController>()) {
-        ratePerGram = SilverController.to.buyRate;
+        baseRate = SilverController.to.buyRate;
       } else {
-        ratePerGram = 90.0; // Silver default rate
+        baseRate = 90.0; // Silver default rate
+      }
+      if (purity.contains('925')) {
+        baseRate = baseRate * 0.925;
       }
     }
 
-    final metalVal = weight * ratePerGram;
-    final gst = (making * 0.03);
-    return metalVal + making + gst;
+    final metalVal = weight * baseRate;
+    final subtotal = metalVal + making;
+    final gstAmt = subtotal * (gstPct / 100);
+    final formulaMarketRate = metalVal + making + gstAmt;
+
+    final finalPrice = formulaMarketRate + priceAdj;
+    return finalPrice.clamp(0.0, double.infinity);
   }
 
   // Initiate Purchase or Redeem Flow
@@ -243,7 +267,7 @@ class JewelleryController extends GetxController {
         final options = {
           'key': keyId,
           'amount': amountInPaise,
-          'name': 'Payvika Jewellery Redeem',
+          'name': 'Payvika India Technology Pvt Ltd',
           'description': 'Making charges & GST payment for ${item['name']}',
           'order_id': _pendingOrderId,
           'prefill': {

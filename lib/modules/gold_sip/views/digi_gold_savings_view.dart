@@ -62,54 +62,26 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
   // ── Goal-Based SIP State ──
   final List<Map<String, dynamic>> _goals = [
     {
-      'id': 'baby',
-      'title': "Baby's Golden Future",
-      'subtitle': "Child's 18th milestone & education reserve",
-      'icon': Icons.child_care_rounded,
-      'badge': "Top Choice for Parents",
-      'color': Color(0xFF38BDF8),
+      'id': 'soldier',
+      'title': "Veer Jawan / Soldier Goal",
+      'subtitle': "Armed Forces & Police special bullion reserve",
+      'icon': Icons.military_tech_rounded,
+      'badge': "🎖️ 15% OFF Hero Offer",
+      'discountTag': "SPECIAL 15% OFF",
+      'color': const Color(0xFF10B981),
       'suggestedAmount': '2500',
       'suggestedDurationIdx': 3, // 3 Years
     },
     {
-      'id': 'travel',
-      'title': "Dream Vacation & Travel",
-      'subtitle': "Hedge world tours with rising gold bullion",
-      'icon': Icons.flight_takeoff_rounded,
-      'badge': "1-Year Goal",
-      'color': Color(0xFFF472B6),
-      'suggestedAmount': '3000',
-      'suggestedDurationIdx': 1, // 1 Year
-    },
-    {
-      'id': 'wedding',
-      'title': "Wedding & Bridal Jewellery",
-      'subtitle': "Accumulate 24K pure gold for wedding ornaments",
-      'icon': Icons.diamond_outlined,
-      'badge': "Most Popular",
-      'color': Color(0xFFD4A017),
+      'id': 'car',
+      'title': "New Car & Vehicle",
+      'subtitle': "Gold-backed fund for your dream vehicle downpayment",
+      'icon': Icons.directions_car_rounded,
+      'badge': "Luxury Asset",
+      'discountTag': "Top Goal",
+      'color': const Color(0xFFF59E0B),
       'suggestedAmount': '5000',
-      'suggestedDurationIdx': 3, // 3 Years
-    },
-    {
-      'id': 'festival',
-      'title': "Festivals & Auspicious Days",
-      'subtitle': "Diwali, Dhanteras & Akshaya Tritiya ready",
-      'icon': Icons.celebration_rounded,
-      'badge': "Auspicious Savings",
-      'color': Color(0xFFFB923C),
-      'suggestedAmount': '2000',
-      'suggestedDurationIdx': 1, // 1 Year
-    },
-    {
-      'id': 'home',
-      'title': "Dream Home & Property",
-      'subtitle': "Substantial gold security for downpayment",
-      'icon': Icons.cottage_rounded,
-      'badge': "High Growth",
-      'color': Color(0xFF34D399),
-      'suggestedAmount': '10000',
-      'suggestedDurationIdx': 4, // 5 Years
+      'suggestedDurationIdx': 2, // 2 Years
     },
     {
       'id': 'education',
@@ -117,9 +89,76 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
       'subtitle': "College tuition & university degree security",
       'icon': Icons.school_rounded,
       'badge': "Education First",
-      'color': Color(0xFFA78BFA),
+      'discountTag': "Zero Fee",
+      'color': const Color(0xFFA78BFA),
       'suggestedAmount': '4000',
       'suggestedDurationIdx': 3, // 3 Years
+    },
+    {
+      'id': 'phone',
+      'title': "New Phone & Gadgets",
+      'subtitle': "Smart bullion plan for the latest flagships",
+      'icon': Icons.phone_iphone_rounded,
+      'badge': "Tech Milestone",
+      'discountTag': "Short Term",
+      'color': const Color(0xFF38BDF8),
+      'suggestedAmount': '1500',
+      'suggestedDurationIdx': 0, // 6 Months
+    },
+    {
+      'id': 'wedding',
+      'title': "Wedding & Bridal Jewellery",
+      'subtitle': "Accumulate 24K pure gold for wedding ornaments",
+      'icon': Icons.diamond_outlined,
+      'badge': "Most Popular",
+      'discountTag': "Best Value",
+      'color': const Color(0xFFD4A017),
+      'suggestedAmount': '5000',
+      'suggestedDurationIdx': 3, // 3 Years
+    },
+    {
+      'id': 'baby',
+      'title': "Baby's Golden Future",
+      'subtitle': "Child's 18th milestone & education reserve",
+      'icon': Icons.child_care_rounded,
+      'badge': "Top Choice for Parents",
+      'discountTag': "High Growth",
+      'color': const Color(0xFF06B6D4),
+      'suggestedAmount': '2500',
+      'suggestedDurationIdx': 3, // 3 Years
+    },
+    {
+      'id': 'home',
+      'title': "Dream Home & Property",
+      'subtitle': "Substantial gold security for downpayment",
+      'icon': Icons.cottage_rounded,
+      'badge': "High Growth",
+      'discountTag': "Wealth Builder",
+      'color': const Color(0xFF34D399),
+      'suggestedAmount': '10000',
+      'suggestedDurationIdx': 4, // 5 Years
+    },
+    {
+      'id': 'travel',
+      'title': "Dream Vacation & Travel",
+      'subtitle': "Hedge world tours with rising gold bullion",
+      'icon': Icons.flight_takeoff_rounded,
+      'badge': "1-Year Goal",
+      'discountTag': "1-Year Plan",
+      'color': const Color(0xFFF472B6),
+      'suggestedAmount': '3000',
+      'suggestedDurationIdx': 1, // 1 Year
+    },
+    {
+      'id': 'festival',
+      'title': "Festivals & Auspicious Days",
+      'subtitle': "Diwali, Dhanteras & Akshaya Tritiya ready",
+      'icon': Icons.celebration_rounded,
+      'badge': "Auspicious Savings",
+      'discountTag': "Festive",
+      'color': const Color(0xFFFB923C),
+      'suggestedAmount': '2000',
+      'suggestedDurationIdx': 1, // 1 Year
     },
     {
       'id': 'wealth',
@@ -127,7 +166,8 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
       'subtitle': "Sovereign digital gold long-term reserve",
       'icon': Icons.account_balance_rounded,
       'badge': "Compounding Wealth",
-      'color': Color(0xFFFFD700),
+      'discountTag': "Long Term",
+      'color': const Color(0xFFFFD700),
       'suggestedAmount': '5000',
       'suggestedDurationIdx': 4, // 5 Years
     },
@@ -190,9 +230,26 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
     _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handleRzpSuccess);
     _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handleRzpError);
     _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleRzpExternal);
+
     _selectedGoalIdx = 0;
-    _amountCtrl.text = _goals[0]['suggestedAmount'] as String;
-    _selectedDurationIdx = _goals[0]['suggestedDurationIdx'] as int;
+    final args = Get.arguments;
+    if (args is Map) {
+      if (args['goalCategory'] != null || args['selectedGoalId'] != null) {
+        final goalId = (args['goalCategory'] ?? args['selectedGoalId']).toString().toLowerCase();
+        final foundIdx = _goals.indexWhere((g) => g['id'].toString().toLowerCase() == goalId);
+        if (foundIdx != -1) {
+          _selectedGoalIdx = foundIdx;
+        }
+      } else if (args['goalIndex'] != null && args['goalIndex'] is int) {
+        final gIdx = args['goalIndex'] as int;
+        if (gIdx >= 0 && gIdx < _goals.length) {
+          _selectedGoalIdx = gIdx;
+        }
+      }
+    }
+
+    _amountCtrl.text = _goals[_selectedGoalIdx]['suggestedAmount'] as String;
+    _selectedDurationIdx = _goals[_selectedGoalIdx]['suggestedDurationIdx'] as int;
     _loadMySips();
   }
 
@@ -302,7 +359,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
 
         final options = <String, dynamic>{
           'key': data['keyId'] ?? '',
-          'name': 'Payvika 24K Gold SIP',
+          'name': 'Payvika India Technology Pvt Ltd',
           'description': '${selectedGoal['title']} (₹${_amount.toStringAsFixed(0)}/$_selectedFreq)',
           'theme': {'color': '#D4A017'},
         };
@@ -814,7 +871,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               itemCount: _goals.length,
-              separatorBuilder: (ctx, idx) => const SizedBox(width: 12),
+              separatorBuilder: (ctx, idx) => const SizedBox(width: 14),
               itemBuilder: (ctx, idx) {
                 final g = _goals[idx];
                 final isSelected = _selectedGoalIdx == idx;
@@ -822,6 +879,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
 
                 return GestureDetector(
                   onTap: () {
+                    HapticFeedback.lightImpact();
                     setState(() {
                       _selectedGoalIdx = idx;
                       _amountCtrl.text = g['suggestedAmount'] as String;
@@ -1010,6 +1068,68 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
               },
             ),
           ),
+          const SizedBox(height: 8),
+// ── Special Soldier / Hero Benefit Banner ──
+          if (_goals[_selectedGoalIdx]['id'] == 'soldier')
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF10B981).withValues(alpha: 0.25),
+                    const Color(0xFF059669).withValues(alpha: 0.10),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.6), width: 1.4),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF10B981),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.military_tech_rounded, color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '🎖️ VEER JAWAN PRIVILEGE: 15% OFF',
+                          style: TextStyle(
+                            color: Color(0xFF10B981),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Special 15% discount on coin & jewellery making charges + 0% platform management fee.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
           const SizedBox(height: 16),
 

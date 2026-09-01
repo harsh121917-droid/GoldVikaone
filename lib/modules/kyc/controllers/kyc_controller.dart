@@ -442,17 +442,21 @@ class KycController extends GetxController {
 
       if (res['success'] == true && res['valid'] == true) {
         isPanVerified.value = true;
-        verifiedPanName.value = res['registeredName'] as String;
+        verifiedPanName.value = (res['registeredName'] ?? nameVal).toString();
 
         fullNameCtrl.text = verifiedPanName.value;
         panCtrl.text = panVal;
+        kycStatus.value = 'approved';
 
         Get.snackbar(
-          'PAN Verified! 💳',
-          res['message'] ?? 'PAN details are verified successfully.',
+          'KYC Verified! 🎉',
+          res['message'] ?? 'PAN verified & KYC approved successfully.',
           backgroundColor: const Color(0xFF2ECC71),
           colorText: const Color(0xFFFFFFFF),
+          duration: const Duration(seconds: 4),
         );
+
+        await loadMyKyc();
       } else {
         Get.snackbar(
           'Verification Failed',

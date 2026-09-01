@@ -1,4 +1,3 @@
-import 'package:vika1/modules/notifications/controllers/notification_inbox_controller.dart';
 import 'package:vika1/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -6,7 +5,6 @@ import 'package:vika1/modules/copper/controllers/copper_controller.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
-import '../../../routes/app_routes.dart';
 
 // ─── Design Tokens for Copper ────────────────────────────────────────────────
 const _copperPrimary = Color(0xFFC86D3B);
@@ -288,7 +286,7 @@ class _MyCopperViewState extends State<MyCopperView> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: const [
                               Text(
-                                '29',
+                                '',
                                 style: TextStyle(
                                   color: Colors.white70,
                                   fontSize: 11,
@@ -298,7 +296,7 @@ class _MyCopperViewState extends State<MyCopperView> {
                             ],
                           ),
                           const Text(
-                            'Cu',
+                            '',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 32,
@@ -405,7 +403,7 @@ class _MyCopperViewState extends State<MyCopperView> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'Live Copper Price Chart',
+                          'Copper Value',
                           style: TextStyle(
                             color: t.tp,
                             fontSize: 14,
@@ -528,7 +526,7 @@ class _MyCopperViewState extends State<MyCopperView> {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  '· Live API Setu Market',
+                                  '· Live Market',
                                   style: TextStyle(color: t.ts, fontSize: 10),
                                 ),
                               ],
@@ -609,7 +607,7 @@ class _MyCopperViewState extends State<MyCopperView> {
                             ),
                             child: const Center(
                               child: Text(
-                                'Cu',
+                                '',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
@@ -808,6 +806,63 @@ class _MyCopperViewState extends State<MyCopperView> {
                       ),
                     ),
                   ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── View Invoices & Transactions Tile ──
+              GestureDetector(
+                onTap: () => Get.toNamed(AppRoutes.transactions),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: t.card,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: t.cardBorder),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: dark ? 0.2 : 0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: _copperAccent.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.receipt_long_rounded, color: _copperAccent, size: 20),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Copper Invoices & Orders',
+                              style: TextStyle(
+                                color: t.tp,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'View past buys, sales and download tax invoices (PDF)',
+                              style: TextStyle(color: t.ts, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right_rounded, color: t.ts, size: 22),
+                    ],
+                  ),
                 ),
               ),
 

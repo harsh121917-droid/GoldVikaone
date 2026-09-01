@@ -1997,7 +1997,7 @@ class _BuyGoldViewState extends State<BuyGoldView> {
                                   final options = <String, dynamic>{
                                     'key': initRes.key,
                                     'amount': (initRes.totalAmt * 100).round(),
-                                    'name': 'Payvika 24K Gold',
+                                    'name': 'Payvika India Technology Pvt Ltd',
                                     'description': 'Buy ${initRes.grams.toStringAsFixed(4)}g 24K Digital Gold',
                                     'order_id': initRes.order['id'],
                                     'theme': {'color': '#D4A017'},

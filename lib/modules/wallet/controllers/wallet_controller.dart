@@ -79,7 +79,7 @@ class WalletController extends GetxController {
         'amount': data['order']['amount'],
         'currency': 'INR',
         'order_id': data['order']['id'],
-        'name': 'Payvika',
+        'name': 'Payvika India Technology Pvt Ltd',
         'description': 'Add ₹${amount.toStringAsFixed(0)} to wallet',
         'prefill': {
           'name': user?.name ?? '',

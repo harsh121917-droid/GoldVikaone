@@ -76,6 +76,9 @@ class JewelleryItemDetailsView extends StatelessWidget {
         ? (item['gstPercentage'] as num).toDouble()
         : 3.0;
 
+    final purityStr = (item['purity'] ?? (isGold ? '22K Gold' : '999 Fine Silver')).toString();
+    final purityLower = purityStr.toLowerCase();
+
     // Live metal rate and user's vault balance
     double liveRatePerGram = isGold ? 7500.0 : 90.0;
     double vaultGrams = 0.0;
@@ -85,12 +88,30 @@ class JewelleryItemDetailsView extends StatelessWidget {
         liveRatePerGram = GoldController.to.buyRate;
         vaultGrams = GoldController.to.totalGrams;
       }
+      if (purityLower.contains('18k') || purityLower.contains('750')) {
+        liveRatePerGram = liveRatePerGram * 18 / 24;
+      } else if (purityLower.contains('14k') || purityLower.contains('585')) {
+        liveRatePerGram = liveRatePerGram * 14 / 24;
+      } else if (!purityLower.contains('24k') && !purityLower.contains('999') && !purityLower.contains('99.9')) {
+        liveRatePerGram = liveRatePerGram * 22 / 24;
+      }
     } else {
       if (Get.isRegistered<SilverController>()) {
         liveRatePerGram = SilverController.to.buyRate;
         vaultGrams = SilverController.to.totalGrams;
       }
+      if (purityLower.contains('925')) {
+        liveRatePerGram = liveRatePerGram * 0.925;
+      }
     }
+
+    final priceAdjustment = (item['priceAdjustment'] ?? 0.0) is num
+        ? (item['priceAdjustment'] as num).toDouble()
+        : double.tryParse(item['priceAdjustment']?.toString() ?? '0') ?? 0.0;
+
+    final directPrice = (item['price'] ?? 0.0) is num
+        ? (item['price'] as num).toDouble()
+        : double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
 
     final hasAnyVault = vaultGrams > 0.0001;
 
@@ -355,6 +376,8 @@ class JewelleryItemDetailsView extends StatelessWidget {
                     liveRate: liveRatePerGram,
                     makingCharges: makingCharges,
                     gstPct: gstPct,
+                    priceAdjustment: priceAdjustment,
+                    directPrice: directPrice,
                     p: p,
                     dark: dark,
                   ),
@@ -386,6 +409,8 @@ class JewelleryItemDetailsView extends StatelessWidget {
         liveRate: liveRatePerGram,
         makingCharges: makingCharges,
         gstPct: gstPct,
+        priceAdjustment: priceAdjustment,
+        directPrice: directPrice,
         selectedPaymentMethod: selectedPaymentMethod,
         p: p,
         dark: dark,
@@ -655,21 +680,37 @@ class JewelleryItemDetailsView extends StatelessWidget {
     required double liveRate,
     required double makingCharges,
     required double gstPct,
+    required double priceAdjustment,
+    required double directPrice,
     required _Palette p,
     required bool dark,
   }) {
     return Obx(() {
       final isApplying = applyVault.value && hasAnyVault;
-      final metalValue = weightGrams * liveRate;
+      // Adjustment is merged directly into Gross Pure Metal Value & Rate
+      final grossMetalValue = (weightGrams * liveRate) + priceAdjustment;
+      final effectiveLiveRate = weightGrams > 0 ? (grossMetalValue / weightGrams) : liveRate;
+
       final usedGrams = isApplying ? min(vaultGrams, weightGrams) : 0.0;
-      final vaultDiscountVal = usedGrams * liveRate;
+      final vaultDiscountVal = usedGrams * effectiveLiveRate;
 
       final remainingGrams = max(0.0, weightGrams - usedGrams);
-      final remainingMetalValue = remainingGrams * liveRate;
+      final remainingMetalValue = remainingGrams * effectiveLiveRate;
 
-      final taxableCash = remainingMetalValue + makingCharges;
-      final gstAmount = (taxableCash * gstPct) / 100;
-      final netCashPayable = taxableCash + gstAmount;
+      double taxableCash = 0.0;
+      double gstAmount = 0.0;
+      double netCashPayable = 0.0;
+
+      if (directPrice > 0) {
+        final baseAfterVault = max(0.0, (directPrice + priceAdjustment) - vaultDiscountVal);
+        netCashPayable = baseAfterVault.clamp(0.0, double.infinity);
+        gstAmount = (netCashPayable * gstPct) / (100 + gstPct);
+        taxableCash = netCashPayable - gstAmount;
+      } else {
+        taxableCash = max(0.0, remainingMetalValue + makingCharges);
+        gstAmount = (taxableCash * gstPct) / 100;
+        netCashPayable = taxableCash + gstAmount;
+      }
 
       return Container(
         padding: const EdgeInsets.all(18),
@@ -727,8 +768,8 @@ class JewelleryItemDetailsView extends StatelessWidget {
             const SizedBox(height: 12),
 
             _rowItem('Total Item Metal Weight', '${weightGrams.toStringAsFixed(3)} g', p),
-            _rowItem('Today Live Metal Rate', '₹${liveRate.toStringAsFixed(2)} / g', p),
-            _rowItem('Gross Pure Metal Value', '₹${metalValue.toStringAsFixed(0)}', p),
+            _rowItem('Live Metal Rate', '₹${effectiveLiveRate.toStringAsFixed(2)} / g', p),
+            _rowItem('Gross Pure Metal Value', '₹${grossMetalValue.toStringAsFixed(0)}', p),
 
             if (isApplying && usedGrams > 0) ...[
               Padding(
@@ -1054,19 +1095,31 @@ class JewelleryItemDetailsView extends StatelessWidget {
     required double liveRate,
     required double makingCharges,
     required double gstPct,
+    required double priceAdjustment,
+    required double directPrice,
     required RxString selectedPaymentMethod,
     required _Palette p,
     required bool dark,
   }) {
     return Obx(() {
       final isApplying = applyVault.value && hasAnyVault;
-      final usedGrams = isApplying ? min(vaultGrams, weightGrams) : 0.0;
-      final remainingGrams = max(0.0, weightGrams - usedGrams);
-      final remainingMetalValue = remainingGrams * liveRate;
+      final grossMetalValue = (weightGrams * liveRate) + priceAdjustment;
+      final effectiveLiveRate = weightGrams > 0 ? (grossMetalValue / weightGrams) : liveRate;
 
-      final taxableCash = remainingMetalValue + makingCharges;
-      final gstAmount = (taxableCash * gstPct) / 100;
-      final netCashPayable = taxableCash + gstAmount;
+      final usedGrams = isApplying ? min(vaultGrams, weightGrams) : 0.0;
+      final vaultDiscountVal = usedGrams * effectiveLiveRate;
+      final remainingGrams = max(0.0, weightGrams - usedGrams);
+      final remainingMetalValue = remainingGrams * effectiveLiveRate;
+
+      double netCashPayable = 0.0;
+      if (directPrice > 0) {
+        final baseAfterVault = max(0.0, (directPrice + priceAdjustment) - vaultDiscountVal);
+        netCashPayable = baseAfterVault.clamp(0.0, double.infinity);
+      } else {
+        final taxableCash = max(0.0, remainingMetalValue + makingCharges);
+        final gstAmount = (taxableCash * gstPct) / 100;
+        netCashPayable = taxableCash + gstAmount;
+      }
 
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),

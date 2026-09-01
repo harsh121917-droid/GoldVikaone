@@ -290,7 +290,7 @@ class _SilverSipViewState extends State<SilverSipView> {
 
         final options = <String, dynamic>{
           'key': data['keyId'] ?? '',
-          'name': 'Payvika 999 Silver SIP',
+          'name': 'Payvika India Technology Pvt Ltd',
           'description': '${selectedGoal['title']} (₹${_amount.toStringAsFixed(0)}/$_selectedFreq)',
           'theme': {'color': '#94A3B8'},
         };
