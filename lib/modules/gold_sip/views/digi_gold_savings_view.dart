@@ -360,7 +360,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
         final options = <String, dynamic>{
           'key': data['keyId'] ?? '',
           'name': 'Payvika India Technology Pvt Ltd',
-          'description': '${selectedGoal['title']} (₹${_amount.toStringAsFixed(0)}/$_selectedFreq)',
+          'description': 'Investment',
           'theme': {'color': '#D4A017'},
         };
 
