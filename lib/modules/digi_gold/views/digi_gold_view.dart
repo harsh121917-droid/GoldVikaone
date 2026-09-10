@@ -196,6 +196,8 @@ class _DigiGoldViewState extends State<DigiGoldView>
                   ),
                   const SizedBox(height: 20),
                   _TrustCertificatesSection(t: t),
+                  const SizedBox(height: 24),
+                  _PartnerMarqueeCarousel(t: t),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -2760,10 +2762,10 @@ class _RecommendedGoalsSectionState extends State<_RecommendedGoalsSection> {
   static const _goals = [
     {
       'id': 'soldier',
-      'label': 'SPECIAL OFFER',
+      'label': '5% EXTRA PER ANNUM',
       'title': 'Veer Jawan',
-      'tagline': 'Salute your service,\nsecure your future.',
-      'badge': '🎖️ 15% OFF',
+      'tagline': '5% extra return per annum\n• 0% Platform Fee',
+      'badge': '🎖️ 5% Extra/yr',
       'icon': Icons.military_tech_rounded,
       'bgGrad': [Color(0xFF064E3B), Color(0xFF022C22)],
       'accentGrad': [Color(0xFF10B981), Color(0xFF34D399)],
@@ -3154,6 +3156,378 @@ class _RecommendedGoalsSectionState extends State<_RecommendedGoalsSection> {
               ),
             );
           }),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Infinite Auto-Scrolling Partner Marquee Carousel ────────────────────────
+class _PartnerMarqueeCarousel extends StatefulWidget {
+  const _PartnerMarqueeCarousel({required this.t});
+  final _T t;
+
+  @override
+  State<_PartnerMarqueeCarousel> createState() => _PartnerMarqueeCarouselState();
+}
+
+class _PartnerMarqueeCarouselState extends State<_PartnerMarqueeCarousel> {
+  late final ScrollController _scrollCtrl;
+  Timer? _timer;
+  bool _isUserTouching = false;
+  Timer? _resumeTimer;
+
+  static const List<Map<String, dynamic>> _partners = [
+    {
+      'name': 'Razorpay',
+      'role': 'Payment Gateway Partner',
+      'tag': 'Instant UPI & Cards',
+      'icon': Icons.bolt_rounded,
+      'bgGrad': [Color(0xFF08182B), Color(0xFF102D4E)],
+      'accent': Color(0xFF3395FF),
+      'verified': 'Certified Gateway',
+    },
+    {
+      'name': 'IDFC FIRST Bank',
+      'role': 'Banking & Escrow Custody',
+      'tag': 'RBI Regulated Partner',
+      'icon': Icons.account_balance_rounded,
+      'bgGrad': [Color(0xFF2C0B12), Color(0xFF42121E)],
+      'accent': Color(0xFFFF6B6B),
+      'verified': 'Escrow Custody',
+    },
+    {
+      'name': 'Dun & Bradstreet',
+      'role': 'D-U-N-S® Global Verification',
+      'tag': 'Enterprise Credibility',
+      'icon': Icons.verified_user_rounded,
+      'bgGrad': [Color(0xFF032238), Color(0xFF09395B)],
+      'accent': Color(0xFF00B4D8),
+      'verified': 'D-U-N-S® Active',
+    },
+    {
+      'name': 'SBI Mutual Fund',
+      'role': 'Asset Management Partner',
+      'tag': "India's Premier AMC",
+      'icon': Icons.pie_chart_rounded,
+      'bgGrad': [Color(0xFF002244), Color(0xFF053564)],
+      'accent': Color(0xFF48CAE4),
+      'verified': 'Strategic AMC',
+    },
+    {
+      'name': 'DSP Mutual Fund',
+      'role': 'Wealth Management Partner',
+      'tag': 'Strategic Wealth Trust',
+      'icon': Icons.trending_up_rounded,
+      'bgGrad': [Color(0xFF1E2632), Color(0xFF2E3B4E)],
+      'accent': Color(0xFFF3C343),
+      'verified': 'Wealth Partner',
+    },
+    {
+      'name': 'BSE StAR MF',
+      'role': 'Exchange Infrastructure Partner',
+      'tag': 'Bombay Stock Exchange',
+      'icon': Icons.star_rounded,
+      'bgGrad': [Color(0xFF220F35), Color(0xFF361852)],
+      'accent': Color(0xFFE040FB),
+      'verified': 'Exchange Platform',
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollCtrl = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startAutoScroll();
+    });
+  }
+
+  void _startAutoScroll() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(milliseconds: 25), (timer) {
+      if (!mounted || _isUserTouching) return;
+      if (_scrollCtrl.hasClients) {
+        final maxScroll = _scrollCtrl.position.maxScrollExtent;
+        final currentOffset = _scrollCtrl.offset;
+        if (currentOffset >= maxScroll - 1) {
+          _scrollCtrl.jumpTo(0);
+        } else {
+          _scrollCtrl.jumpTo(currentOffset + 0.85);
+        }
+      }
+    });
+  }
+
+  void _onUserTouchStart() {
+    _isUserTouching = true;
+    _resumeTimer?.cancel();
+  }
+
+  void _onUserTouchEnd() {
+    _resumeTimer?.cancel();
+    _resumeTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _isUserTouching = false;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _resumeTimer?.cancel();
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.t;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _gold.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _gold.withValues(alpha: 0.28),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.hub_rounded, color: _gold, size: 12),
+                        SizedBox(width: 5),
+                        Text(
+                          'STRATEGIC ALLIANCES',
+                          style: TextStyle(
+                            color: _gold,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2ECC71).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF2ECC71).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF2ECC71),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        const Text(
+                          'Active Network',
+                          style: TextStyle(
+                            color: Color(0xFF2ECC71),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'In Partnership With',
+                style: TextStyle(
+                  color: t.ink,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                "Integrated with India's premier banking, AMC & exchange institutions",
+                style: TextStyle(
+                  color: t.inkMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Infinite auto-scrolling horizontal strip
+        Listener(
+          onPointerDown: (_) => _onUserTouchStart(),
+          onPointerUp: (_) => _onUserTouchEnd(),
+          onPointerCancel: (_) => _onUserTouchEnd(),
+          child: SizedBox(
+            height: 122,
+            child: ListView.builder(
+              controller: _scrollCtrl,
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: _partners.length * 100,
+              itemBuilder: (context, index) {
+                final item = _partners[index % _partners.length];
+                final List<Color> bgGrad = item['bgGrad'] as List<Color>;
+                final Color accent = item['accent'] as Color;
+
+                return Container(
+                  width: 228,
+                  margin: const EdgeInsets.only(left: 14),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isDark
+                          ? bgGrad
+                          : [
+                              Colors.white,
+                              const Color(0xFFF7F8FA),
+                            ],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: isDark
+                          ? accent.withValues(alpha: 0.28)
+                          : Colors.black.withValues(alpha: 0.08),
+                      width: 1.1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark
+                            ? accent.withValues(alpha: 0.12)
+                            : Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: isDark ? 0.18 : 0.12),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: accent.withValues(alpha: 0.35),
+                              ),
+                            ),
+                            child: Icon(
+                              item['icon'] as IconData,
+                              color: accent,
+                              size: 16,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: isDark ? 0.15 : 0.08),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              item['tag'] as String,
+                              style: TextStyle(
+                                color: isDark ? accent : const Color(0xFF2C3E50),
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item['name'] as String,
+                            style: TextStyle(
+                              color: isDark ? Colors.white : const Color(0xFF16161B),
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item['role'] as String,
+                            style: TextStyle(
+                              color: isDark ? const Color(0xFFA0AAB5) : const Color(0xFF6B7A72),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle_rounded,
+                            color: isDark ? accent : _gold,
+                            size: 11,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            item['verified'] as String,
+                            style: TextStyle(
+                              color: isDark
+                                  ? accent.withValues(alpha: 0.9)
+                                  : const Color(0xFF333333),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         ),
       ],
     );

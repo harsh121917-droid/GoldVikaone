@@ -53,6 +53,8 @@ class UserModel {
   final String? referralCode;
   final double referralBalance;
   final String kycStatus;
+  final bool isSoldierVerified;
+  final String soldierKycStatus;
   final UserLocationModel? location;
 
   UserModel({
@@ -66,6 +68,8 @@ class UserModel {
     this.referralCode,
     this.referralBalance = 0.0,
     this.kycStatus = 'not_submitted',
+    this.isSoldierVerified = false,
+    this.soldierKycStatus = 'not_submitted',
     this.location,
   });
 
@@ -93,6 +97,8 @@ class UserModel {
     referralCode: j['referralCode'],
     referralBalance: (j['referralBalance'] as num?)?.toDouble() ?? 0.0,
     kycStatus: j['kycStatus']?.toString() ?? 'not_submitted',
+    isSoldierVerified: j['isSoldierVerified'] == true,
+    soldierKycStatus: j['soldierKycStatus']?.toString() ?? 'not_submitted',
     location: j['location'] != null && j['location'] is Map<String, dynamic>
         ? UserLocationModel.fromJson(j['location'] as Map<String, dynamic>)
         : null,
@@ -109,6 +115,8 @@ class UserModel {
     'referralCode': referralCode,
     'referralBalance': referralBalance,
     'kycStatus': kycStatus,
+    'isSoldierVerified': isSoldierVerified,
+    'soldierKycStatus': soldierKycStatus,
     if (location != null) 'location': location!.toJson(),
   };
 }

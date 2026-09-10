@@ -54,6 +54,26 @@ class KycRepository {
     return res.data;
   }
 
+  Future<Map<String, dynamic>> submitPhotoOnlyKyc({
+    String? fullName,
+    required String panImagePath,
+    String? aadhaarFrontPath,
+    String? aadhaarBackPath,
+  }) async {
+    final formData = FormData.fromMap({
+      'isPhotoOnly': 'true',
+      if (fullName != null && fullName.isNotEmpty) 'fullName': fullName,
+      'panImage': await MultipartFile.fromFile(panImagePath),
+      if (aadhaarFrontPath != null && aadhaarFrontPath.isNotEmpty)
+        'aadhaarFront': await MultipartFile.fromFile(aadhaarFrontPath),
+      if (aadhaarBackPath != null && aadhaarBackPath.isNotEmpty)
+        'aadhaarBack': await MultipartFile.fromFile(aadhaarBackPath),
+    });
+
+    final res = await _dio.post(ApiConstants.kycSubmit, data: formData);
+    return res.data;
+  }
+
   Future<Map<String, dynamic>> initiateDigio() async {
     final res = await _dio.post('/kyc/digio/initiate');
     return res.data;
@@ -101,6 +121,21 @@ class KycRepository {
       'pan': pan,
       'name': name,
     });
+    return res.data;
+  }
+
+  Future<Map<String, dynamic>> submitSoldierId({
+    required String serviceBranch,
+    required String soldierIdNumber,
+    required String idCardPath,
+  }) async {
+    final formData = FormData.fromMap({
+      'serviceBranch': serviceBranch,
+      'soldierIdNumber': soldierIdNumber,
+      'soldierIdCard': await MultipartFile.fromFile(idCardPath),
+    });
+
+    final res = await _dio.post('/kyc/soldier/submit', data: formData);
     return res.data;
   }
 }

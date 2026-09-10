@@ -51,6 +51,16 @@ class KycController extends GetxController {
   final aadhaarFrontImage = Rx<File?>(null);
   final aadhaarBackImage = Rx<File?>(null);
 
+  // Soldier / Armed Forces verification state
+  final soldierIdCtrl = TextEditingController();
+  final selectedServiceBranch = 'Indian Army'.obs;
+  final soldierIdCardImage = Rx<File?>(null);
+  final isSubmittingSoldier = false.obs;
+  final isSoldierVerified = false.obs;
+  final soldierStatus = 'not_submitted'.obs; // not_submitted | pending | approved | rejected
+  final soldierRejectionReason = ''.obs;
+  final soldierIdCardUrl = ''.obs;
+
   final selectedDob = ''.obs;
 
   @override
@@ -60,6 +70,11 @@ class KycController extends GetxController {
       final cached = AuthService().currentUser?.kycStatus;
       if (cached != null && cached.isNotEmpty && cached != 'not_submitted') {
         kycStatus.value = cached;
+      }
+      final user = AuthService().currentUser;
+      if (user != null) {
+        isSoldierVerified.value = user.isSoldierVerified;
+        soldierStatus.value = user.soldierKycStatus;
       }
     } catch (_) {}
     loadMyKyc();
@@ -83,6 +98,7 @@ class KycController extends GetxController {
     cashfreeOtpCtrl.dispose();
     cashfreePanCtrl.dispose();
     cashfreePanNameCtrl.dispose();
+    soldierIdCtrl.dispose();
     super.onClose();
   }
 
@@ -105,6 +121,17 @@ class KycController extends GetxController {
         bankAccountCtrl.text = kyc.bankAccountNumber ?? '';
         bankIfscCtrl.text = kyc.bankIfscCode ?? '';
         bankBankNameCtrl.text = kyc.bankName ?? '';
+
+        if (kyc.isSoldier) {
+          soldierIdCtrl.text = kyc.soldierIdNumber ?? '';
+          if (kyc.serviceBranch != null && kyc.serviceBranch!.isNotEmpty) {
+            selectedServiceBranch.value = kyc.serviceBranch!;
+          }
+          soldierStatus.value = kyc.soldierStatus;
+          isSoldierVerified.value = kyc.isSoldierApproved;
+          soldierRejectionReason.value = kyc.soldierRejectionReason ?? '';
+          soldierIdCardUrl.value = kyc.soldierIdCardUrl ?? '';
+        }
       }
     } on DioException catch (_) {
       // 404 / no kyc yet is fine — stays not_submitted
@@ -162,6 +189,16 @@ class KycController extends GetxController {
   }
 
   Future<void> submit() async {
+    if (kycStatus.value == 'pending') {
+      Get.snackbar(
+        'KYC in Review',
+        'Your KYC documents are already under review by our admin team',
+        backgroundColor: const Color(0xFFF39C12),
+        colorText: const Color(0xFFFFFFFF),
+      );
+      return;
+    }
+
     if (fullNameCtrl.text.trim().isEmpty ||
         dobCtrl.text.trim().isEmpty ||
         addressCtrl.text.trim().isEmpty ||
@@ -245,6 +282,118 @@ class KycController extends GetxController {
       );
     } finally {
       isSubmitting.value = false;
+    }
+  }
+
+  Future<void> submitPhotoOnly() async {
+    if (kycStatus.value == 'pending') {
+      Get.snackbar(
+        'KYC in Review',
+        'Your KYC documents are already under review by our admin team',
+        backgroundColor: const Color(0xFFF39C12),
+        colorText: const Color(0xFFFFFFFF),
+      );
+      return;
+    }
+
+    if (panImage.value == null && aadhaarFrontImage.value == null) {
+      Get.snackbar(
+        'Upload Required',
+        'Please upload at least your PAN Card or Aadhaar ID photo',
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+      );
+      return;
+    }
+
+    try {
+      isSubmitting.value = true;
+      final userName = fullNameCtrl.text.trim().isNotEmpty
+          ? fullNameCtrl.text.trim()
+          : (AuthService().currentUser?.name ?? '');
+
+      final res = await _repo.submitPhotoOnlyKyc(
+        fullName: userName,
+        panImagePath: panImage.value?.path ?? (aadhaarFrontImage.value?.path ?? ''),
+        aadhaarFrontPath: aadhaarFrontImage.value?.path,
+        aadhaarBackPath: aadhaarBackImage.value?.path,
+      );
+
+      if (res['success'] == true) {
+        kycStatus.value = 'pending';
+        Get.snackbar(
+          'Photo KYC Submitted ✓',
+          'Your documents are uploaded and under review by our admin team',
+          backgroundColor: const Color(0xFF2ECC71),
+          colorText: const Color(0xFFFFFFFF),
+          duration: const Duration(seconds: 4),
+        );
+      } else {
+        Get.snackbar(
+          'Failed',
+          res['message'] ?? 'Submission failed',
+          backgroundColor: const Color(0xFFE53E3E),
+          colorText: const Color(0xFFFFFFFF),
+        );
+      }
+    } on DioException catch (e) {
+      Get.snackbar(
+        'Error',
+        e.response?.data?['message'] ?? 'Submission failed',
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Connection error. Please try again.',
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+      );
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  Future<void> submitSoldierVerification() async {
+    if (soldierIdCtrl.text.trim().isEmpty) {
+      Get.snackbar('Missing Field', 'Please enter your Soldier / Service ID Number',
+          backgroundColor: const Color(0xFFE53E3E), colorText: Colors.white);
+      return;
+    }
+    if (soldierIdCardImage.value == null && soldierIdCardUrl.value.isEmpty) {
+      Get.snackbar('Missing Document', 'Please upload a photo of your Soldier ID card',
+          backgroundColor: const Color(0xFFE53E3E), colorText: Colors.white);
+      return;
+    }
+
+    try {
+      isSubmittingSoldier.value = true;
+      final res = await _repo.submitSoldierId(
+        serviceBranch: selectedServiceBranch.value,
+        soldierIdNumber: soldierIdCtrl.text.trim().toUpperCase(),
+        idCardPath: soldierIdCardImage.value?.path ?? '',
+      );
+
+      if (res['success'] == true) {
+        soldierStatus.value = 'pending';
+        isSoldierVerified.value = false;
+        Get.snackbar(
+          '🎖️ Submitted for Review',
+          'Your Soldier ID verification has been submitted to Admin. You will unlock the 5% extra return once approved.',
+          backgroundColor: const Color(0xFF059669),
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4),
+        );
+      } else {
+        Get.snackbar('Submission Failed', res['message'] ?? 'Could not submit Soldier ID',
+            backgroundColor: const Color(0xFFE53E3E), colorText: Colors.white);
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to submit Soldier ID: $e',
+          backgroundColor: const Color(0xFFE53E3E), colorText: Colors.white);
+    } finally {
+      isSubmittingSoldier.value = false;
     }
   }
 

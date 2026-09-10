@@ -1,5 +1,7 @@
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:flutter/material.dart';
+import '../../../core/services/auth_service.dart';
+import '../../../routes/app_routes.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:vika1/data/repositories/sip_repository.dart';
@@ -64,10 +66,10 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
     {
       'id': 'soldier',
       'title': "Veer Jawan / Soldier Goal",
-      'subtitle': "Armed Forces & Police special bullion reserve",
+      'subtitle': "Armed Forces & Police • 5% Extra/Year • 0% Platform Fee",
       'icon': Icons.military_tech_rounded,
-      'badge': "🎖️ 15% OFF Hero Offer",
-      'discountTag': "SPECIAL 15% OFF",
+      'badge': "🎖️ 5% Extra per annum",
+      'discountTag': "0% PLATFORM FEE",
       'color': const Color(0xFF10B981),
       'suggestedAmount': '2500',
       'suggestedDurationIdx': 3, // 3 Years
@@ -328,6 +330,108 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
     }
   }
 
+  void _showSoldierVerificationDialog() {
+    final soldierStatus = AuthService().currentUser?.soldierKycStatus ?? 'not_submitted';
+    final isPending = soldierStatus == 'pending';
+
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF064E3B), Color(0xFF022C22)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFF10B981), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children:
+[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.military_tech_rounded,
+                  color: Color(0xFF10B981),
+                  size: 36,
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                '🎖️ Soldier Verification Required',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isPending
+                    ? 'Your Soldier ID verification is currently under review by Admin. Once approved, you can start the Soldier Gold SIP.'
+                    : 'The Veer Jawan / Soldier Goal offers 5% extra returns per annum and 0% platform fee (standard 3% waived), exclusively for verified Armed Forces & Police personnel.\n\nPlease upload your Soldier ID card in KYC to unlock this plan.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: const BorderSide(color: Colors.white24),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => Get.back(),
+                      child: const Text('Cancel', style: TextStyle(fontSize: 13)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        Get.back();
+                        Get.toNamed(AppRoutes.kyc);
+                      },
+                      child: Text(
+                        isPending ? 'Check KYC' : 'Verify ID in KYC',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleStartSip() async {
     if (_amount < 1) {
       Get.snackbar(
@@ -341,6 +445,14 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
     }
 
     final selectedGoal = _goals[_selectedGoalIdx];
+    if (selectedGoal['id'] == 'soldier') {
+      final user = AuthService().currentUser;
+      final isSoldier = (user?.isSoldierVerified == true) || (user?.soldierKycStatus == 'approved');
+      if (!isSoldier) {
+        _showSoldierVerificationDialog();
+        return;
+      }
+    }
 
     // ── Mode 1: Razorpay AutoPay (UPI / NetBanking e-Mandate) ─────────────
     if (_paymentMode == 'autopay') {
@@ -1071,64 +1183,124 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
           const SizedBox(height: 8),
 // ── Special Soldier / Hero Benefit Banner ──
           if (_goals[_selectedGoalIdx]['id'] == 'soldier')
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.only(top: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF10B981).withValues(alpha: 0.25),
-                    const Color(0xFF059669).withValues(alpha: 0.10),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.6), width: 1.4),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF10B981),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.military_tech_rounded, color: Colors.white, size: 18),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '🎖️ VEER JAWAN PRIVILEGE: 15% OFF',
-                          style: TextStyle(
-                            color: Color(0xFF10B981),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Special 15% discount on coin & jewellery making charges + 0% platform management fee.',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+            Builder(
+              builder: (context) {
+                final user = AuthService().currentUser;
+                final isSoldier = (user?.isSoldierVerified == true) || (user?.soldierKycStatus == 'approved');
+                final isPending = user?.soldierKycStatus == 'pending';
+
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.only(top: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF10B981).withValues(alpha: 0.25),
+                        const Color(0xFF059669).withValues(alpha: 0.10),
                       ],
                     ),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.6), width: 1.4),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF10B981),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.military_tech_rounded, color: Colors.white, size: 18),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '🎖️ SOLDIER PRIVILEGE: 5% EXTRA PER ANNUM',
+                                  style: TextStyle(
+                                    color: Color(0xFF10B981),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Platform fee is 3%, but for Soldier it will be 0% + 5% extra gold returns per annum.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isSoldier
+                              ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                              : const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isSoldier ? Icons.verified_rounded : Icons.info_outline_rounded,
+                              size: 14,
+                              color: isSoldier ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                isSoldier
+                                    ? 'Verified Soldier Status Active (5% Extra Unlocked)'
+                                    : (isPending
+                                        ? 'Soldier ID is under review by admin'
+                                        : 'Requires Soldier ID Card verification in KYC to start'),
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: isSoldier ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                                ),
+                              ),
+                            ),
+                            if (!isSoldier)
+                              GestureDetector(
+                                onTap: () => Get.toNamed(AppRoutes.kyc),
+                                child: Text(
+                                  isPending ? 'Check KYC →' : 'Verify ID →',
+                                  style: const TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF10B981),
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
 
           const SizedBox(height: 16),
