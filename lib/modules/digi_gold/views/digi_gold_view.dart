@@ -3182,42 +3182,47 @@ class _PartnerMarqueeCarouselState extends State<_PartnerMarqueeCarousel> {
       'name': 'Razorpay',
       'role': 'Payment Gateway Partner',
       'tag': 'Instant UPI & Cards',
+      'image': 'assets/images/Mutual_Funds/razorpay.webp',
       'icon': Icons.bolt_rounded,
       'bgGrad': [Color(0xFF08182B), Color(0xFF102D4E)],
       'accent': Color(0xFF3395FF),
       'verified': 'Certified Gateway',
     },
     {
-      'name': 'IDFC FIRST Bank',
-      'role': 'Banking & Escrow Custody',
-      'tag': 'RBI Regulated Partner',
+      'name': 'Central Bank of India',
+      'role': 'Banking & Custody Partner',
+      'tag': 'Govt of India Bank',
+      'image': 'assets/images/Mutual_Funds/central_bank.jpg',
       'icon': Icons.account_balance_rounded,
-      'bgGrad': [Color(0xFF2C0B12), Color(0xFF42121E)],
-      'accent': Color(0xFFFF6B6B),
-      'verified': 'Escrow Custody',
+      'bgGrad': [Color(0xFF0A2239), Color(0xFF143657)],
+      'accent': Color(0xFF00B4D8),
+      'verified': 'Nationalised Bank',
     },
     {
       'name': 'Dun & Bradstreet',
-      'role': 'D-U-N-S® Global Verification',
-      'tag': 'Enterprise Credibility',
+      'role': 'Global Verification Partner',
+      'tag': 'D-U-N-S® Active',
+      'image': 'assets/images/Mutual_Funds/duns_logo.png',
       'icon': Icons.verified_user_rounded,
       'bgGrad': [Color(0xFF032238), Color(0xFF09395B)],
       'accent': Color(0xFF00B4D8),
-      'verified': 'D-U-N-S® Active',
+      'verified': 'D-U-N-S® Verified',
     },
     {
       'name': 'SBI Mutual Fund',
       'role': 'Asset Management Partner',
       'tag': "India's Premier AMC",
+      'image': 'assets/images/Mutual_Funds/sbi_mutual.jfif',
       'icon': Icons.pie_chart_rounded,
       'bgGrad': [Color(0xFF002244), Color(0xFF053564)],
       'accent': Color(0xFF48CAE4),
-      'verified': 'Strategic AMC',
+      'verified': 'Premier AMC',
     },
     {
       'name': 'DSP Mutual Fund',
       'role': 'Wealth Management Partner',
       'tag': 'Strategic Wealth Trust',
+      'image': 'assets/images/Mutual_Funds/dsp_mutual.png',
       'icon': Icons.trending_up_rounded,
       'bgGrad': [Color(0xFF1E2632), Color(0xFF2E3B4E)],
       'accent': Color(0xFFF3C343),
@@ -3225,12 +3230,103 @@ class _PartnerMarqueeCarouselState extends State<_PartnerMarqueeCarousel> {
     },
     {
       'name': 'BSE StAR MF',
-      'role': 'Exchange Infrastructure Partner',
+      'role': 'Exchange Platform Partner',
       'tag': 'Bombay Stock Exchange',
+      'image': 'assets/images/Mutual_Funds/BSE.gif',
       'icon': Icons.star_rounded,
       'bgGrad': [Color(0xFF220F35), Color(0xFF361852)],
       'accent': Color(0xFFE040FB),
-      'verified': 'Exchange Platform',
+      'verified': 'BSE StAR Platform',
+    },
+    {
+      'name': 'NSE (National Stock Ex)',
+      'role': 'Exchange Platform Partner',
+      'tag': "India's Largest Exchange",
+      'image': 'assets/images/Mutual_Funds/NSE.webp',
+      'icon': Icons.show_chart_rounded,
+      'bgGrad': [Color(0xFF2B1608), Color(0xFF4E2910)],
+      'accent': Color(0xFFFF9F1C),
+      'verified': 'NSE Platform',
+    },
+    {
+      'name': 'ICICI Prudential MF',
+      'role': 'Asset Management Partner',
+      'tag': 'Top-Tier Fund House',
+      'image': 'assets/images/Mutual_Funds/icici_mutual.jpg',
+      'icon': Icons.savings_rounded,
+      'bgGrad': [Color(0xFF2E0808), Color(0xFF4E1414)],
+      'accent': Color(0xFFFF5252),
+      'verified': 'Prudential AMC',
+    },
+    {
+      'name': 'Motilal Oswal MF',
+      'role': 'Wealth & AMC Partner',
+      'tag': 'Research-Driven Growth',
+      'image': 'assets/images/Mutual_Funds/motilal_oswal_mutual.png',
+      'icon': Icons.analytics_rounded,
+      'bgGrad': [Color(0xFF261D05), Color(0xFF453508)],
+      'accent': Color(0xFFFFD166),
+      'verified': 'Certified AMC',
+    },
+    {
+      'name': 'Aditya Birla Sun Life MF',
+      'role': 'Asset Management Partner',
+      'tag': 'Birla Capital Group',
+      'image': 'assets/images/Mutual_Funds/adiya_bilra_mutual.png',
+      'icon': Icons.account_balance_wallet_rounded,
+      'bgGrad': [Color(0xFF280B15), Color(0xFF481426)],
+      'accent': Color(0xFFFF4081),
+      'verified': 'Birla Capital AMC',
+    },
+    {
+      'name': 'Edelweiss Mutual Fund',
+      'role': 'Investment Management Partner',
+      'tag': 'Alternative & Equity AMC',
+      'image': 'assets/images/Mutual_Funds/edelweiss_mutual.png',
+      'icon': Icons.candlestick_chart_rounded,
+      'bgGrad': [Color(0xFF0F172A), Color(0xFF1E293B)],
+      'accent': Color(0xFF38BDF8),
+      'verified': 'Edelweiss AMC',
+    },
+    {
+      'name': 'UTI Mutual Fund',
+      'role': 'Pioneer Asset Manager',
+      'tag': 'Since 1963 Legacy',
+      'image': 'assets/images/Mutual_Funds/uti_mutual.jpeg',
+      'icon': Icons.history_edu_rounded,
+      'bgGrad': [Color(0xFF1A1A2E), Color(0xFF16213E)],
+      'accent': Color(0xFFE94560),
+      'verified': 'UTI AMC',
+    },
+    {
+      'name': 'AMFI Registered',
+      'role': 'Mutual Fund Association',
+      'tag': 'ARN Code Compliant',
+      'image': 'assets/images/Mutual_Funds/AMFI_mutual.png',
+      'icon': Icons.gavel_rounded,
+      'bgGrad': [Color(0xFF062826), Color(0xFF0A403D)],
+      'accent': Color(0xFF2EC4B6),
+      'verified': 'AMFI Code Compliant',
+    },
+    {
+      'name': 'SEBI Regulated Framework',
+      'role': 'Regulatory Authority',
+      'tag': 'Statutory Compliance',
+      'image': 'assets/images/Mutual_Funds/SEBI_securities.png',
+      'icon': Icons.shield_rounded,
+      'bgGrad': [Color(0xFF0D1B2A), Color(0xFF1B263B)],
+      'accent': Color(0xFF415A77),
+      'verified': 'SEBI Guidelines',
+    },
+    {
+      'name': 'ISO Certified Standards',
+      'role': 'Quality & Trust Compliance',
+      'tag': 'Certified System',
+      'image': 'assets/images/Mutual_Funds/ISO.jfif',
+      'icon': Icons.workspace_premium_rounded,
+      'bgGrad': [Color(0xFF1A1C20), Color(0xFF2C3038)],
+      'accent': Color(0xFFB0C4DE),
+      'verified': 'ISO Standards',
     },
   ];
 
@@ -3389,7 +3485,7 @@ class _PartnerMarqueeCarouselState extends State<_PartnerMarqueeCarousel> {
           onPointerUp: (_) => _onUserTouchEnd(),
           onPointerCancel: (_) => _onUserTouchEnd(),
           child: SizedBox(
-            height: 122,
+            height: 136,
             child: ListView.builder(
               controller: _scrollCtrl,
               scrollDirection: Axis.horizontal,
@@ -3399,11 +3495,12 @@ class _PartnerMarqueeCarouselState extends State<_PartnerMarqueeCarousel> {
                 final item = _partners[index % _partners.length];
                 final List<Color> bgGrad = item['bgGrad'] as List<Color>;
                 final Color accent = item['accent'] as Color;
+                final String? imgPath = item['image'] as String?;
 
                 return Container(
-                  width: 228,
+                  width: 246,
                   margin: const EdgeInsets.only(left: 14),
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(13),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -3418,14 +3515,14 @@ class _PartnerMarqueeCarouselState extends State<_PartnerMarqueeCarousel> {
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(
                       color: isDark
-                          ? accent.withValues(alpha: 0.28)
+                          ? accent.withValues(alpha: 0.32)
                           : Colors.black.withValues(alpha: 0.08),
                       width: 1.1,
                     ),
                     boxShadow: [
                       BoxShadow(
                         color: isDark
-                            ? accent.withValues(alpha: 0.12)
+                            ? accent.withValues(alpha: 0.14)
                             : Colors.black.withValues(alpha: 0.04),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
@@ -3440,27 +3537,47 @@ class _PartnerMarqueeCarouselState extends State<_PartnerMarqueeCarousel> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(7),
+                            height: 34,
+                            constraints: const BoxConstraints(minWidth: 44, maxWidth: 94),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
                             decoration: BoxDecoration(
-                              color: accent.withValues(alpha: isDark ? 0.18 : 0.12),
-                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: accent.withValues(alpha: 0.35),
+                                color: isDark ? accent.withValues(alpha: 0.35) : Colors.black.withValues(alpha: 0.1),
+                                width: 1,
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.09),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1.5),
+                                ),
+                              ],
                             ),
-                            child: Icon(
-                              item['icon'] as IconData,
-                              color: accent,
-                              size: 16,
-                            ),
+                            child: imgPath != null
+                                ? Image.asset(
+                                    imgPath,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) => Icon(
+                                      item['icon'] as IconData,
+                                      color: accent,
+                                      size: 18,
+                                    ),
+                                  )
+                                : Icon(
+                                    item['icon'] as IconData,
+                                    color: accent,
+                                    size: 18,
+                                  ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 7,
-                              vertical: 2.5,
+                              vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: accent.withValues(alpha: isDark ? 0.15 : 0.08),
+                              color: accent.withValues(alpha: isDark ? 0.18 : 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -3474,7 +3591,7 @@ class _PartnerMarqueeCarouselState extends State<_PartnerMarqueeCarousel> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 5),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -3482,7 +3599,7 @@ class _PartnerMarqueeCarouselState extends State<_PartnerMarqueeCarousel> {
                             item['name'] as String,
                             style: TextStyle(
                               color: isDark ? Colors.white : const Color(0xFF16161B),
-                              fontSize: 14.5,
+                              fontSize: 14,
                               fontWeight: FontWeight.w900,
                               letterSpacing: -0.2,
                             ),
