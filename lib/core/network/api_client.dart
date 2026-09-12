@@ -11,7 +11,11 @@ class ApiClient {
       baseUrl: ApiConstants.baseUrl,
       connectTimeout: const Duration(seconds: 60),
       receiveTimeout: const Duration(seconds: 60),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'x-app-source': 'goldvikaone',
+        'x-platform': 'GoldVikaone Mobile App',
+      },
     ),
   )..interceptors.add(_AuthInterceptor());
   static Dio get instance => _dio;
@@ -23,6 +27,8 @@ class _AuthInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final token = _box.read<String>(StorageKeys.token);
+    options.headers['x-app-source'] = 'goldvikaone';
+    options.headers['x-platform'] = 'GoldVikaone Mobile App';
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
     }

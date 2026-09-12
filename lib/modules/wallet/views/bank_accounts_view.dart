@@ -13,6 +13,7 @@ class BankAccountsView extends StatefulWidget {
 
 class _BankAccountsViewState extends State<BankAccountsView> {
   final _ctrl = WalletController.to;
+  bool _showCompanyBankDetails = false;
 
   @override
   Widget build(BuildContext context) {
@@ -425,17 +426,66 @@ class _BankAccountsViewState extends State<BankAccountsView> {
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  const Text(
-                                    'UPI ID: payvika@idfcbank',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'UPI ID: payvika@idfcbank',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      InkWell(
+                                        onTap: () => _copyToClipboard('payvika@idfcbank', 'UPI ID'),
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: const Padding(
+                                          padding: EdgeInsets.all(4),
+                                          child: Icon(Icons.copy_rounded, size: 14, color: Color(0xFF8E1B1B)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF9F7F2),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: Colors.black12),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Row(
+                                          children: [
+                                            Icon(Icons.account_balance, size: 15, color: Color(0xFF8E1B1B)),
+                                            SizedBox(width: 6),
+                                            Text(
+                                              'Company Bank Account Details',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        _dialogBankItem('Company', 'PAYVIKA INDIA TECHNOLOGY PRIVATE LIMITED', true),
+                                        _dialogBankItem('Bank', 'IDFC FIRST', false),
+                                        _dialogBankItem('A/C Number', '60000003300', true),
+                                        _dialogBankItem('IFSC', 'IDFB0021424', true),
+                                        _dialogBankItem('SWIFT', 'IDFBINBBMUM', true),
+                                        _dialogBankItem('Branch', 'GHAZIABAD - INDIRAPURAM 2 BRANCH', false),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 8),
                                   const Divider(color: Colors.black12, height: 1),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 12),
                                   Wrap(
                                     spacing: 12,
                                     runSpacing: 8,
@@ -447,7 +497,7 @@ class _BankAccountsViewState extends State<BankAccountsView> {
                                       _upiBrandLogo('BHIM UPI', Colors.teal),
                                     ],
                                   ),
-                                  const SizedBox(height: 20),
+                                  const SizedBox(height: 16),
                                   TextButton(
                                     onPressed: () => Get.back(),
                                     style: TextButton.styleFrom(
@@ -483,13 +533,34 @@ class _BankAccountsViewState extends State<BankAccountsView> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    'UPI ID: payvika@idfcbank',
-                    style: TextStyle(
-                      color: tp,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12.5,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'UPI ID: payvika@idfcbank',
+                        style: TextStyle(
+                          color: tp,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      InkWell(
+                        onTap: () => _copyToClipboard('payvika@idfcbank', 'UPI ID'),
+                        borderRadius: BorderRadius.circular(6),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(Icons.copy_rounded, size: 14, color: Color(0xFFD4A017)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  _buildCompanyBankDetails(
+                    dark: dark,
+                    tp: tp,
+                    ts: ts,
+                    border: border,
+                    cardBg: cardBg,
                   ),
                   const SizedBox(height: 16),
                   Container(
@@ -532,6 +603,300 @@ class _BankAccountsViewState extends State<BankAccountsView> {
         ),
       );
     });
+  }
+
+  void _copyToClipboard(String text, String label) {
+    Clipboard.setData(ClipboardData(text: text));
+    Get.snackbar(
+      'Copied to Clipboard',
+      '$label copied successfully',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: const Color(0xFF03160E),
+      colorText: Colors.white,
+      icon: const Icon(Icons.check_circle_rounded, color: Color(0xFFD4A017), size: 20),
+      margin: const EdgeInsets.all(16),
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  Widget _buildCompanyBankDetails({
+    required bool dark,
+    required Color tp,
+    required Color ts,
+    required Color border,
+    required Color cardBg,
+  }) {
+    final subCardBg = dark ? const Color(0xFF131F33) : const Color(0xFFF9F7F2);
+    final highlightBorder = const Color(0xFFD4A017).withOpacity(0.35);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      decoration: BoxDecoration(
+        color: subCardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _showCompanyBankDetails ? highlightBorder : border),
+      ),
+      child: Column(
+        children: [
+          // Toggle Header Button
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              setState(() {
+                _showCompanyBankDetails = !_showCompanyBankDetails;
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4A017).withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_rounded,
+                      color: Color(0xFFD4A017),
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Official Bank Account Details',
+                          style: TextStyle(
+                            color: tp,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _showCompanyBankDetails
+                              ? 'Tap to hide bank transfer details'
+                              : 'Tap to view IMPS / NEFT / RTGS details',
+                          style: TextStyle(color: ts, fontSize: 10.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    _showCompanyBankDetails
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: const Color(0xFFD4A017),
+                    size: 22,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Collapsible Details
+          if (_showCompanyBankDetails) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF10B981).withOpacity(0.25)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.verified_rounded, color: Color(0xFF10B981), size: 13),
+                        SizedBox(width: 5),
+                        Text(
+                          'OFFICIAL COMPANY CURRENT ACCOUNT',
+                          style: TextStyle(
+                            color: Color(0xFF10B981),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _bankRow(
+                    label: 'Company Name',
+                    value: 'PAYVIKA INDIA TECHNOLOGY PRIVATE LIMITED',
+                    tp: tp,
+                    ts: ts,
+                    onCopy: () => _copyToClipboard(
+                      'PAYVIKA INDIA TECHNOLOGY PRIVATE LIMITED',
+                      'Company Name',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _bankRow(
+                    label: 'Bank Name',
+                    value: 'IDFC FIRST',
+                    tp: tp,
+                    ts: ts,
+                    onCopy: () => _copyToClipboard('IDFC FIRST', 'Bank Name'),
+                  ),
+                  const SizedBox(height: 10),
+                  _bankRow(
+                    label: 'Account Number',
+                    value: '60000003300',
+                    tp: tp,
+                    ts: ts,
+                    isHighlighted: true,
+                    onCopy: () => _copyToClipboard('60000003300', 'Account Number'),
+                  ),
+                  const SizedBox(height: 10),
+                  _bankRow(
+                    label: 'IFSC Code',
+                    value: 'IDFB0021424',
+                    tp: tp,
+                    ts: ts,
+                    isHighlighted: true,
+                    onCopy: () => _copyToClipboard('IDFB0021424', 'IFSC Code'),
+                  ),
+                  const SizedBox(height: 10),
+                  _bankRow(
+                    label: 'SWIFT Code',
+                    value: 'IDFBINBBMUM',
+                    tp: tp,
+                    ts: ts,
+                    onCopy: () => _copyToClipboard('IDFBINBBMUM', 'SWIFT Code'),
+                  ),
+                  const SizedBox(height: 10),
+                  _bankRow(
+                    label: 'Branch',
+                    value: 'GHAZIABAD - INDIRAPURAM 2 BRANCH',
+                    tp: tp,
+                    ts: ts,
+                    onCopy: () => _copyToClipboard(
+                      'GHAZIABAD - INDIRAPURAM 2 BRANCH',
+                      'Branch Name',
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        const allDetails =
+                            'Company: PAYVIKA INDIA TECHNOLOGY PRIVATE LIMITED\n'
+                            'Bank: IDFC FIRST\n'
+                            'Account Number: 60000003300\n'
+                            'IFSC: IDFB0021424\n'
+                            'SWIFT: IDFBINBBMUM\n'
+                            'Branch: GHAZIABAD - INDIRAPURAM 2 BRANCH';
+                        _copyToClipboard(allDetails, 'All Bank Details');
+                      },
+                      icon: const Icon(Icons.copy_all_rounded, size: 16),
+                      label: const Text(
+                        'Copy All Bank Details',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFD4A017),
+                        side: const BorderSide(color: Color(0xFFD4A017)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _bankRow({
+    required String label,
+    required String value,
+    required Color tp,
+    required Color ts,
+    required VoidCallback onCopy,
+    bool isHighlighted = false,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(color: ts, fontSize: 10, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  color: isHighlighted ? const Color(0xFFD4A017) : tp,
+                  fontSize: isHighlighted ? 13.5 : 12.5,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: isHighlighted ? 'monospace' : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.copy_rounded, size: 16),
+          color: const Color(0xFFD4A017),
+          splashRadius: 18,
+          onPressed: onCopy,
+          tooltip: 'Copy $label',
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          padding: EdgeInsets.zero,
+        ),
+      ],
+    );
+  }
+
+  Widget _dialogBankItem(String label, String value, bool canCopy) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontSize: 10.5, color: Colors.black54, fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 11, color: Colors.black87, fontWeight: FontWeight.bold),
+            ),
+          ),
+          if (canCopy)
+            InkWell(
+              onTap: () => _copyToClipboard(value, label),
+              child: const Padding(
+                padding: EdgeInsets.all(2.0),
+                child: Icon(Icons.copy_rounded, size: 13, color: Color(0xFF8E1B1B)),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _upiBrandLogo(String name, Color color) {
