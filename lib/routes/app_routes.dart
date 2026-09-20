@@ -1,3 +1,6 @@
+import '../modules/mutual_funds/views/mf_home_view.dart';
+import '../modules/mutual_funds/views/mf_portfolio_view.dart';
+import '../modules/mutual_funds/views/mf_ucc_onboarding_view.dart';
 import 'package:vika1/modules/notifications/bindings/notification_binding.dart';
 import 'package:vika1/modules/notifications/views/notification_history_view.dart';
 import 'package:get/get.dart';
@@ -103,6 +106,10 @@ abstract class AppRoutes {
   static const addBankAccount = '/wallet/banks/add';
   static const update = '/update';
   static const notifications = '/notifications';
+  static const mutualFunds = '/mutual-funds';
+  static const mfPortfolio = '/mutual-funds/portfolio';
+  static const mfUcc = '/mutual-funds/ucc';
+
 }
 
 final appPages = [
@@ -274,5 +281,19 @@ final appPages = [
     name: AppRoutes.notifications,
     page: () => const NotificationHistoryView(),
     binding: NotificationBinding(),
+  ),
+
+  // ── Mutual Funds (NSEINVEST MFSS) ──────────────────────────
+  GetPage(
+    name: AppRoutes.mutualFunds,
+    page: () => const MfHomeView(),
+  ),
+  GetPage(
+    name: AppRoutes.mfPortfolio,
+    page: () => const MfPortfolioView(),
+  ),
+  GetPage(
+    name: AppRoutes.mfUcc,
+    page: () => const MfUccOnboardingView(),
   ),
 ];

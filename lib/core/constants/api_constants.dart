@@ -1,6 +1,6 @@
 class ApiConstants {
   ApiConstants._();
-  static const String baseUrl       = 'https://bharatsqft-backend.onrender.com/api';
+  static const String baseUrl       = 'https://api.vikaone.com/api';
   static const String login         = '/auth/login';
   static const String register      = '/auth/register';
   static const String me            = '/auth/me';

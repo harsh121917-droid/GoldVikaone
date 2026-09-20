@@ -1052,10 +1052,10 @@ class _QuickActionsState extends State<_QuickActions> {
         },
       ),
       (
-        Icons.redeem_outlined,
-        'Gift',
-        Colors.orange,
-        () => Get.toNamed(AppRoutes.gift),
+        Icons.pie_chart_rounded,
+        'Mutual Funds',
+          const Color(0xFF2563EB),
+          () => Get.toNamed(AppRoutes.mutualFunds),
       ),
     ];
 
@@ -1122,17 +1122,10 @@ class _QuickActionsState extends State<_QuickActions> {
         () => Get.toNamed(AppRoutes.myGold),
       ),
       (
-        Icons.menu_book_outlined,
-        'Passbook',
-        Colors.brown,
-        () {
-          Get.snackbar(
-            'Coming Soon',
-            'Passbook is launching soon!',
-            backgroundColor: t.primary,
-            colorText: Colors.white,
-          );
-        },
+        Icons.card_giftcard_rounded,
+        'Gift',
+        Colors.orange,
+        () => Get.toNamed(AppRoutes.gift),
       ),
       (
         Icons.share_outlined,
@@ -1558,7 +1551,7 @@ class _PromoBanner extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // COMING SOON Badge
+                        // NOW LIVE Badge
                         Row(
                           children: const [
                             Text(

@@ -30,12 +30,12 @@ class MainShellController extends GetxController {
 
   Future<void> _checkForUpdate() async {
     try {
-      const currentVersion = '0.18.0';
+      const currentVersion = '0.19.0';
       final dio = ApiClient.instance;
       final res = await dio.get('/app-version');
       if (res.statusCode == 200 && res.data['success'] == true) {
         final data = res.data;
-        final latestVersion = data['latestVersion']?.toString() ?? '0.18.0';
+        final latestVersion = data['latestVersion']?.toString() ?? '0.19.0';
         final forceUpdate = data['forceUpdate'] == true;
         final playStoreUrl = data['playStoreUrl']?.toString() ??
             'https://play.google.com/store/apps/details?id=com.vikaone.app';

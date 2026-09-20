@@ -9,6 +9,7 @@ import 'package:vika1/modules/wallet/views/wallet_view.dart';
 import 'package:vika1/modules/gold_scheme/views/gold_schemes_view.dart';
 import 'package:vika1/modules/profile/views/profile_view.dart';
 import 'package:vika1/modules/jewellery/views/jewellery_view.dart';
+import 'package:vika1/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 
@@ -466,6 +467,14 @@ class _AppDrawer extends StatelessWidget {
                             onTap: () {
                               shell.changeTab(2);
                               Get.back();
+                            },
+                          ),
+                          _DrawerTile(
+                            icon: Icons.pie_chart_outline_rounded,
+                            label: 'Mutual Funds',
+                            onTap: () {
+                              Get.back();
+                              Get.toNamed(AppRoutes.mutualFunds);
                             },
                           ),
                           _DrawerTile(
