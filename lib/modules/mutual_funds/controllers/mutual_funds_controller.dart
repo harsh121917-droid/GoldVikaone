@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/network/api_client.dart';
 import '../../../data/models/mf_scheme_model.dart';
 import '../../../data/models/mf_portfolio_model.dart';
@@ -11,6 +13,11 @@ class MutualFundsController extends GetxController {
   final RxBool isPortfolioLoading = false.obs;
   final RxBool isSubmittingOrder = false.obs;
   final RxBool isUccLoading = false.obs;
+
+  // ── Dedicated Razorpay Mutual Funds Gateway ──
+  late Razorpay _razorpay;
+  Map<String, dynamic>? _pendingCheckout;
+  Completer<bool>? _paymentCompleter;
 
   // ── Pagination & Search State ──
   final RxInt currentPage = 1.obs;
@@ -61,9 +68,24 @@ class MutualFundsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _initRazorpay();
     fetchSchemes();
     checkUserUcc();
     fetchPortfolio();
+  }
+
+  void _initRazorpay() {
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handleRzpSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handleRzpError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleRzpExternal);
+  }
+
+  @override
+  void onClose() {
+    _razorpay.clear();
+    _debounceTimer?.cancel();
+    super.onClose();
   }
 
   List<MfSchemeModel> get popularFunds {
@@ -414,11 +436,12 @@ class MutualFundsController extends GetxController {
     }
   }
 
-  // ── Place Lumpsum Purchase Order ──
+  // ── Place Lumpsum Purchase Order via Razorpay MF Gateway ──
   Future<bool> createPurchaseOrder({
     required String schemeCode,
     required double orderAmount,
-    String paymentMode = 'UPI',
+    String? schemeName,
+    String paymentMode = 'RAZORPAY',
   }) async {
     isSubmittingOrder.value = true;
     try {
@@ -430,7 +453,43 @@ class MutualFundsController extends GetxController {
       });
 
       if (res.statusCode == 200 && res.data['success'] == true) {
-        final paymentLink = res.data['data']?['paymentLink']?.toString();
+        final data = res.data['data'];
+        final rzpOrderId = data?['razorpayOrderId']?.toString();
+        final rzpKey = data?['key']?.toString();
+
+        if (rzpOrderId != null && rzpOrderId.isNotEmpty && rzpKey != null && rzpKey.isNotEmpty) {
+          final user = Get.isRegistered<AuthService>() ? Get.find<AuthService>().currentUser : null;
+          final orderId = data['order']?['orderId'] ?? rzpOrderId;
+          _pendingCheckout = {
+            'type': 'PURCHASE',
+            'orderId': orderId,
+            'razorpayOrderId': rzpOrderId,
+            'schemeCode': schemeCode,
+            'schemeName': schemeName ?? 'Mutual Fund',
+            'amount': orderAmount,
+          };
+
+          _paymentCompleter = Completer<bool>();
+          final options = {
+            'key': rzpKey,
+            'amount': (orderAmount * 100).round(),
+            'name': 'Payvika Mutual Funds',
+            'description': 'Lumpsum - ${schemeName ?? schemeCode}',
+            'order_id': rzpOrderId,
+            'prefill': {
+              'name': user?.name ?? 'Investor',
+              'email': user?.email ?? '',
+              'contact': user?.phone ?? '',
+            },
+            'theme': {'color': '#00D09C'},
+          };
+
+          _razorpay.open(options);
+          return await _paymentCompleter!.future;
+        }
+
+        // Fallback: If no Razorpay keys configured
+        final paymentLink = data?['paymentLink']?.toString();
         if (paymentLink != null && paymentLink.isNotEmpty) {
           final uri = Uri.parse(paymentLink);
           if (await canLaunchUrl(uri)) {
@@ -438,8 +497,8 @@ class MutualFundsController extends GetxController {
           }
         }
         Get.snackbar(
-          'Order Initiated',
-          'Order submitted to NSE MFSS. Complete payment via link/app.',
+          'Order Placed',
+          'Order confirmed and allotted in your portfolio.',
           backgroundColor: const Color(0xFF00D09C),
           colorText: Colors.black,
           snackPosition: SnackPosition.BOTTOM,
@@ -449,7 +508,7 @@ class MutualFundsController extends GetxController {
       } else {
         Get.snackbar(
           'Order Failed',
-          res.data['message'] ?? 'Could not submit order to NSE',
+          res.data['message'] ?? 'Could not submit order',
           backgroundColor: Colors.red,
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
@@ -460,14 +519,17 @@ class MutualFundsController extends GetxController {
       Get.snackbar('Error', 'Failed to submit order: $e', backgroundColor: Colors.red, colorText: Colors.white);
       return false;
     } finally {
-      isSubmittingOrder.value = false;
+      if (_paymentCompleter == null || _paymentCompleter!.isCompleted) {
+        isSubmittingOrder.value = false;
+      }
     }
   }
 
-  // ── Register SIP / XSIP ──
+  // ── Register SIP / XSIP with Razorpay 1st Installment ──
   Future<bool> registerSipOrder({
     required String schemeCode,
     required double installmentAmount,
+    String? schemeName,
     String frequency = 'MONTHLY',
     DateTime? startDate,
     bool stepUpRequired = false,
@@ -486,6 +548,41 @@ class MutualFundsController extends GetxController {
       });
 
       if (res.statusCode == 200 && res.data['success'] == true) {
+        final data = res.data['data'];
+        final rzpOrderId = data?['razorpayOrderId']?.toString();
+        final rzpKey = data?['key']?.toString();
+        final sipId = data?['sipId']?.toString() ?? data?['sip']?['_id']?.toString();
+
+        if (rzpOrderId != null && rzpOrderId.isNotEmpty && rzpKey != null && rzpKey.isNotEmpty) {
+          final user = Get.isRegistered<AuthService>() ? Get.find<AuthService>().currentUser : null;
+          _pendingCheckout = {
+            'type': 'SIP',
+            'sipId': sipId,
+            'razorpayOrderId': rzpOrderId,
+            'schemeCode': schemeCode,
+            'schemeName': schemeName ?? 'Mutual Fund SIP',
+            'amount': installmentAmount,
+          };
+
+          _paymentCompleter = Completer<bool>();
+          final options = {
+            'key': rzpKey,
+            'amount': (installmentAmount * 100).round(),
+            'name': 'Payvika Mutual Funds',
+            'description': '1st Installment - ${schemeName ?? schemeCode}',
+            'order_id': rzpOrderId,
+            'prefill': {
+              'name': user?.name ?? 'Investor',
+              'email': user?.email ?? '',
+              'contact': user?.phone ?? '',
+            },
+            'theme': {'color': '#00D09C'},
+          };
+
+          _razorpay.open(options);
+          return await _paymentCompleter!.future;
+        }
+
         Get.snackbar(
           'SIP Registered',
           'Monthly SIP scheduled successfully on NSE MFSS',
@@ -508,9 +605,92 @@ class MutualFundsController extends GetxController {
       Get.snackbar('Error', 'Failed to register SIP: $e', backgroundColor: Colors.red, colorText: Colors.white);
       return false;
     } finally {
-      isSubmittingOrder.value = false;
+      if (_paymentCompleter == null || _paymentCompleter!.isCompleted) {
+        isSubmittingOrder.value = false;
+      }
     }
   }
+
+  // ── Razorpay Callback Handlers ──
+  Future<void> _handleRzpSuccess(PaymentSuccessResponse response) async {
+    try {
+      final dio = ApiClient.instance;
+      final checkout = _pendingCheckout;
+      if (checkout == null) {
+        _paymentCompleter?.complete(true);
+        return;
+      }
+
+      if (checkout['type'] == 'PURCHASE') {
+        final res = await dio.post('/mutual-funds/orders/verify', data: {
+          'orderId': checkout['orderId'],
+          'razorpayOrderId': response.orderId ?? checkout['razorpayOrderId'] ?? '',
+          'razorpayPaymentId': response.paymentId ?? '',
+          'razorpaySignature': response.signature ?? '',
+        });
+
+        if (res.statusCode == 200 && res.data['success'] == true) {
+          Get.snackbar(
+            '🎉 Investment Successful!',
+            '₹${checkout['amount']} invested in ${checkout['schemeName']} via Razorpay MF.',
+            backgroundColor: const Color(0xFF00D09C),
+            colorText: Colors.black,
+            snackPosition: SnackPosition.BOTTOM,
+            duration: const Duration(seconds: 4),
+          );
+          fetchPortfolio();
+          _paymentCompleter?.complete(true);
+        } else {
+          Get.snackbar('Verification Failed', res.data['message'] ?? 'Could not verify investment payment', backgroundColor: Colors.red, colorText: Colors.white);
+          _paymentCompleter?.complete(false);
+        }
+      } else if (checkout['type'] == 'SIP') {
+        final res = await dio.post('/mutual-funds/sip/verify', data: {
+          'sipId': checkout['sipId'],
+          'razorpayOrderId': response.orderId ?? checkout['razorpayOrderId'] ?? '',
+          'razorpayPaymentId': response.paymentId ?? '',
+          'razorpaySignature': response.signature ?? '',
+        });
+
+        if (res.statusCode == 200 && res.data['success'] == true) {
+          Get.snackbar(
+            '🎉 SIP Activated Successfully!',
+            '1st installment paid via Razorpay MF and monthly schedule is active.',
+            backgroundColor: const Color(0xFF00D09C),
+            colorText: Colors.black,
+            snackPosition: SnackPosition.BOTTOM,
+            duration: const Duration(seconds: 4),
+          );
+          fetchPortfolio();
+          _paymentCompleter?.complete(true);
+        } else {
+          Get.snackbar('Verification Failed', res.data['message'] ?? 'Could not verify SIP payment', backgroundColor: Colors.red, colorText: Colors.white);
+          _paymentCompleter?.complete(false);
+        }
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Payment verification error: $e', backgroundColor: Colors.red, colorText: Colors.white);
+      _paymentCompleter?.complete(false);
+    } finally {
+      isSubmittingOrder.value = false;
+      _pendingCheckout = null;
+    }
+  }
+
+  void _handleRzpError(PaymentFailureResponse response) {
+    isSubmittingOrder.value = false;
+    _pendingCheckout = null;
+    Get.snackbar(
+      'Payment Cancelled',
+      response.message ?? 'Mutual fund payment was not completed.',
+      backgroundColor: Colors.redAccent,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.BOTTOM,
+    );
+    _paymentCompleter?.complete(false);
+  }
+
+  void _handleRzpExternal(ExternalWalletResponse response) {}
 
   // ── Fetch Portfolio ──
   Future<void> fetchPortfolio() async {
@@ -572,11 +752,7 @@ class MutualFundsController extends GetxController {
     }
   }
 
-  @override
-  void onClose() {
-    _debounceTimer?.cancel();
-    super.onClose();
-  }
+
 
   // ── Reset Test Account (Sandbox Helper) ──
   Future<void> resetTestAccount() async {

@@ -36,7 +36,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
   int _selectedDay = 10; // Default 10th of every month
   bool _stepUp = false;
   double _stepUpAmount = 500;
-  String _paymentMode = 'UPI';
+  String _paymentMode = 'RAZORPAY';
 
   final List<int> _allowedDates = const [1, 5, 10, 15, 20, 25];
 
@@ -283,9 +283,9 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
             const SizedBox(height: 8),
             Row(
               children: [
-                _buildPayModeChip('UPI', Icons.qr_code_rounded),
+                _buildPayModeChip('RAZORPAY', Icons.bolt_rounded),
                 const SizedBox(width: 10),
-                _buildPayModeChip('NETBANKING', Icons.account_balance_rounded),
+                _buildPayModeChip('UPI', Icons.qr_code_rounded),
                 const SizedBox(width: 10),
                 _buildPayModeChip('MANDATE', Icons.autorenew_rounded),
               ],
@@ -375,6 +375,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                             final startDate = DateTime(now.year, now.month, _selectedDay);
                             final success = await controller.registerSipOrder(
                               schemeCode: widget.scheme.schemeCode,
+                              schemeName: widget.scheme.schemeName,
                               installmentAmount: amount,
                               frequency: 'MONTHLY',
                               startDate: startDate.isAfter(now) ? startDate : DateTime(now.year, now.month + 1, _selectedDay),
@@ -385,6 +386,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                           } else {
                             final success = await controller.createPurchaseOrder(
                               schemeCode: widget.scheme.schemeCode,
+                              schemeName: widget.scheme.schemeName,
                               orderAmount: amount,
                               paymentMode: _paymentMode,
                             );

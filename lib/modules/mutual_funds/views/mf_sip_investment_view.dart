@@ -23,7 +23,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
 
   String _amountStr = '1000';
   int _selectedDay = 25; // Default 25th of every month as shown in screenshot
-  String _paymentMethod = 'UPI';
+  String _paymentMethod = 'RAZORPAY';
 
   final List<int> _allowedDates = const [1, 5, 10, 15, 20, 25, 28];
 
@@ -159,6 +159,12 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
   }
 
   void _openBankSelector(Color surface, Color textPrimary, Color mintGreen) {
+    final ucc = controller.userUcc.value;
+    final bName = (ucc != null && ucc.bankName.isNotEmpty) ? ucc.bankName : 'Verified Bank';
+    final accNo = (ucc != null && ucc.accountNo.isNotEmpty)
+        ? (ucc.accountNo.length > 4 ? ucc.accountNo.substring(ucc.accountNo.length - 4) : ucc.accountNo)
+        : '••••';
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -175,22 +181,30 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
             Text('Payment Method', style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.qr_code_rounded, color: Color(0xFF00D09C)),
-              title: const Text('UPI (Instant Sandbox Simulation)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-              subtitle: const Text('Google Pay, PhonePe, Paytm', style: TextStyle(color: Colors.white60, fontSize: 12)),
-              trailing: _paymentMethod == 'UPI' ? const Icon(Icons.check_circle_rounded, color: Color(0xFF00D09C)) : null,
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: mintGreen.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.bolt_rounded, color: mintGreen, size: 22),
+              ),
+              title: const Text('Razorpay MF Gateway (Instant UPI / NetBanking / Cards)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              subtitle: Text('Fast & 100% Secure via Razorpay Mutual Funds', style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.w500)),
+              trailing: _paymentMethod == 'RAZORPAY' ? Icon(Icons.check_circle_rounded, color: mintGreen) : null,
               onTap: () {
-                setState(() => _paymentMethod = 'UPI');
+                setState(() => _paymentMethod = 'RAZORPAY');
                 Navigator.pop(context);
               },
             ),
+            const Divider(color: Color(0xFF1E2638)),
             ListTile(
-              leading: const Icon(Icons.account_balance_rounded, color: Color(0xFF00D09C)),
-              title: const Text('HDFC Bank (Sandbox Mandate)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-              subtitle: const Text('A/C No. •••••••5012', style: TextStyle(color: Colors.white60, fontSize: 12)),
-              trailing: _paymentMethod == 'BANK' ? const Icon(Icons.check_circle_rounded, color: Color(0xFF00D09C)) : null,
+              leading: const Icon(Icons.account_balance_rounded, color: Color(0xFF94A3B8)),
+              title: Text('$bName (Auto-Debit)', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              subtitle: Text('A/C ••••$accNo • e-NACH Mandate for Auto-Debit', style: const TextStyle(color: Colors.white60, fontSize: 12)),
+              trailing: _paymentMethod == 'MANDATE' ? Icon(Icons.check_circle_rounded, color: mintGreen) : null,
               onTap: () {
-                setState(() => _paymentMethod = 'BANK');
+                setState(() => _paymentMethod = 'MANDATE');
                 Navigator.pop(context);
               },
             ),
@@ -224,6 +238,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
       final startDate = DateTime(now.year, now.month, _selectedDay);
       final success = await controller.registerSipOrder(
         schemeCode: widget.scheme.schemeCode,
+        schemeName: widget.scheme.schemeName,
         installmentAmount: _amount,
         frequency: 'MONTHLY',
         startDate: startDate.isAfter(now) ? startDate : DateTime(now.year, now.month + 1, _selectedDay),
@@ -234,6 +249,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     } else {
       final success = await controller.createPurchaseOrder(
         schemeCode: widget.scheme.schemeCode,
+        schemeName: widget.scheme.schemeName,
         orderAmount: _amount,
         paymentMode: _paymentMethod,
       );
@@ -387,15 +403,33 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    controller.hasUcc.value
-                        ? 'HDFC Bank ••••5012'
-                        : 'No payment method\navailable',
-                    style: TextStyle(
-                      color: controller.hasUcc.value ? Colors.white : const Color(0xFF94A3B8),
-                      fontSize: 12,
-                      height: 1.25,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            _paymentMethod == 'RAZORPAY' ? 'Razorpay MF Gateway' : 'Bank Mandate',
+                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: mintGreen.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('FAST & SECURE', style: TextStyle(color: mintGreen, fontSize: 9, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _paymentMethod == 'RAZORPAY' ? 'UPI, NetBanking & Cards supported' : 'Monthly Auto-Debit via e-NACH',
+                        style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                      ),
+                    ],
                   ),
                 ),
                 GestureDetector(
