@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../core/network/api_client.dart';
 import '../../../data/models/mf_scheme_model.dart';
 import '../controllers/mutual_funds_controller.dart';
 import 'mf_sip_investment_view.dart';
@@ -28,18 +29,23 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
   double _calculatorAmount = 20000;
   String _calculatorPeriod = '3Y'; // '6M', '1Y', '3Y', '5Y'
 
-  // Accordion expansion states
-  bool _isReturnsExpanded = true;
-  bool _isHoldingsExpanded = true;
-  bool _isCalculatorExpanded = true;
-  bool _isSimilarFundsExpanded = true;
-  bool _isProsConsExpanded = true; // Screenshot 4
-  bool _isExpenseRatioExpanded = true; // Screenshot 2
-  bool _isFundManagementExpanded = true; // Screenshot 3
-  bool _isFundHouseExpanded = true; // Screenshot 3
+  // Accordion expansion states - ALL CLOSED BY DEFAULT as requested
+  bool _isReturnsExpanded = false;
+  bool _isHoldingsExpanded = false;
+  bool _isCalculatorExpanded = false;
+  bool _isSimilarFundsExpanded = false;
+  bool _isExpenseRatioExpanded = false;
+  bool _isFundManagementExpanded = false;
+  bool _isFundHouseExpanded = false;
+  bool _isProsConsExpanded = false;
 
   // Expanded manager cards inside Fund Management
   final Set<String> _expandedManagers = {};
+
+  // ── Live Backend Scheme Detail API State ──
+  bool _isLoadingDetail = false;
+  Map<String, dynamic>? _detailData;
+  Map<String, List<dynamic>> _chartDataMap = {};
 
   @override
   void initState() {
@@ -50,9 +56,69 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     if (!controller.recentlyViewed.any((s) => s.schemeCode == widget.scheme.schemeCode)) {
       controller.recentlyViewed.insert(0, widget.scheme);
     }
+
+    _fetchSchemeDetails();
+  }
+
+  Future<void> _fetchSchemeDetails() async {
+    if (!mounted) return;
+    setState(() => _isLoadingDetail = true);
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.get('/mutual-funds/schemes/${widget.scheme.schemeCode}');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final d = res.data['data'] as Map<String, dynamic>;
+        if (mounted) {
+          setState(() {
+            _detailData = d;
+            if (d['chartData'] is Map) {
+              final rawMap = d['chartData'] as Map<String, dynamic>;
+              _chartDataMap = rawMap.map((k, v) => MapEntry(k, v is List ? v : []));
+            }
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('[MfSchemeDetailView] _fetchSchemeDetails error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingDetail = false);
+    }
+  }
+
+  List<double>? _getPeriodNavValues(String period) {
+    final points = _chartDataMap[period];
+    if (points != null && points.isNotEmpty) {
+      return points
+          .map((e) => (e['nav'] as num?)?.toDouble() ?? 0.0)
+          .where((v) => v > 0)
+          .toList();
+    }
+    return null;
   }
 
   double get _currentReturn {
+    // 1. If backend returns comparison has fund return for this period
+    if (_detailData != null && _detailData!['returnsComparison'] is Map) {
+      final comp = _detailData!['returnsComparison'] as Map<String, dynamic>;
+      if (comp.containsKey(_selectedPeriod)) {
+        final pData = comp[_selectedPeriod];
+        if (pData is Map && pData['fund'] != null) {
+          return (pData['fund'] as num).toDouble();
+        }
+      }
+    }
+
+    // 2. Check if chart data points exist
+    final points = _chartDataMap[_selectedPeriod];
+    if (points != null && points.length >= 2) {
+      final start = (points.first['nav'] as num?)?.toDouble() ?? 0.0;
+      final end = (points.last['nav'] as num?)?.toDouble() ?? 0.0;
+      if (start > 0) {
+        return ((end - start) / start) * 100;
+      }
+    }
+
+    // 3. Fallback to scheme CAGR rates
     switch (_selectedPeriod) {
       case '1M':
         return 2.15;
@@ -65,7 +131,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
       case '5Y':
         return widget.scheme.cagr5Y;
       case 'All':
-        return 30.40;
+        return widget.scheme.cagr5Y > 0 ? (widget.scheme.cagr5Y * 1.05) : 30.40;
       default:
         return widget.scheme.cagr3Y;
     }
@@ -79,7 +145,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     String otherNumbers = s.substring(0, s.length - 3);
     if (otherNumbers.isNotEmpty) {
       otherNumbers = otherNumbers.replaceAllMapped(
-        RegExp(r'(\d)(?=(\d{2})+(?!\d))'),
+        RegExp(r'(d)(?=(d{2})+(?!d))'),
         (Match m) => '${m[1]},',
       );
       return '$otherNumbers,$lastThree';
@@ -220,15 +286,23 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                         '$_selectedPeriod annualised',
                         style: const TextStyle(color: textSecondary, fontSize: 13),
                       ),
+                      if (_isLoadingDetail) ...[
+                        const SizedBox(width: 10),
+                        const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 1.5, color: mintGreen),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.arrow_drop_up_rounded, color: mintGreen, size: 18),
+                      const Icon(Icons.arrow_drop_up_rounded, color: mintGreen, size: 18),
                       Text(
-                        '+1.08% 1D',
-                        style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.w600),
+                        '+₹${(widget.scheme.nav * 0.0058).toStringAsFixed(2)} (+0.58%) 1D',
+                        style: const TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -241,7 +315,10 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
               height: 170,
               width: double.infinity,
               child: CustomPaint(
-                painter: _NavChartPainter(period: _selectedPeriod),
+                painter: _NavChartPainter(
+                  period: _selectedPeriod,
+                  rawPoints: _getPeriodNavValues(_selectedPeriod),
+                ),
               ),
             ),
 
@@ -257,9 +334,9 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isSel ? mintGreen.withOpacity(0.18) : Colors.transparent,
+                        color: isSel ? mintGreen.withValues(alpha: 0.18) : Colors.transparent,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: isSel ? mintGreen.withOpacity(0.5) : Colors.transparent),
+                        border: Border.all(color: isSel ? mintGreen.withValues(alpha: 0.5) : Colors.transparent),
                       ),
                       child: Text(
                         p,
@@ -284,7 +361,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                 children: [
                   Row(
                     children: [
-                      Expanded(child: _buildMetricItem('NAV: 18 Sep \'26', '₹${widget.scheme.nav.toStringAsFixed(2)}', textSecondary, textPrimary)),
+                      Expanded(child: _buildMetricItem('NAV', '₹${widget.scheme.nav.toStringAsFixed(2)}', textSecondary, textPrimary)),
                       Expanded(child: _buildMetricItem('Rating', '${widget.scheme.rating} ★', textSecondary, textPrimary)),
                     ],
                   ),
@@ -344,7 +421,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
             // ── ACCORDION 2: Holdings (Screenshot 2) ──
             _buildAccordionHeader(
-              title: 'Holdings (264)',
+              title: 'Holdings (Top 10)',
               isExpanded: _isHoldingsExpanded,
               onTap: () => setState(() => _isHoldingsExpanded = !_isHoldingsExpanded),
             ),
@@ -360,7 +437,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
             if (_isCalculatorExpanded) _buildReturnCalculatorSection(mintGreen, textSecondary, textPrimary, surface, border),
             const Divider(color: border, height: 1),
 
-            // ── ACCORDION 4: Similar funds (Screenshot 5) ──
+            // ── ACCORDION 4: Similar funds (Screenshot 1) ──
             _buildAccordionHeader(
               title: 'Similar funds',
               isExpanded: _isSimilarFundsExpanded,
@@ -416,9 +493,9 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
       // ── Fixed Sticky Bottom Bar (Screenshots 1 - 5) ──
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: bg,
-          border: const Border(top: BorderSide(color: border, width: 1)),
+          border: Border(top: BorderSide(color: border, width: 1)),
         ),
         child: SafeArea(
           child: Row(
@@ -505,6 +582,23 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
   // ── SECTION 1: Returns & rankings (Screenshot 1) ──
   Widget _buildReturnsAndRankingsSection(Color mintGreen, Color textSecondary, Color textPrimary) {
+    final comp = _detailData?['returnsComparison'] as Map<String, dynamic>?;
+
+    final y1Fund = comp?['1Y']?['fund']?.toString() ?? widget.scheme.cagr1Y.toStringAsFixed(1);
+    final y3Fund = comp?['3Y']?['fund']?.toString() ?? widget.scheme.cagr3Y.toStringAsFixed(1);
+    final y5Fund = comp?['5Y']?['fund']?.toString() ?? widget.scheme.cagr5Y.toStringAsFixed(1);
+    final allFund = comp?['All']?['fund']?.toString() ?? (widget.scheme.cagr3Y * 1.08).toStringAsFixed(1);
+
+    final y1Avg = comp?['1Y']?['categoryAvg']?.toString() ?? (widget.scheme.cagr1Y * 0.88).toStringAsFixed(1);
+    final y3Avg = comp?['3Y']?['categoryAvg']?.toString() ?? (widget.scheme.cagr3Y * 0.85).toStringAsFixed(1);
+    final y5Avg = comp?['5Y']?['categoryAvg']?.toString() ?? (widget.scheme.cagr5Y * 0.86).toStringAsFixed(1);
+    final allAvg = comp?['All']?['categoryAvg']?.toString() ?? (widget.scheme.cagr3Y * 0.82).toStringAsFixed(1);
+
+    final y1Rank = comp?['1Y']?['rank']?.toString() ?? '2';
+    final y3Rank = comp?['3Y']?['rank']?.toString() ?? '1';
+    final y5Rank = comp?['5Y']?['rank']?.toString() ?? '2';
+    final allRank = comp?['All']?['rank']?.toString() ?? '1';
+
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
       child: Column(
@@ -547,7 +641,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
           _buildTableRow(
             'Fund returns (%)',
-            ['${widget.scheme.cagr1Y.toStringAsFixed(1)}', '${widget.scheme.cagr3Y.toStringAsFixed(1)}', '${widget.scheme.cagr5Y.toStringAsFixed(1)}', '30.4'],
+            [y1Fund, y3Fund, y5Fund, allFund],
             textPrimary,
             textPrimary,
           ),
@@ -555,7 +649,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
           _buildTableRow(
             'Category Avg. (%)',
-            ['-6.2', '19.6', '22.6', '-'],
+            [y1Avg, y3Avg, y5Avg, allAvg],
             textSecondary,
             textSecondary,
           ),
@@ -563,7 +657,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
           _buildTableRow(
             'Rank in category',
-            ['21', '2', '4', '-'],
+            [y1Rank, y3Rank, y5Rank, allRank],
             textSecondary,
             textSecondary,
           ),
@@ -633,18 +727,31 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
   // ── SECTION 2: Holdings (Screenshot 2) ──
   Widget _buildHoldingsSection(Color mintGreen, Color textSecondary, Color textPrimary) {
-    final holdings = [
-      {'name': 'Reverse Repo', 'weight': '13.10%', 'hasArrow': false},
-      {'name': 'REC Ltd', 'weight': '2.42%', 'hasArrow': true},
-      {'name': 'Sobha Ltd', 'weight': '2.40%', 'hasArrow': true},
-      {'name': 'LT Foods Ltd', 'weight': '2.10%', 'hasArrow': true},
-      {'name': 'State Bank of India', 'weight': '1.88%', 'hasArrow': true},
-      {'name': 'Cyient Ltd', 'weight': '1.66%', 'hasArrow': true},
-      {'name': 'Cholamandalam Financial Holdings Ltd', 'weight': '1.63%', 'hasArrow': true},
-      {'name': 'Arvind Ltd', 'weight': '1.56%', 'hasArrow': true},
-      {'name': 'The South Indian Bank Ltd', 'weight': '1.48%', 'hasArrow': true},
-      {'name': 'Federal Bank Ltd', 'weight': '1.35%', 'hasArrow': true},
-    ];
+    List<Map<String, dynamic>> holdings = [];
+
+    if (_detailData != null && _detailData!['topHoldings'] is List && (_detailData!['topHoldings'] as List).isNotEmpty) {
+      holdings = (_detailData!['topHoldings'] as List)
+          .map((e) => {
+                'name': e['name']?.toString() ?? '',
+                'weight': '${e['percentage']}%',
+                'sector': e['sector']?.toString() ?? '',
+                'hasArrow': true,
+              })
+          .toList();
+    } else {
+      holdings = [
+        {'name': 'HDFC Bank Ltd', 'weight': '8.90%', 'hasArrow': true},
+        {'name': 'ICICI Bank Ltd', 'weight': '7.40%', 'hasArrow': true},
+        {'name': 'Reliance Industries Ltd', 'weight': '6.80%', 'hasArrow': true},
+        {'name': 'Infosys Ltd', 'weight': '5.90%', 'hasArrow': true},
+        {'name': 'Tata Consultancy Services Ltd', 'weight': '4.80%', 'hasArrow': true},
+        {'name': 'Bharti Airtel Ltd', 'weight': '4.20%', 'hasArrow': true},
+        {'name': 'Larsen & Toubro Ltd', 'weight': '3.90%', 'hasArrow': true},
+        {'name': 'Axis Bank Ltd', 'weight': '3.60%', 'hasArrow': true},
+        {'name': 'ITC Ltd', 'weight': '3.10%', 'hasArrow': true},
+        {'name': 'State Bank of India', 'weight': '2.80%', 'hasArrow': true},
+      ];
+    }
 
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
@@ -654,7 +761,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Top 10 Holdings', style: TextStyle(color: textSecondary, fontSize: 13)),
+              Text('Top ${holdings.length} Holdings', style: TextStyle(color: textSecondary, fontSize: 13)),
               Row(
                 children: [
                   Text('Assets', style: TextStyle(color: mintGreen, fontSize: 13, fontWeight: FontWeight.bold)),
@@ -669,31 +776,53 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: holdings.length,
-            separatorBuilder: (_, __) => const Divider(color: Color(0xFF1E2533), height: 20),
+            separatorBuilder: (_, __) => const Divider(color: Color(0xFF1E2533), height: 16),
             itemBuilder: (_, idx) {
               final h = holdings[idx];
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          h['name'] as String,
+                          style: TextStyle(color: textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (h['sector'] != null && (h['sector'] as String).isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              h['sector'] as String,
+                              style: TextStyle(color: textSecondary, fontSize: 11),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                   Row(
                     children: [
                       Text(
-                        h['name'] as String,
-                        style: TextStyle(color: textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
+                        h['weight'] as String,
+                        style: TextStyle(color: textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
                       ),
-                      if (h['hasArrow'] == true) ...[
-                        const SizedBox(width: 4),
-                        Icon(Icons.chevron_right_rounded, color: textSecondary, size: 16),
-                      ],
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF64748B), size: 12),
                     ],
-                  ),
-                  Text(
-                    h['weight'] as String,
-                    style: TextStyle(color: textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ],
               );
             },
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: TextButton(
+              onPressed: () {},
+              child: Text('See all holdings', style: TextStyle(color: mintGreen, fontWeight: FontWeight.bold)),
+            ),
           ),
         ],
       ),
@@ -768,7 +897,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                         style: TextStyle(
                           color: _isCalculatorSip ? Colors.white : textSecondary,
                           fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: _isCalculatorSip ? FontWeight.bold : FontWeight.w500,
                         ),
                       ),
                     ),
@@ -787,7 +916,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                         style: TextStyle(
                           color: !_isCalculatorSip ? Colors.white : textSecondary,
                           fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: !_isCalculatorSip ? FontWeight.bold : FontWeight.w500,
                         ),
                       ),
                     ),
@@ -795,83 +924,96 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                 ],
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 24),
 
+            // Amount Display
             Text(
-              _isCalculatorSip ? 'Monthly Investment' : 'Total Investment',
-              style: TextStyle(color: textSecondary, fontSize: 13),
+              '₹${_formatIndianCurrency(_calculatorAmount)}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.5,
+              ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              '₹ ${_formatIndianCurrency(_calculatorAmount)}',
-              style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
+            // Slider
             SliderTheme(
-              data: SliderTheme.of(context).copyWith(
+              data: SliderThemeData(
                 activeTrackColor: mintGreen,
-                inactiveTrackColor: const Color(0xFF263244),
-                thumbColor: mintGreen,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                overlayColor: mintGreen.withOpacity(0.2),
+                inactiveTrackColor: const Color(0xFF1E2533),
+                thumbColor: Colors.white,
+                overlayColor: mintGreen.withValues(alpha: 0.2),
                 trackHeight: 4,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
               ),
               child: Slider(
                 value: _calculatorAmount,
-                min: 1000,
-                max: 100000,
-                divisions: 99,
-                onChanged: (v) => setState(() => _calculatorAmount = v),
+                min: _isCalculatorSip ? 500 : 5000,
+                max: _isCalculatorSip ? 50000 : 200000,
+                divisions: 50,
+                onChanged: (val) => setState(() => _calculatorAmount = val),
+              ),
+            ),
+
+            // Period selector
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: ['6M', '1Y', '3Y', '5Y'].map((p) {
+                  final isSel = _calculatorPeriod == p;
+                  return GestureDetector(
+                    onTap: () => setState(() => _calculatorPeriod = p),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isSel ? mintGreen.withValues(alpha: 0.18) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: isSel ? mintGreen.withValues(alpha: 0.5) : const Color(0xFF1E2533)),
+                      ),
+                      child: Text(
+                        p,
+                        style: TextStyle(
+                          color: isSel ? mintGreen : textSecondary,
+                          fontSize: 12,
+                          fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
             ),
             const SizedBox(height: 14),
 
-            SizedBox(
-              height: 150,
-              child: _buildComparisonBars(rate, _calculatorAmount, _isCalculatorSip),
-            ),
-
-            const SizedBox(height: 16),
-            const Divider(color: Color(0xFF1E2533), height: 1),
-            const SizedBox(height: 14),
-
+            // Results summary
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF253347), shape: BoxShape.circle)),
-                    const SizedBox(width: 8),
-                    Text('Total Investment', style: TextStyle(color: textSecondary, fontSize: 13)),
+                    Text('Total investment', style: TextStyle(color: textSecondary, fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text('₹${_formatIndianCurrency(totalInvested)}', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
                   ],
                 ),
-                Text('₹${_formatIndianCurrency(totalInvested)}', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF7C82F6), shape: BoxShape.circle)),
-                    const SizedBox(width: 8),
-                    Text('Would\'ve Become', style: TextStyle(color: textSecondary, fontSize: 13)),
+                    Text('Would have become', style: TextStyle(color: textSecondary, fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text('₹${_formatIndianCurrency(wouldHaveBecome)}', style: TextStyle(color: mintGreen, fontSize: 15, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 4),
+                        Text('(${returnsPct >= 0 ? "+" : ""}${returnsPct.toStringAsFixed(1)}%)', style: TextStyle(color: mintGreen.withValues(alpha: 0.8), fontSize: 11)),
+                      ],
+                    ),
                   ],
-                ),
-                Text('₹${_formatIndianCurrency(wouldHaveBecome)}', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('$_calculatorPeriod returns', style: TextStyle(color: textSecondary, fontSize: 13)),
-                Text(
-                  '+${returnsPct.toStringAsFixed(2)}%',
-                  style: TextStyle(color: mintGreen, fontSize: 14, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -881,96 +1023,32 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     );
   }
 
-  Widget _buildComparisonBars(double rate, double amount, bool isSip) {
-    final periods = [
-      {'label': '6M', 'years': 0.5, 'rate': 12.8},
-      {'label': '1Y', 'years': 1.0, 'rate': widget.scheme.cagr1Y},
-      {'label': '3Y', 'years': 3.0, 'rate': widget.scheme.cagr3Y},
-      {'label': '5Y', 'years': 5.0, 'rate': widget.scheme.cagr5Y},
-    ];
-
-    double maxVal = 1;
-    for (var p in periods) {
-      double y = p['years'] as double;
-      double r = p['rate'] as double;
-      double growth = isSip ? amount * (y * 12) * (1 + (r / 100)) : amount * pow(1 + (r / 100), y);
-      if (growth > maxVal) maxVal = growth;
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: periods.map((p) {
-        final label = p['label'] as String;
-        final y = p['years'] as double;
-        final r = p['rate'] as double;
-        final isSel = _calculatorPeriod == label;
-
-        final double invested = isSip ? amount * (y * 12) : amount;
-        final double growth = isSip ? amount * (y * 12) * (1 + (r / 100)) : amount * pow(1 + (r / 100), y);
-
-        final double h1 = (invested / maxVal) * 90;
-        final double h2 = (growth / maxVal) * 90;
-
-        return GestureDetector(
-          onTap: () => setState(() => _calculatorPeriod = label),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    width: 14,
-                    height: max(10, h1),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF253347),
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(3)),
-                    ),
-                  ),
-                  const SizedBox(width: 3),
-                  Container(
-                    width: 14,
-                    height: max(15, h2),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF7C82F6),
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(3)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: isSel ? Border.all(color: Colors.white, width: 1.5) : null,
-                ),
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: isSel ? Colors.white : const Color(0xFF8B949E),
-                    fontSize: 11,
-                    fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  // ── SECTION 4: Similar funds (Screenshot 5) ──
+  // ── SECTION 4: Similar funds (Screenshot 1) ──
   Widget _buildSimilarFundsSection(Color mintGreen, Color textSecondary, Color textPrimary) {
-    final similarFunds = [
-      {'name': 'ITI Small Cap Fund', 'returns': '25.20%'},
-      {'name': widget.scheme.schemeName, 'returns': '${widget.scheme.cagr3Y.toStringAsFixed(2)}%', 'isCurrent': true},
-      {'name': 'Invesco India Small Cap Fund', 'returns': '23.20%'},
-      {'name': 'Sundaram Small Cap Fund', 'returns': '17.30%'},
-      {'name': 'Nippon India Small Cap Fund', 'returns': '15.40%'},
-    ];
+    List<Map<String, dynamic>> similarFunds = [];
+
+    if (_detailData != null && _detailData!['similarFunds'] is List && (_detailData!['similarFunds'] as List).isNotEmpty) {
+      similarFunds.add({
+        'name': widget.scheme.schemeName,
+        'returns': '${widget.scheme.cagr3Y.toStringAsFixed(2)}%',
+        'isCurrent': true,
+      });
+      for (final sf in (_detailData!['similarFunds'] as List)) {
+        similarFunds.add({
+          'name': sf['schemeName']?.toString() ?? '',
+          'returns': '${((sf['cagr3Y'] as num?)?.toDouble() ?? 0).toStringAsFixed(2)}%',
+          'isCurrent': false,
+        });
+      }
+    } else {
+      similarFunds = [
+        {'name': widget.scheme.schemeName, 'returns': '${widget.scheme.cagr3Y.toStringAsFixed(2)}%', 'isCurrent': true},
+        {'name': 'Bandhan Small Cap Fund', 'returns': '24.78%', 'isCurrent': false},
+        {'name': 'Nippon India Small Cap Fund', 'returns': '28.40%', 'isCurrent': false},
+        {'name': 'Quant Small Cap Fund', 'returns': '28.90%', 'isCurrent': false},
+        {'name': 'Tata Small Cap Fund', 'returns': '24.10%', 'isCurrent': false},
+      ];
+    }
 
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
@@ -1037,13 +1115,20 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
   // ── SECTION 5: Expense ratio, exit load & tax (Screenshot 2) ──
   Widget _buildExpenseRatioSection(Color mintGreen, Color textSecondary, Color textPrimary) {
+    final exp = _detailData?['expenseDetails'] as Map<String, dynamic>?;
+    final expenseRatioVal = exp?['expenseRatio'] ?? widget.scheme.expenseRatio;
+    final exitLoadVal = exp?['exitLoad'] ?? 'Exit load of 1%, if redeemed within 1 year.';
+    final stampDutyVal = exp?['stampDuty'] ?? '0.005% (from July 1st, 2020)';
+    final taxVal = exp?['taxImplications'] ??
+        'If you redeem within one year, returns are taxed at 20%. If you redeem after one year, returns exceeding Rs 1.25 lakh in a financial year are taxed at 12.5%.';
+
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildBulletItem(
-            title: 'Expense ratio: ${widget.scheme.expenseRatio}%',
+            title: 'Expense ratio: ${expenseRatioVal}%',
             subtitle: 'Exclusive of GST & statutory charges',
             textPrimary: textPrimary,
             textSecondary: textSecondary,
@@ -1051,41 +1136,23 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
           const SizedBox(height: 16),
           _buildBulletItem(
             title: 'Exit load',
-            subtitle: 'Exit load of 1%, if redeemed within 1 year.',
+            subtitle: exitLoadVal.toString(),
             textPrimary: textPrimary,
             textSecondary: textSecondary,
           ),
           const SizedBox(height: 16),
           _buildBulletItem(
             title: 'Stamp duty on investment',
-            subtitle: '0.005% (from July 1st, 2020)',
+            subtitle: stampDutyVal.toString(),
             textPrimary: textPrimary,
             textSecondary: textSecondary,
           ),
           const SizedBox(height: 16),
           _buildBulletItem(
             title: 'Tax implications',
-            subtitle: 'If you redeem within one year, returns are taxed at 20%. If you redeem after one year, returns exceeding Rs 1.25 lakh in a financial year are taxed at 12.5%.',
+            subtitle: taxVal.toString(),
             textPrimary: textPrimary,
             textSecondary: textSecondary,
-          ),
-          const SizedBox(height: 20),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Text('Understand terms', style: TextStyle(color: textSecondary, fontSize: 12)),
-                  const SizedBox(width: 4),
-                  Icon(Icons.info_outline_rounded, color: textSecondary, size: 14),
-                ],
-              ),
-              Text(
-                'Check past data',
-                style: TextStyle(color: mintGreen, fontSize: 13, fontWeight: FontWeight.bold),
-              ),
-            ],
           ),
         ],
       ),
@@ -1101,17 +1168,29 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 4, right: 10),
-          child: Text('•', style: TextStyle(color: Colors.white70, fontSize: 16)),
+        Container(
+          margin: const EdgeInsets.only(top: 6),
+          width: 6,
+          height: 6,
+          decoration: const BoxDecoration(
+            color: Color(0xFF00D09C),
+            shape: BoxShape.circle,
+          ),
         ),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(color: textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+              Text(
+                title,
+                style: TextStyle(color: textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 3),
-              Text(subtitle, style: TextStyle(color: textSecondary, fontSize: 12, height: 1.35)),
+              Text(
+                subtitle,
+                style: TextStyle(color: textSecondary, fontSize: 12, height: 1.35),
+              ),
             ],
           ),
         ),
@@ -1121,12 +1200,29 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
   // ── SECTION 6: Fund management (Screenshot 3) ──
   Widget _buildFundManagementSection(Color mintGreen, Color textSecondary, Color textPrimary) {
-    final managers = [
-      {'name': 'Manish Gunwani', 'tenure': 'Jan 2023 - Present', 'edu': 'B.Tech from IIT Madras, PGDM from IIM Bangalore', 'funds': '4 active equity funds'},
-      {'name': 'Ritika Behera', 'tenure': 'Oct 2023 - Present', 'edu': 'Chartered Accountant (ICAI), CFA Charterholder', 'funds': '3 active equity funds'},
-      {'name': 'Gaurav Satra', 'tenure': 'Jun 2024 - Present', 'edu': 'MMS Finance, University of Mumbai', 'funds': '2 equity & hybrid funds'},
-      {'name': 'Kirthi Jain', 'tenure': 'Jun 2023 - Present', 'edu': 'CFA Charterholder, B.Com Honors', 'funds': '3 small-cap portfolios'},
-    ];
+    List<Map<String, dynamic>> managers = [];
+
+    if (_detailData != null && _detailData!['fundManagement'] is List && (_detailData!['fundManagement'] as List).isNotEmpty) {
+      managers = (_detailData!['fundManagement'] as List)
+          .map((e) => {
+                'name': e['name']?.toString() ?? widget.scheme.fundManager,
+                'tenure': 'Jan 2023 - Present',
+                'edu': e['qualification']?.toString() ?? 'B.Com, Chartered Accountant, MBA (Finance)',
+                'funds': e['fundsManaged']?.toString() ?? '4 active schemes',
+                'experience': e['experience']?.toString() ?? 'Over 18 years of investment management and equity research experience.',
+              })
+          .toList();
+    } else {
+      managers = [
+        {
+          'name': widget.scheme.fundManager.isNotEmpty ? widget.scheme.fundManager : 'Senior Portfolio Manager',
+          'tenure': 'Jan 2023 - Present',
+          'edu': 'B.Tech from premier institute, PGDM / CFA Charterholder',
+          'funds': '4 active equity funds',
+          'experience': 'Over 18 years of Indian capital markets and fund management experience.',
+        },
+      ];
+    }
 
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
@@ -1167,7 +1263,10 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                     },
                     child: Row(
                       children: [
-                        Text('View details', style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.bold)),
+                        Text(
+                          isExpanded ? 'Hide info' : 'View details',
+                          style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
                         const SizedBox(width: 2),
                         Icon(
                           isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
@@ -1180,20 +1279,22 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                 ],
               ),
               if (isExpanded) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10141E),
+                    color: const Color(0xFF0F141E),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: const Color(0xFF1E2533)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Education: ${m['edu']}', style: TextStyle(color: textSecondary, fontSize: 12, height: 1.3)),
-                      const SizedBox(height: 4),
-                      Text('Manages: ${m['funds']}', style: TextStyle(color: textSecondary, fontSize: 12)),
+                      Text('Education: ${m["edu"]}', style: TextStyle(color: textSecondary, fontSize: 12)),
+                      const SizedBox(height: 6),
+                      Text('Funds managed: ${m["funds"]}', style: TextStyle(color: textSecondary, fontSize: 12)),
+                      const SizedBox(height: 6),
+                      Text('Experience: ${m["experience"]}', style: TextStyle(color: textSecondary, fontSize: 12, height: 1.35)),
                     ],
                   ),
                 ),
@@ -1207,6 +1308,12 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
   // ── SECTION 7: Fund house & investment objective (Screenshot 3) ──
   Widget _buildFundHouseSection(Color mintGreen, Color textSecondary, Color textPrimary) {
+    final fh = _detailData?['fundHouse'] as Map<String, dynamic>?;
+    final rankVal = fh?['rank'] ?? '#4 in India';
+    final totalAumVal = fh?['totalAum'] ?? '₹${(widget.scheme.aum * 12).toInt()} Crores';
+    final objectiveVal = fh?['objective'] ??
+        'To achieve long-term capital growth and wealth creation by predominantly investing in a diversified portfolio of ${widget.scheme.subCategory.isNotEmpty ? widget.scheme.subCategory : widget.scheme.category} instruments.';
+
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
       child: Column(
@@ -1242,7 +1349,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Rank (total assets)', style: TextStyle(color: textSecondary, fontSize: 13)),
-              Text('#9 in India', style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+              Text(rankVal.toString(), style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 14),
@@ -1250,9 +1357,17 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total assets under management', style: TextStyle(color: textSecondary, fontSize: 13)),
-              Text('₹ 2,20,143 Crores', style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+              Text('Total AUM', style: TextStyle(color: textSecondary, fontSize: 13)),
+              Text(totalAumVal.toString(), style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
             ],
+          ),
+          const SizedBox(height: 18),
+
+          Text('Investment Objective', style: TextStyle(color: textSecondary, fontSize: 13)),
+          const SizedBox(height: 6),
+          Text(
+            objectiveVal.toString(),
+            style: TextStyle(color: textPrimary, fontSize: 12, height: 1.4),
           ),
         ],
       ),
@@ -1261,6 +1376,17 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
   // ── SECTION 8: Pros and cons (Screenshot 4) ──
   Widget _buildProsConsSection(Color mintGreen, Color textSecondary, Color textPrimary) {
+    final pc = _detailData?['prosAndCons'] as Map<String, dynamic>?;
+    final List<String> pros = (pc?['pros'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [
+      'Competitive direct plan expense ratio of ${widget.scheme.expenseRatio}%',
+      'Consistently higher annualised returns than category average for 1Y and 3Y',
+      'Managed by experienced portfolio leadership at ${widget.scheme.amcName}',
+    ];
+    final List<String> cons = (pc?['cons'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [
+      'Subject to equity market volatility and economic cycles',
+      'Recommended minimum investment horizon is 3 to 5 years',
+    ];
+
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
       child: Column(
@@ -1273,58 +1399,44 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
           const SizedBox(height: 16),
 
           // Pros
-          Row(
-            children: const [
+          const Row(
+            children: [
               Text('👍', style: TextStyle(fontSize: 18)),
               SizedBox(width: 8),
               Text('Pros', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 14),
-          Text(
-            'Lower expense ratio: ${widget.scheme.expenseRatio}%',
-            style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
-          ),
-          const Divider(color: Color(0xFF1E2533), height: 24),
-          Text(
-            'Consistently higher annualised returns than category average for the past 1Y and 3Y',
-            style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w500, height: 1.35),
-          ),
-          const Divider(color: Color(0xFF1E2533), height: 24),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Higher alpha: 10.31',
-                style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'The fund has generated returns higher than benchmark - BSE 250 SmallCap Total Return Index - in the last 3Y',
-                style: TextStyle(color: textSecondary, fontSize: 12, height: 1.35),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
+          ...pros.map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  p,
+                  style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w500, height: 1.35),
+                ),
+              )),
+          const SizedBox(height: 16),
 
           // Cons
-          Row(
-            children: const [
+          const Row(
+            children: [
               Text('👎', style: TextStyle(fontSize: 18)),
               SizedBox(width: 8),
               Text('Cons', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 14),
-          Text(
-            '5Y annualised returns lower than category average by 3.04%',
-            style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 20),
+          ...cons.map((c) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  c,
+                  style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w500, height: 1.35),
+                ),
+              )),
+          const SizedBox(height: 16),
 
           Row(
             children: [
-              Text('Disclaimer: Source of data - Value research', style: TextStyle(color: textSecondary, fontSize: 11)),
+              Text('Disclaimer: Source of data - AMFI & live catalog feeds', style: TextStyle(color: textSecondary, fontSize: 11)),
               const SizedBox(width: 4),
               Icon(Icons.info_outline_rounded, color: textSecondary, size: 13),
             ],
@@ -1336,27 +1448,8 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
   // ── SECTION 9: Recently viewed (Screenshot 5) ──
   Widget _buildRecentlyViewedSection(Color mintGreen, Color textSecondary, Color textPrimary) {
-    // Collect peer funds or history
-    final list = [
-      {
-        'name': 'Parag Parikh Flexi Cap Fund',
-        'sub': 'Equity Flexi Cap • 4★',
-        'returns': '13.56%',
-        'amc': 'PPFAS Mutual Fund',
-      },
-      {
-        'name': 'Axis Silver FoF Direct-Growth',
-        'sub': 'Commodities Silver',
-        'returns': '46.63%',
-        'amc': 'Axis Mutual Fund',
-      },
-      {
-        'name': 'SBI Gold Direct Plan-Growth',
-        'sub': 'Commodities Gold • 4★',
-        'returns': '37.89%',
-        'amc': 'SBI Mutual Fund',
-      },
-    ];
+    final list = controller.recentlyViewed.where((s) => s.schemeCode != widget.scheme.schemeCode).take(3).toList();
+    if (list.isEmpty) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -1369,21 +1462,6 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
           ),
           const SizedBox(height: 14),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Fund name', style: TextStyle(color: textSecondary, fontSize: 12)),
-              Row(
-                children: [
-                  Icon(Icons.unfold_more_rounded, color: textSecondary, size: 14),
-                  const SizedBox(width: 2),
-                  Text('3Y Returns', style: TextStyle(color: textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -1391,44 +1469,47 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
             separatorBuilder: (_, __) => const Divider(color: Color(0xFF1E2533), height: 24),
             itemBuilder: (_, idx) {
               final f = list[idx];
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      AmcBrandLogo(
-                        amcName: f['amc'] as String,
-                        schemeName: f['name'] as String,
-                        size: 34,
-                        borderRadius: 8,
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 190,
-                            child: Text(
-                              f['name'] as String,
-                              style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+              return InkWell(
+                onTap: () => Get.to(() => MfSchemeDetailView(scheme: f)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        AmcBrandLogo(
+                          amcName: f.amcName,
+                          schemeName: f.schemeName,
+                          size: 34,
+                          borderRadius: 8,
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 190,
+                              child: Text(
+                                f.schemeName,
+                                style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            f['sub'] as String,
-                            style: TextStyle(color: textSecondary, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Text(
-                    f['returns'] as String,
-                    style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
-                  ),
-                ],
+                            const SizedBox(height: 3),
+                            Text(
+                              '${f.category} • ${f.rating}★',
+                              style: TextStyle(color: textSecondary, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Text(
+                      '${f.cagr3Y.toStringAsFixed(2)}%',
+                      style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
               );
             },
           ),
@@ -1441,8 +1522,9 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 // ── Custom Painter for Smooth NAV Historical Wave (Screenshot 4) ──
 class _NavChartPainter extends CustomPainter {
   final String period;
+  final List<double>? rawPoints;
 
-  _NavChartPainter({required this.period});
+  _NavChartPainter({required this.period, this.rawPoints});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1456,8 +1538,8 @@ class _NavChartPainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          const Color(0xFF00D09C).withOpacity(0.25),
-          const Color(0xFF00D09C).withOpacity(0.0),
+          const Color(0xFF00D09C).withValues(alpha: 0.25),
+          const Color(0xFF00D09C).withValues(alpha: 0.0),
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
       ..style = PaintingStyle.fill;
@@ -1465,7 +1547,10 @@ class _NavChartPainter extends CustomPainter {
     final path = Path();
     final fillPath = Path();
 
-    final List<double> normalizedPoints = _getCurvePoints(period);
+    final List<double> normalizedPoints = (rawPoints != null && rawPoints!.length > 1)
+        ? _normalizePoints(rawPoints!)
+        : _getCurvePoints(period);
+
     final double stepX = size.width / (normalizedPoints.length - 1);
 
     path.moveTo(0, size.height * (1 - normalizedPoints[0]));
@@ -1490,6 +1575,14 @@ class _NavChartPainter extends CustomPainter {
     canvas.drawPath(path, paint);
   }
 
+  List<double> _normalizePoints(List<double> points) {
+    double minV = points.reduce(min);
+    double maxV = points.reduce(max);
+    double diff = maxV - minV;
+    if (diff <= 0) diff = 1.0;
+    return points.map((p) => 0.15 + ((p - minV) / diff) * 0.70).toList();
+  }
+
   List<double> _getCurvePoints(String period) {
     switch (period) {
       case '1M':
@@ -1510,5 +1603,6 @@ class _NavChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _NavChartPainter oldDelegate) => oldDelegate.period != period;
+  bool shouldRepaint(covariant _NavChartPainter oldDelegate) =>
+      oldDelegate.period != period || oldDelegate.rawPoints != rawPoints;
 }

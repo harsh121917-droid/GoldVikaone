@@ -17,18 +17,21 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
   late TabController _tabController;
   final MutualFundsController controller = Get.put(MutualFundsController());
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   bool _isSearchOpen = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    // Explicit "View more funds" button used instead of auto-scroll
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -161,6 +164,16 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                             hintText: 'Search schemes, fund houses, ELSS...',
                             hintStyle: const TextStyle(color: GrowwColors.textTertiary, fontSize: 13),
                             prefixIcon: const Icon(Icons.search_rounded, color: GrowwColors.mintTeal, size: 20),
+                            suffixIcon: _searchController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.close_rounded, color: GrowwColors.textSecondary, size: 18),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      controller.clearSearch();
+                                      setState(() {});
+                                    },
+                                  )
+                                : null,
                             filled: true,
                             fillColor: GrowwColors.card,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -227,6 +240,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
       final filtered = controller.filteredSchemes;
 
       return ListView(
+        controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
           // ── A. Hero SIP Banner Card ──
@@ -390,7 +404,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${filtered.length} funds',
+                controller.totalSchemesCount.value > 0 ? '${controller.totalSchemesCount.value} funds' : '${filtered.length} funds',
                 style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
               ),
               GestureDetector(
@@ -420,16 +434,124 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           const SizedBox(height: 10),
 
           // List of Funds
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: filtered.length,
-            separatorBuilder: (_, __) => const Divider(color: GrowwColors.border, height: 1),
-            itemBuilder: (context, index) {
-              final scheme = filtered[index];
-              return _buildSchemeListItem(scheme);
-            },
-          ),
+          if (filtered.isEmpty && !controller.isLoading.value)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+              alignment: Alignment.center,
+              child: Column(
+                children: [
+                  const Icon(Icons.search_off_rounded, color: GrowwColors.textSecondary, size: 48),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'No mutual funds found',
+                    style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Try searching with another scheme name or fund house',
+                    style: TextStyle(color: GrowwColors.textTertiary, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    onPressed: () {
+                      _searchController.clear();
+                      controller.clearSearch();
+                      setState(() {});
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: GrowwColors.mintTeal),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('Clear Search', style: TextStyle(color: GrowwColors.mintTeal)),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filtered.length,
+              separatorBuilder: (_, __) => const Divider(color: GrowwColors.border, height: 1),
+              itemBuilder: (context, index) {
+                final scheme = filtered[index];
+                return _buildSchemeListItem(scheme);
+              },
+            ),
+
+            // Pagination "View more funds" button & end of list indicator
+            Obx(() {
+              if (filtered.isEmpty) return const SizedBox.shrink();
+
+              if (controller.hasMore.value) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 18, bottom: 26, left: 4, right: 4),
+                  child: Center(
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: OutlinedButton(
+                        onPressed: controller.isLoadingMore.value ? null : () => controller.loadMoreSchemes(),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: const Color(0xFF131A29),
+                          side: const BorderSide(color: Color(0xFF263248), width: 1.2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: controller.isLoadingMore.value
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: GrowwColors.mintTeal),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Loading next 20 funds...',
+                                    style: TextStyle(color: GrowwColors.mintTeal, fontSize: 14, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'View more funds (${filtered.length} of ${controller.totalSchemesCount.value > 0 ? controller.totalSchemesCount.value : "1,800+"})',
+                                    style: const TextStyle(
+                                      color: GrowwColors.mintTeal,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Icon(Icons.keyboard_arrow_down_rounded, color: GrowwColors.mintTeal, size: 20),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Container(width: 40, height: 2, color: GrowwColors.border),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Showing all ${controller.totalSchemesCount.value > 0 ? controller.totalSchemesCount.value : filtered.length} mutual funds',
+                        style: const TextStyle(color: GrowwColors.textTertiary, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
         ],
       );
     });
@@ -749,7 +871,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
             return Obx(() {
               final isSelected = controller.selectedFilterChip.value == chip;
               return GestureDetector(
-                onTap: () => controller.selectedFilterChip.value = chip,
+                onTap: () => controller.onFilterChipSelected(chip),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   margin: const EdgeInsets.only(right: 8),

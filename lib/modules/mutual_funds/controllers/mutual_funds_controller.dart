@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -10,6 +11,14 @@ class MutualFundsController extends GetxController {
   final RxBool isPortfolioLoading = false.obs;
   final RxBool isSubmittingOrder = false.obs;
   final RxBool isUccLoading = false.obs;
+
+  // ── Pagination & Search State ──
+  final RxInt currentPage = 1.obs;
+  final RxInt totalPages = 1.obs;
+  final RxInt totalSchemesCount = 0.obs;
+  final RxBool isLoadingMore = false.obs;
+  final RxBool hasMore = true.obs;
+  Timer? _debounceTimer;
 
   final RxString selectedCategory = 'All'.obs;
   final RxString selectedFilterChip = 'All'.obs;
@@ -69,52 +78,7 @@ class MutualFundsController extends GetxController {
   }
 
   List<MfSchemeModel> get filteredSchemes {
-    var list = List<MfSchemeModel>.from(schemes);
-
-    // Search query filter
-    if (searchQuery.value.trim().isNotEmpty) {
-      final q = searchQuery.value.toLowerCase().trim();
-      list = list.where((s) =>
-          s.schemeName.toLowerCase().contains(q) ||
-          s.amcName.toLowerCase().contains(q) ||
-          s.category.toLowerCase().contains(q)).toList();
-    }
-
-    // Category filter
-    if (selectedCategory.value != 'All') {
-      list = list.where((s) => s.category.toLowerCase().contains(selectedCategory.value.toLowerCase())).toList();
-    }
-
-    // Filter chips
-    final chip = selectedFilterChip.value;
-    if (chip == 'Small Cap') {
-      list = list.where((s) => s.schemeName.toLowerCase().contains('small cap') || s.category.toLowerCase().contains('small')).toList();
-    } else if (chip == 'Mid Cap') {
-      list = list.where((s) => s.schemeName.toLowerCase().contains('mid cap') || s.schemeName.toLowerCase().contains('midcap')).toList();
-    } else if (chip == 'Large Cap') {
-      list = list.where((s) => s.schemeName.toLowerCase().contains('large') || s.schemeName.toLowerCase().contains('bluechip')).toList();
-    } else if (chip == 'Flexi Cap') {
-      list = list.where((s) => s.schemeName.toLowerCase().contains('flexi')).toList();
-    } else if (chip == 'Gold & Silver') {
-      list = list.where((s) => s.schemeName.toLowerCase().contains('gold') || s.schemeName.toLowerCase().contains('silver') || s.category.toLowerCase().contains('commodity')).toList();
-    } else if (chip == 'Index only') {
-      list = list.where((s) => s.schemeName.toLowerCase().contains('index') || s.schemeName.toLowerCase().contains('nifty')).toList();
-    } else if (chip == 'High Return') {
-      list = list.where((s) => s.cagr3Y >= 20.0).toList();
-    }
-
-    // Sort
-    if (selectedSort.value == '3Y Returns') {
-      list.sort((a, b) => b.cagr3Y.compareTo(a.cagr3Y));
-    } else if (selectedSort.value == '1Y Returns') {
-      list.sort((a, b) => b.cagr1Y.compareTo(a.cagr1Y));
-    } else if (selectedSort.value == 'Rating') {
-      list.sort((a, b) => b.rating.compareTo(a.rating));
-    } else if (selectedSort.value == 'Min. SIP (Low to High)') {
-      list.sort((a, b) => a.minSipAmount.compareTo(b.minSipAmount));
-    }
-
-    return list;
+    return schemes;
   }
 
   void toggleWatchlist(String schemeCode) {
@@ -131,17 +95,45 @@ class MutualFundsController extends GetxController {
     if (recentlyViewed.length > 6) recentlyViewed.removeLast();
   }
 
-  // ── Fetch Schemes ──
-  Future<void> fetchSchemes({String? category, String? search}) async {
-    isLoading.value = true;
+  // ── Fetch Schemes with Server Pagination & Live Search ──
+  Future<void> fetchSchemes({
+    String? category,
+    String? search,
+    int page = 1,
+    bool isRefresh = false,
+  }) async {
+    if (isRefresh || page == 1) {
+      isLoading.value = true;
+      currentPage.value = 1;
+      hasMore.value = true;
+    } else {
+      if (isLoadingMore.value || !hasMore.value) return;
+      isLoadingMore.value = true;
+    }
+
     try {
       final dio = ApiClient.instance;
       final cat = category ?? selectedCategory.value;
       final q = search ?? searchQuery.value;
 
-      final queryParams = <String, dynamic>{};
+      final queryParams = <String, dynamic>{
+        'page': page,
+        'limit': 20,
+      };
       if (cat != 'All') queryParams['category'] = cat;
-      if (q.isNotEmpty) queryParams['search'] = q;
+      if (q.trim().isNotEmpty) queryParams['search'] = q.trim();
+
+      if (selectedSort.value == '3Y Returns') {
+        queryParams['sort'] = 'returns3y';
+      } else if (selectedSort.value == '1Y Returns') {
+        queryParams['sort'] = 'returns1y';
+      } else if (selectedSort.value == '5Y Returns') {
+        queryParams['sort'] = 'returns5y';
+      } else if (selectedSort.value == 'Rating') {
+        queryParams['sort'] = 'rating';
+      } else if (selectedSort.value == 'NAV') {
+        queryParams['sort'] = 'nav';
+      }
 
       final res = await dio.get('/mutual-funds/schemes', queryParameters: queryParams);
       if (res.statusCode == 200 && res.data['success'] == true) {
@@ -149,23 +141,37 @@ class MutualFundsController extends GetxController {
                 ?.map((e) => MfSchemeModel.fromJson(e as Map<String, dynamic>))
                 .toList() ??
             [];
-        if (list.isNotEmpty) {
+
+        totalSchemesCount.value = res.data['total'] ?? list.length;
+        totalPages.value = res.data['pages'] ?? 1;
+        currentPage.value = res.data['page'] ?? page;
+        hasMore.value = currentPage.value < totalPages.value;
+
+        if (page == 1) {
           schemes.assignAll(list);
         } else {
-          schemes.assignAll(_getDefaultSchemes());
+          final existingCodes = schemes.map((s) => s.schemeCode).toSet();
+          for (final item in list) {
+            if (!existingCodes.contains(item.schemeCode)) {
+              schemes.add(item);
+            }
+          }
         }
-      } else {
-        schemes.assignAll(_getDefaultSchemes());
       }
     } catch (e) {
-      debugPrint('[MutualFundsController] fetchSchemes error: $e. Using verified funds catalog.');
-      schemes.assignAll(_getDefaultSchemes());
+      debugPrint('[MutualFundsController] fetchSchemes error: $e');
     } finally {
       if (recentlyViewed.isEmpty && schemes.isNotEmpty) {
         recentlyViewed.assignAll(schemes.take(3));
       }
       isLoading.value = false;
+      isLoadingMore.value = false;
     }
+  }
+
+  Future<void> loadMoreSchemes() async {
+    if (isLoading.value || isLoadingMore.value || !hasMore.value) return;
+    await fetchSchemes(page: currentPage.value + 1);
   }
 
   // ── Verified Default Schemes Matching Reference Groww Catalog ──
@@ -537,11 +543,39 @@ class MutualFundsController extends GetxController {
 
   void onCategorySelected(String cat) {
     selectedCategory.value = cat;
-    fetchSchemes();
+    fetchSchemes(category: cat, page: 1, isRefresh: true);
   }
 
   void onSearchChanged(String query) {
     searchQuery.value = query;
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+      fetchSchemes(search: query, page: 1, isRefresh: true);
+    });
+  }
+
+  void clearSearch() {
+    searchQuery.value = '';
+    _debounceTimer?.cancel();
+    fetchSchemes(search: '', page: 1, isRefresh: true);
+  }
+
+  void onFilterChipSelected(String chip) {
+    selectedFilterChip.value = chip;
+    if (chip == 'All') {
+      fetchSchemes(search: '', page: 1, isRefresh: true);
+    } else if (chip == 'High Return') {
+      selectedSort.value = '3Y Returns';
+      fetchSchemes(page: 1, isRefresh: true);
+    } else {
+      fetchSchemes(search: chip, page: 1, isRefresh: true);
+    }
+  }
+
+  @override
+  void onClose() {
+    _debounceTimer?.cancel();
+    super.onClose();
   }
 
   // ── Reset Test Account (Sandbox Helper) ──
