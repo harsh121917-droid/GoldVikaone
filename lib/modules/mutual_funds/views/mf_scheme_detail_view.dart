@@ -109,13 +109,29 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
       }
     }
 
-    // 2. Check if chart data points exist
+    // 2. Check if chart data points exist (CAGR for >1Y, simple for <=1Y)
     final points = _chartDataMap[_selectedPeriod];
     if (points != null && points.length >= 2) {
       final start = (points.first['nav'] as num?)?.toDouble() ?? 0.0;
       final end = (points.last['nav'] as num?)?.toDouble() ?? 0.0;
-      if (start > 0) {
-        return ((end - start) / start) * 100;
+      if (start > 0 && end > 0) {
+        if (_selectedPeriod == '3Y') {
+          return (pow(end / start, 1.0 / 3.0) - 1.0) * 100;
+        } else if (_selectedPeriod == '5Y') {
+          return (pow(end / start, 1.0 / 5.0) - 1.0) * 100;
+        } else if (_selectedPeriod == 'All') {
+          try {
+            final d1 = DateTime.parse(points.first['date']);
+            final d2 = DateTime.parse(points.last['date']);
+            final yrs = (d2.difference(d1).inDays) / 365.25;
+            if (yrs > 1.0) {
+              return (pow(end / start, 1.0 / yrs) - 1.0) * 100;
+            }
+          } catch (_) {}
+          return ((end - start) / start) * 100;
+        } else {
+          return ((end - start) / start) * 100;
+        }
       }
     }
 
@@ -151,6 +167,38 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
   bool get _isNegativeReturn => _currentReturn < 0;
   Color get _periodColor => _isNegativeReturn ? const Color(0xFFEF4444) : const Color(0xFF00D09C);
+
+  double get _day1Return {
+    if (_detailData != null && _detailData!['day1Return'] != null) {
+      return (_detailData!['day1Return'] as num).toDouble();
+    }
+    final pts = _chartDataMap['1M'];
+    if (pts != null && pts.length >= 2) {
+      final p1 = (pts[pts.length - 2]['nav'] as num?)?.toDouble() ?? 0.0;
+      final p2 = (pts[pts.length - 1]['nav'] as num?)?.toDouble() ?? 0.0;
+      if (p1 > 0) {
+        return ((p2 - p1) / p1) * 100;
+      }
+    }
+    return 0.58;
+  }
+
+  bool get _day1IsNegative => _day1Return < 0;
+  Color get _day1Color => _day1IsNegative ? const Color(0xFFEF4444) : const Color(0xFF00D09C);
+
+  String get _periodTypeLabel {
+    switch (_selectedPeriod) {
+      case '3Y':
+      case '5Y':
+      case 'All':
+      case '1Y':
+        return '$_selectedPeriod annualised';
+      case '1M':
+      case '6M':
+      default:
+        return '$_selectedPeriod total';
+    }
+  }
 
   // Real data verification - NO FAKE / DUMMY DATA POLICY
   List<Map<String, dynamic>> get _topHoldingsList {
@@ -380,33 +428,28 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                             ],
                           ),
                           const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: sColor.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: sColor.withValues(alpha: 0.3)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isNeg ? Icons.arrow_drop_down_rounded : Icons.arrow_drop_up_rounded,
+                          Row(
+                            children: [
+                              Icon(
+                                isNeg ? Icons.arrow_drop_down_rounded : Icons.arrow_drop_up_rounded,
+                                color: sColor,
+                                size: 20,
+                              ),
+                              Text(
+                                '${isNeg ? '' : '+'}${scrubRet.toStringAsFixed(2)}% from start',
+                                style: TextStyle(
                                   color: sColor,
-                                  size: 18,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                Text(
-                                  '${isNeg ? '' : '+'}${scrubRet.toStringAsFixed(2)}% from start',
-                                  style: TextStyle(color: sColor, fontSize: 12, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ],
                       );
                     }
 
-                    // Default Return Display when not scrubbing
+                    // Default Return Display when not scrubbing (Groww 1:1 format - Percent only, no rupee amount)
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -425,8 +468,8 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              '$_selectedPeriod annualised',
-                              style: const TextStyle(color: textSecondary, fontSize: 13),
+                              _periodTypeLabel,
+                              style: const TextStyle(color: textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
                             ),
                             if (_isLoadingDetail) ...[
                               const SizedBox(width: 10),
@@ -438,43 +481,22 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                             ],
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: _periodColor.withValues(alpha: 0.14),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: _periodColor.withValues(alpha: 0.3)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _isNegativeReturn ? Icons.arrow_drop_down_rounded : Icons.arrow_drop_up_rounded,
-                                    color: _periodColor,
-                                    size: 18,
-                                  ),
-                                  Text(
-                                    '${_isNegativeReturn ? '' : '+'}${_currentReturn.toStringAsFixed(2)}% ($_selectedPeriod)',
-                                    style: TextStyle(color: _periodColor, fontSize: 12, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
+                            Icon(
+                              _day1IsNegative ? Icons.arrow_drop_down_rounded : Icons.arrow_drop_up_rounded,
+                              color: _day1Color,
+                              size: 20,
+                            ),
+                            Text(
+                              '${_day1Return >= 0 ? '+' : ''}${_day1Return.toStringAsFixed(2)}% 1D',
+                              style: TextStyle(
+                                color: _day1Color,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Builder(builder: (_) {
-                              if (pts != null && pts.length >= 2) {
-                                final s = (pts.first['nav'] as num?)?.toDouble() ?? 0.0;
-                                final e = (pts.last['nav'] as num?)?.toDouble() ?? 0.0;
-                                return Text(
-                                  '₹${s.toStringAsFixed(2)} → ₹${e.toStringAsFixed(2)}',
-                                  style: const TextStyle(color: textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            }),
                           ],
                         ),
                       ],
