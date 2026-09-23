@@ -21,6 +21,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
   // Period selector: '1M', '6M', '1Y', '3Y', '5Y', 'All'
   String _selectedPeriod = '3Y';
+  int? _scrubIndex;
   bool _isBookmarked = false;
   bool _isAnnualised = true;
 
@@ -218,6 +219,17 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     return lastThree;
   }
 
+  void _updateScrub(double dx, double width) {
+    final pts = _chartDataMap[_selectedPeriod];
+    if (pts == null || pts.isEmpty || width <= 0) return;
+    final clampedX = dx.clamp(0.0, width);
+    final ratio = clampedX / width;
+    final idx = (ratio * (pts.length - 1)).round().clamp(0, pts.length - 1);
+    if (_scrubIndex != idx) {
+      setState(() => _scrubIndex = idx);
+    }
+  }
+
   void _toggleBookmark() {
     setState(() {
       _isBookmarked = !_isBookmarked;
@@ -332,63 +344,172 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                   ),
                   const SizedBox(height: 18),
 
-                  // Big Return Display
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        '${_currentReturn >= 0 ? '+' : ''}${_currentReturn.toStringAsFixed(2)}%',
-                        style: TextStyle(
-                          color: _periodColor,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -0.5,
+                  // Big Return & Interactive Scrub Display
+                  Builder(builder: (_) {
+                    final pts = _chartDataMap[_selectedPeriod];
+                    if (_scrubIndex != null && pts != null && _scrubIndex! < pts.length) {
+                      final p = pts[_scrubIndex!];
+                      final double activeNav = (p['nav'] as num?)?.toDouble() ?? widget.scheme.nav;
+                      final String activeDate = p['date']?.toString() ?? '';
+                      final double startNav = (pts.first['nav'] as num?)?.toDouble() ?? activeNav;
+                      final double scrubRet = startNav > 0 ? ((activeNav - startNav) / startNav) * 100 : 0.0;
+                      final bool isNeg = scrubRet < 0;
+                      final Color sColor = isNeg ? const Color(0xFFEF4444) : const Color(0xFF00D09C);
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                '₹${activeNav.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                activeDate,
+                                style: const TextStyle(color: textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: sColor.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: sColor.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isNeg ? Icons.arrow_drop_down_rounded : Icons.arrow_drop_up_rounded,
+                                  color: sColor,
+                                  size: 18,
+                                ),
+                                Text(
+                                  '${isNeg ? '' : '+'}${scrubRet.toStringAsFixed(2)}% from start',
+                                  style: TextStyle(color: sColor, fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    // Default Return Display when not scrubbing
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              '${_currentReturn >= 0 ? '+' : ''}${_currentReturn.toStringAsFixed(2)}%',
+                              style: TextStyle(
+                                color: _periodColor,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '$_selectedPeriod annualised',
+                              style: const TextStyle(color: textSecondary, fontSize: 13),
+                            ),
+                            if (_isLoadingDetail) ...[
+                              const SizedBox(width: 10),
+                              const SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(strokeWidth: 1.5, color: mintGreen),
+                              ),
+                            ],
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$_selectedPeriod annualised',
-                        style: const TextStyle(color: textSecondary, fontSize: 13),
-                      ),
-                      if (_isLoadingDetail) ...[
-                        const SizedBox(width: 10),
-                        const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(strokeWidth: 1.5, color: mintGreen),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: _periodColor.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: _periodColor.withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _isNegativeReturn ? Icons.arrow_drop_down_rounded : Icons.arrow_drop_up_rounded,
+                                    color: _periodColor,
+                                    size: 18,
+                                  ),
+                                  Text(
+                                    '${_isNegativeReturn ? '' : '+'}${_currentReturn.toStringAsFixed(2)}% ($_selectedPeriod)',
+                                    style: TextStyle(color: _periodColor, fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Builder(builder: (_) {
+                              if (pts != null && pts.length >= 2) {
+                                final s = (pts.first['nav'] as num?)?.toDouble() ?? 0.0;
+                                final e = (pts.last['nav'] as num?)?.toDouble() ?? 0.0;
+                                return Text(
+                                  '₹${s.toStringAsFixed(2)} → ₹${e.toStringAsFixed(2)}',
+                                  style: const TextStyle(color: textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            }),
+                          ],
                         ),
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        _isNegativeReturn ? Icons.arrow_drop_down_rounded : Icons.arrow_drop_up_rounded,
-                        color: _periodColor,
-                        size: 20,
-                      ),
-                      Text(
-                        '${_isNegativeReturn ? '-' : '+'}₹${(widget.scheme.nav * 0.0058).toStringAsFixed(2)} (${_isNegativeReturn ? '-' : '+'}0.58%) 1D',
-                        style: TextStyle(color: _periodColor, fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
+                    );
+                  }),
                 ],
               ),
             ),
 
-            // ── Interactive NAV Historical Graph (Screenshot 4) ──
+            // ── Sharp High-Definition NAV Historical Graph with Touch Scrubbing ──
             SizedBox(
-              height: 170,
+              height: 180,
               width: double.infinity,
-              child: CustomPaint(
-                painter: _NavChartPainter(
-                  period: _selectedPeriod,
-                  rawPoints: _getPeriodNavValues(_selectedPeriod),
-                  chartColor: _periodColor,
-                ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final chartWidth = constraints.maxWidth;
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onPanStart: (d) => _updateScrub(d.localPosition.dx, chartWidth),
+                    onPanUpdate: (d) => _updateScrub(d.localPosition.dx, chartWidth),
+                    onPanEnd: (_) => setState(() => _scrubIndex = null),
+                    onPanCancel: () => setState(() => _scrubIndex = null),
+                    onTapDown: (d) => _updateScrub(d.localPosition.dx, chartWidth),
+                    onTapUp: (_) => setState(() => _scrubIndex = null),
+                    child: CustomPaint(
+                      size: Size(chartWidth, 180),
+                      painter: _NavChartPainter(
+                        period: _selectedPeriod,
+                        rawPoints: _getPeriodNavValues(_selectedPeriod),
+                        chartColor: _periodColor,
+                        scrubIndex: _scrubIndex,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
 
@@ -1575,11 +1696,13 @@ class _NavChartPainter extends CustomPainter {
   final String period;
   final List<double>? rawPoints;
   final Color chartColor;
+  final int? scrubIndex;
 
   _NavChartPainter({
     required this.period,
     this.rawPoints,
     this.chartColor = const Color(0xFF00D09C),
+    this.scrubIndex,
   });
 
   @override
@@ -1587,6 +1710,9 @@ class _NavChartPainter extends CustomPainter {
     final paint = Paint()
       ..color = chartColor
       ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..isAntiAlias = true
       ..style = PaintingStyle.stroke;
 
     final fillPaint = Paint()
@@ -1594,7 +1720,7 @@ class _NavChartPainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          chartColor.withValues(alpha: 0.25),
+          chartColor.withValues(alpha: 0.18),
           chartColor.withValues(alpha: 0.0),
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
@@ -1613,15 +1739,12 @@ class _NavChartPainter extends CustomPainter {
     fillPath.moveTo(0, size.height);
     fillPath.lineTo(0, size.height * (1 - normalizedPoints[0]));
 
-    for (int i = 0; i < normalizedPoints.length - 1; i++) {
-      final p0x = i * stepX;
-      final p0y = size.height * (1 - normalizedPoints[i]);
-      final p1x = (i + 1) * stepX;
-      final p1y = size.height * (1 - normalizedPoints[i + 1]);
-
-      final midX = (p0x + p1x) / 2;
-      path.cubicTo(midX, p0y, midX, p1y, p1x, p1y);
-      fillPath.cubicTo(midX, p0y, midX, p1y, p1x, p1y);
+    // Sharp connecting line segments
+    for (int i = 1; i < normalizedPoints.length; i++) {
+      final px = i * stepX;
+      final py = size.height * (1 - normalizedPoints[i]);
+      path.lineTo(px, py);
+      fillPath.lineTo(px, py);
     }
 
     fillPath.lineTo(size.width, size.height);
@@ -1629,6 +1752,36 @@ class _NavChartPainter extends CustomPainter {
 
     canvas.drawPath(fillPath, fillPaint);
     canvas.drawPath(path, paint);
+
+    // Interactive Touch Scrubber Indicator
+    if (scrubIndex != null && scrubIndex! >= 0 && scrubIndex! < normalizedPoints.length) {
+      final sx = scrubIndex! * stepX;
+      final sy = size.height * (1 - normalizedPoints[scrubIndex!]);
+
+      // Vertical guideline
+      final guidePaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.35)
+        ..strokeWidth = 1.0;
+      canvas.drawLine(Offset(sx, 0), Offset(sx, size.height), guidePaint);
+
+      // Outer halo
+      final haloPaint = Paint()
+        ..color = chartColor.withValues(alpha: 0.28)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(sx, sy), 8.0, haloPaint);
+
+      // Inner dot
+      final dotPaint = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(sx, sy), 4.5, dotPaint);
+
+      final dotBorder = Paint()
+        ..color = chartColor
+        ..strokeWidth = 2.0
+        ..style = PaintingStyle.stroke;
+      canvas.drawCircle(Offset(sx, sy), 4.5, dotBorder);
+    }
   }
 
   List<double> _normalizePoints(List<double> points) {
@@ -1636,30 +1789,46 @@ class _NavChartPainter extends CustomPainter {
     double maxV = points.reduce(max);
     double diff = maxV - minV;
     if (diff <= 0) diff = 1.0;
-    return points.map((p) => 0.15 + ((p - minV) / diff) * 0.70).toList();
+    return points.map((p) => 0.12 + ((p - minV) / diff) * 0.76).toList();
   }
 
   List<double> _getCurvePoints(String period) {
     final bool isRed = chartColor.toARGB32() == const Color(0xFFEF4444).toARGB32();
     if (isRed) {
-      // Declining wave for negative period return
-      return [0.68, 0.64, 0.59, 0.53, 0.49, 0.44, 0.39, 0.32];
+      // Realistic sharp downward market trend
+      return [
+        0.72, 0.70, 0.74, 0.68, 0.65, 0.69, 0.62, 0.58, 0.61, 0.55, 0.52, 0.56,
+        0.48, 0.45, 0.49, 0.42, 0.38, 0.41, 0.35, 0.32
+      ];
     }
+    // Realistic sharp upward market trends
     switch (period) {
       case '1M':
-        return [0.45, 0.48, 0.44, 0.50, 0.53, 0.49, 0.58, 0.62];
+        return [0.42, 0.45, 0.43, 0.48, 0.46, 0.52, 0.50, 0.55, 0.53, 0.58, 0.56, 0.62];
       case '6M':
-        return [0.35, 0.38, 0.32, 0.44, 0.40, 0.52, 0.60, 0.72];
+        return [0.32, 0.35, 0.30, 0.38, 0.42, 0.39, 0.46, 0.44, 0.52, 0.49, 0.58, 0.65, 0.62, 0.72];
       case '1Y':
-        return [0.25, 0.30, 0.28, 0.42, 0.38, 0.55, 0.68, 0.82];
+        return [0.22, 0.28, 0.25, 0.32, 0.30, 0.38, 0.44, 0.40, 0.50, 0.48, 0.58, 0.64, 0.60, 0.70, 0.78, 0.84];
       case '3Y':
-        return [0.15, 0.28, 0.35, 0.32, 0.50, 0.45, 0.65, 0.75, 0.70, 0.88, 0.94];
+        return [
+          0.12, 0.18, 0.15, 0.22, 0.20, 0.28, 0.25, 0.35, 0.32, 0.42, 0.38, 0.48,
+          0.44, 0.55, 0.50, 0.62, 0.58, 0.68, 0.64, 0.75, 0.72, 0.82, 0.78, 0.88,
+          0.85, 0.94
+        ];
       case '5Y':
-        return [0.10, 0.20, 0.18, 0.32, 0.42, 0.38, 0.60, 0.72, 0.85, 0.95];
+        return [
+          0.08, 0.14, 0.12, 0.20, 0.18, 0.26, 0.24, 0.32, 0.30, 0.40, 0.38, 0.48,
+          0.45, 0.56, 0.52, 0.64, 0.60, 0.70, 0.68, 0.78, 0.75, 0.85, 0.82, 0.92,
+          0.90, 0.96
+        ];
       case 'All':
-        return [0.08, 0.15, 0.22, 0.35, 0.30, 0.48, 0.62, 0.78, 0.88, 0.98];
+        return [
+          0.06, 0.12, 0.10, 0.18, 0.16, 0.24, 0.22, 0.32, 0.28, 0.38, 0.36, 0.46,
+          0.44, 0.54, 0.50, 0.62, 0.58, 0.68, 0.66, 0.76, 0.74, 0.84, 0.82, 0.92,
+          0.90, 0.98
+        ];
       default:
-        return [0.20, 0.35, 0.45, 0.40, 0.60, 0.55, 0.75, 0.85, 0.80, 0.95];
+        return [0.20, 0.28, 0.35, 0.42, 0.40, 0.52, 0.60, 0.68, 0.75, 0.85, 0.92];
     }
   }
 
@@ -1667,5 +1836,6 @@ class _NavChartPainter extends CustomPainter {
   bool shouldRepaint(covariant _NavChartPainter oldDelegate) =>
       oldDelegate.period != period ||
       oldDelegate.rawPoints != rawPoints ||
-      oldDelegate.chartColor != chartColor;
+      oldDelegate.chartColor != chartColor ||
+      oldDelegate.scrubIndex != scrubIndex;
 }
