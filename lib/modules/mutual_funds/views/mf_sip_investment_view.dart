@@ -184,13 +184,31 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF3B82F6), size: 22),
+              ),
+              title: const Text('NSE Official Payment Gateway (NetBanking / UPI)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              subtitle: const Text('Official NSE MFSS Payment & Authorization Link', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 12, fontWeight: FontWeight.w500)),
+              trailing: _paymentMethod == 'NSE_GATEWAY' ? Icon(Icons.check_circle_rounded, color: mintGreen) : null,
+              onTap: () {
+                setState(() => _paymentMethod = 'NSE_GATEWAY');
+                Navigator.pop(context);
+              },
+            ),
+            const Divider(color: Color(0xFF1E2638)),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
                   color: mintGreen.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.bolt_rounded, color: mintGreen, size: 22),
+                child: Icon(Icons.science_outlined, color: mintGreen, size: 22),
               ),
-              title: const Text('Razorpay MF Gateway (Instant UPI / NetBanking / Cards)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-              subtitle: Text('Fast & 100% Secure via Razorpay Mutual Funds', style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.w500)),
+              title: const Text('Razorpay MF Gateway (Sandbox Testing)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              subtitle: Text('Instant UPI / QR / NetBanking (Test Sandbox)', style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.w500)),
               trailing: _paymentMethod == 'RAZORPAY' ? Icon(Icons.check_circle_rounded, color: mintGreen) : null,
               onTap: () {
                 setState(() => _paymentMethod = 'RAZORPAY');
@@ -199,7 +217,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
             ),
             const Divider(color: Color(0xFF1E2638)),
             ListTile(
-              leading: const Icon(Icons.account_balance_rounded, color: Color(0xFF94A3B8)),
+              leading: const Icon(Icons.autorenew_rounded, color: Color(0xFF94A3B8)),
               title: Text('$bName (Auto-Debit)', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
               subtitle: Text('A/C ••••$accNo • e-NACH Mandate for Auto-Debit', style: const TextStyle(color: Colors.white60, fontSize: 12)),
               trailing: _paymentMethod == 'MANDATE' ? Icon(Icons.check_circle_rounded, color: mintGreen) : null,
@@ -242,6 +260,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
         installmentAmount: _amount,
         frequency: 'MONTHLY',
         startDate: startDate.isAfter(now) ? startDate : DateTime(now.year, now.month + 1, _selectedDay),
+        paymentMode: _paymentMethod,
       );
       if (success) {
         Navigator.pop(context);

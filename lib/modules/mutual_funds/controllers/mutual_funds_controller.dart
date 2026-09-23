@@ -457,6 +457,28 @@ class MutualFundsController extends GetxController {
         final rzpOrderId = data?['razorpayOrderId']?.toString();
         final rzpKey = data?['key']?.toString();
 
+        final paymentLink = data?['paymentLink']?.toString();
+
+        // If user chose NSE Official Gateway / payment link
+        if (paymentMode == 'NSE_GATEWAY' || paymentMode == 'NSE_PAYMENT_LINK') {
+          if (paymentLink != null && paymentLink.isNotEmpty) {
+            final uri = Uri.parse(paymentLink);
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          }
+          Get.snackbar(
+            'NSE Official Payment Link',
+            'Payment link opened in browser. Please authorize transaction.',
+            backgroundColor: const Color(0xFF00D09C),
+            colorText: Colors.black,
+            snackPosition: SnackPosition.BOTTOM,
+            duration: const Duration(seconds: 5),
+          );
+          fetchPortfolio();
+          return true;
+        }
+
         if (rzpOrderId != null && rzpOrderId.isNotEmpty && rzpKey != null && rzpKey.isNotEmpty) {
           final user = Get.isRegistered<AuthService>() ? Get.find<AuthService>().currentUser : null;
           final orderId = data['order']?['orderId'] ?? rzpOrderId;
@@ -534,6 +556,7 @@ class MutualFundsController extends GetxController {
     DateTime? startDate,
     bool stepUpRequired = false,
     double stepUpAmount = 0,
+    String paymentMode = 'RAZORPAY',
   }) async {
     isSubmittingOrder.value = true;
     try {
@@ -545,6 +568,7 @@ class MutualFundsController extends GetxController {
         'startDate': startDate?.toIso8601String(),
         'stepUpRequired': stepUpRequired,
         'stepUpAmount': stepUpAmount,
+        'paymentMode': paymentMode,
       });
 
       if (res.statusCode == 200 && res.data['success'] == true) {
@@ -553,7 +577,30 @@ class MutualFundsController extends GetxController {
         final rzpKey = data?['key']?.toString();
         final sipId = data?['sipId']?.toString() ?? data?['sip']?['_id']?.toString();
 
-        if (rzpOrderId != null && rzpOrderId.isNotEmpty && rzpKey != null && rzpKey.isNotEmpty) {
+        final paymentLink = data?['paymentLink']?.toString();
+
+        // If user chose NSE Official Gateway / payment link
+        if (paymentMode == 'NSE_GATEWAY' || paymentMode == 'NSE_PAYMENT_LINK') {
+          if (paymentLink != null && paymentLink.isNotEmpty) {
+            final uri = Uri.parse(paymentLink);
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          }
+          Get.snackbar(
+            'NSE Payment Link Opened',
+            'Official NSE XSIP mandate / payment link opened in browser.',
+            backgroundColor: const Color(0xFF00D09C),
+            colorText: Colors.black,
+            snackPosition: SnackPosition.BOTTOM,
+            duration: const Duration(seconds: 5),
+          );
+          fetchPortfolio();
+          return true;
+        }
+
+        // Razorpay for testing
+        if (paymentMode == 'RAZORPAY' && rzpOrderId != null && rzpOrderId.isNotEmpty && rzpKey != null && rzpKey.isNotEmpty) {
           final user = Get.isRegistered<AuthService>() ? Get.find<AuthService>().currentUser : null;
           _pendingCheckout = {
             'type': 'SIP',

@@ -283,10 +283,10 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
             const SizedBox(height: 8),
             Row(
               children: [
-                _buildPayModeChip('RAZORPAY', Icons.bolt_rounded),
-                const SizedBox(width: 10),
-                _buildPayModeChip('UPI', Icons.qr_code_rounded),
-                const SizedBox(width: 10),
+                _buildPayModeChip('RAZORPAY', Icons.science_outlined),
+                const SizedBox(width: 8),
+                _buildPayModeChip('NSE_GATEWAY', Icons.account_balance_wallet_rounded),
+                const SizedBox(width: 8),
                 _buildPayModeChip('MANDATE', Icons.autorenew_rounded),
               ],
             ),
@@ -381,6 +381,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                               startDate: startDate.isAfter(now) ? startDate : DateTime(now.year, now.month + 1, _selectedDay),
                               stepUpRequired: _stepUp,
                               stepUpAmount: _stepUp ? _stepUpAmount : 0,
+                              paymentMode: _paymentMode,
                             );
                             if (success) Get.back();
                           } else {
