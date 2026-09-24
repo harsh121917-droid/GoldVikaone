@@ -511,7 +511,6 @@ class MutualFundsController extends GetxController {
         }
 
         // Fallback: If no Razorpay keys configured
-        final paymentLink = data?['paymentLink']?.toString();
         if (paymentLink != null && paymentLink.isNotEmpty) {
           final uri = Uri.parse(paymentLink);
           if (await canLaunchUrl(uri)) {
