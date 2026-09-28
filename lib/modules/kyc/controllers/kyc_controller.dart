@@ -157,7 +157,9 @@ class KycController extends GetxController {
                 Get.back();
                 final picked = await _picker.pickImage(
                   source: ImageSource.camera,
-                  imageQuality: 80,
+                  maxWidth: 1400,
+                  maxHeight: 1400,
+                  imageQuality: 70,
                 );
                 if (picked != null) target.value = File(picked.path);
               },
@@ -169,7 +171,9 @@ class KycController extends GetxController {
                 Get.back();
                 final picked = await _picker.pickImage(
                   source: ImageSource.gallery,
-                  imageQuality: 80,
+                  maxWidth: 1400,
+                  maxHeight: 1400,
+                  imageQuality: 70,
                 );
                 if (picked != null) target.value = File(picked.path);
               },
@@ -267,11 +271,16 @@ class KycController extends GetxController {
         );
       }
     } on DioException catch (e) {
+      String msg = e.response?.data?['message'] ?? 'Submission failed';
+      if (e.response?.statusCode == 413) {
+        msg = 'Upload payload too large (413). Images have been compressed, please re-select and try again.';
+      }
       Get.snackbar(
         'Error',
-        e.response?.data?['message'] ?? 'Submission failed',
+        msg,
         backgroundColor: const Color(0xFFE53E3E),
         colorText: const Color(0xFFFFFFFF),
+        duration: const Duration(seconds: 5),
       );
     } catch (e) {
       Get.snackbar(
@@ -337,11 +346,16 @@ class KycController extends GetxController {
         );
       }
     } on DioException catch (e) {
+      String msg = e.response?.data?['message'] ?? 'Submission failed';
+      if (e.response?.statusCode == 413) {
+        msg = 'Upload payload too large (413). Images have been compressed, please re-select and try again.';
+      }
       Get.snackbar(
         'Error',
-        e.response?.data?['message'] ?? 'Submission failed',
+        msg,
         backgroundColor: const Color(0xFFE53E3E),
         colorText: const Color(0xFFFFFFFF),
+        duration: const Duration(seconds: 5),
       );
     } catch (e) {
       Get.snackbar(

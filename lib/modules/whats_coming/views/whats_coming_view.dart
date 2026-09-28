@@ -50,13 +50,13 @@ class _WhatsComingViewState extends State<WhatsComingView> {
 
   // Exact Mutual Funds that have authentic image assets in assets/images/Mutual_Funds
   final List<String> _amcImages = [
-    'assets/images/Mutual_Funds/sbi_mutual.jfif',
-    'assets/images/Mutual_Funds/icici_mutual.jpg',
-    'assets/images/Mutual_Funds/dsp_mutual.png',
-    'assets/images/Mutual_Funds/uti_mutual.jpeg',
-    'assets/images/Mutual_Funds/motilal_oswal_mutual.png',
-    'assets/images/Mutual_Funds/adiya_bilra_mutual.png',
-    'assets/images/Mutual_Funds/edelweiss_mutual.png',
+    'assets/images/Mutual_Funds/mf_sbi.png',
+    'assets/images/Mutual_Funds/mf_icici.png',
+    'assets/images/Mutual_Funds/mf_dsp.png',
+    'assets/images/Mutual_Funds/mf_uti_mutual.png',
+    'assets/images/Mutual_Funds/mf_motilal_oswal.jpg',
+    'assets/images/Mutual_Funds/mf_adiya_bilra.png',
+    'assets/images/Mutual_Funds/mf_edelweiss.png',
     'assets/images/Mutual_Funds/BSE.gif',
   ];
 

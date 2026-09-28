@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/mf_scheme_model.dart';
 import '../controllers/mutual_funds_controller.dart';
-import 'mf_ucc_onboarding_view.dart';
 
 class MfSipInvestmentView extends StatefulWidget {
   final MfSchemeModel scheme;
@@ -21,6 +20,7 @@ class MfSipInvestmentView extends StatefulWidget {
 class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
   final MutualFundsController controller = Get.find<MutualFundsController>();
 
+  late bool _isSip;
   String _amountStr = '1000';
   int _selectedDay = 25; // Default 25th of every month as shown in screenshot
   String _paymentMethod = 'RAZORPAY';
@@ -30,8 +30,10 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
   @override
   void initState() {
     super.initState();
-    final minAmount = widget.isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
+    _isSip = widget.isSip;
+    final minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
     _amountStr = minAmount.toInt().toString();
+    controller.checkUserUcc();
   }
 
   double get _amount => double.tryParse(_amountStr) ?? 0.0;
@@ -234,16 +236,16 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
   }
 
   Future<void> _submitOrder() async {
-    if (!controller.hasUcc.value) {
-      final res = await Get.to(() => const MfUccOnboardingView());
-      if (res != true) return;
+    if (!controller.hasUcc.value || controller.onboardingStep.value == 1) {
+      controller.showUccRequiredDialog();
+      return;
     }
 
-    final double minAmount = widget.isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
+    final double minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
     if (_amount < minAmount) {
       Get.snackbar(
         'Minimum Amount Required',
-        'Minimum ${widget.isSip ? "SIP" : "investment"} amount for this fund is ₹${minAmount.toInt()}',
+        'Minimum ${_isSip ? "SIP" : "investment"} amount for this fund is ₹${minAmount.toInt()}',
         backgroundColor: Colors.redAccent,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -251,7 +253,31 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
       return;
     }
 
-    if (widget.isSip) {
+    if (_isSip) {
+      // Pre-check for Bank AutoPay Mandate (Step 2 of Onboarding)
+      if (controller.onboardingStep.value == 2) {
+        controller.showMandateRequiredDialog(
+          context,
+          onSwitchToLumpSum: () {
+            setState(() {
+              _isSip = false;
+              final minAmt = widget.scheme.minPurchaseAmount;
+              if (_amount < minAmt) {
+                _amountStr = minAmt.toInt().toString();
+              }
+            });
+            Get.snackbar(
+              'Switched to One-Time Lump Sum',
+              'You can now invest immediately via UPI / NetBanking without waiting for a bank mandate.',
+              backgroundColor: const Color(0xFF00D09C),
+              colorText: Colors.black,
+              duration: const Duration(seconds: 4),
+            );
+          },
+        );
+        return;
+      }
+
       final now = DateTime.now();
       final startDate = DateTime(now.year, now.month, _selectedDay);
       final success = await controller.registerSipOrder(
@@ -286,7 +312,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     const textSecondary = Color(0xFF8B949E);
     const mintGreen = Color(0xFF00D09C);
 
-    final double minAmount = widget.isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
+    final double minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
     final bool isValidAmount = _amount >= minAmount;
 
     return Scaffold(
@@ -299,11 +325,41 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _isSip = !_isSip;
+                  final minAmt = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
+                  if (_amount < minAmt) {
+                    _amountStr = minAmt.toInt().toString();
+                  }
+                });
+              },
+              icon: Icon(
+                _isSip ? Icons.swap_horiz_rounded : Icons.autorenew_rounded,
+                size: 16,
+                color: mintGreen,
+              ),
+              label: Text(
+                _isSip ? 'One-time' : 'Switch to SIP',
+                style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              style: TextButton.styleFrom(
+                backgroundColor: mintGreen.withOpacity(0.12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              ),
+            ),
+          ),
+        ],
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.isSip ? 'SIP' : 'One-time Investment',
+              _isSip ? 'SIP' : 'One-time Investment',
               style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 2),
@@ -543,7 +599,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                         child: controller.isSubmittingOrder.value
                             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
                             : Text(
-                                widget.isSip ? 'Start SIP' : 'Invest Now',
+                                _isSip ? 'Start SIP' : 'Invest Now',
                                 style: TextStyle(
                                   color: isValidAmount ? Colors.black : const Color(0xFF3B564C),
                                   fontSize: 15,

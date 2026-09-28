@@ -38,37 +38,133 @@ class AmcBrandLogo extends StatelessWidget {
     final lowerAmc = amcName.toLowerCase();
     final lowerScheme = (schemeName ?? '').toLowerCase();
 
-    // Map known AMCs to local asset images
+    // Map known AMCs to local asset images in assets/images/Mutual_Funds/
     String? assetPath;
     if (lowerAmc.contains('hdfc') || lowerScheme.contains('hdfc')) {
-      assetPath = 'assets/images/Mutual_Funds/mf_amc_hdfc.jpg';
+      assetPath = 'assets/images/Mutual_Funds/mf_hdfc.png';
     } else if (lowerAmc.contains('nippon') || lowerScheme.contains('nippon')) {
-      assetPath = 'assets/images/Mutual_Funds/mf_amc_nippon.jpg';
-    } else if (lowerAmc.contains('parag') || lowerScheme.contains('parag') || lowerAmc.contains('ppfas')) {
-      assetPath = 'assets/images/Mutual_Funds/mf_amc_parag_parikh.jpg';
-    } else if (lowerAmc.contains('bandhan') || lowerScheme.contains('bandhan')) {
-      assetPath = 'assets/images/Mutual_Funds/mf_amc_bandhan.jpg';
+      assetPath = 'assets/images/Mutual_Funds/mf_nippon.jpg';
+    } else if (lowerAmc.contains('parag') ||
+        lowerScheme.contains('parag') ||
+        lowerAmc.contains('ppfas')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_parag_parikh.jpg';
+    } else if (lowerAmc.contains('bandhan') ||
+        lowerScheme.contains('bandhan')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_bandhan.jpg';
     } else if (lowerAmc.contains('sbi') || lowerScheme.contains('sbi')) {
-      assetPath = 'assets/images/Mutual_Funds/sbi_mutual.jfif';
+      assetPath = 'assets/images/Mutual_Funds/mf_sbi.png';
     } else if (lowerAmc.contains('icici') || lowerScheme.contains('icici')) {
-      assetPath = 'assets/images/Mutual_Funds/icici_mutual.jpg';
-    } else if (lowerAmc.contains('motilal') || lowerScheme.contains('motilal')) {
-      assetPath = 'assets/images/Mutual_Funds/motilal_oswal_mutual.png';
-    } else if (lowerAmc.contains('birla') || lowerAmc.contains('aditya') || lowerScheme.contains('birla')) {
-      assetPath = 'assets/images/Mutual_Funds/adiya_bilra_mutual.png';
+      assetPath = 'assets/images/Mutual_Funds/mf_icici.png';
+    } else if (lowerAmc.contains('motilal') ||
+        lowerScheme.contains('motilal')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_motilal_oswal.jpg';
+    } else if (lowerAmc.contains('birla') ||
+        lowerAmc.contains('aditya') ||
+        lowerScheme.contains('birla')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_adiya_bilra.png';
     } else if (lowerAmc.contains('uti') || lowerScheme.contains('uti')) {
-      assetPath = 'assets/images/Mutual_Funds/uti_mutual.jpeg';
+      assetPath = 'assets/images/Mutual_Funds/mf_uti_mutual.png';
     } else if (lowerAmc.contains('dsp') || lowerScheme.contains('dsp')) {
-      assetPath = 'assets/images/Mutual_Funds/dsp_mutual.png';
-    } else if (lowerAmc.contains('edelweiss') || lowerScheme.contains('edelweiss')) {
-      assetPath = 'assets/images/Mutual_Funds/edelweiss_mutual.png';
+      assetPath = 'assets/images/Mutual_Funds/mf_dsp.png';
+    } else if (lowerAmc.contains('edelweiss') ||
+        lowerScheme.contains('edelweiss')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_edelweiss.png';
+    } else if (lowerAmc.contains('invesco') ||
+        lowerScheme.contains('invesco')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_invesco.png';
+    } else if (lowerAmc.contains('axis') || lowerScheme.contains('axis')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_axis.png';
+    } else if (lowerAmc.contains('kotak') || lowerScheme.contains('kotak')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_kotak.png';
+    } else if (lowerAmc.contains('mirae') || lowerScheme.contains('mirae')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_mirae.png';
+    } else if (lowerAmc.contains('tata') || lowerScheme.contains('tata')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_tata.jpg';
+    } else if (lowerAmc.contains('quant') || lowerScheme.contains('quant')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_quant.png';
+    } else if (lowerAmc.contains('canara') ||
+        lowerScheme.contains('canara') ||
+        lowerAmc.contains('robeco')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_canara_robeco.png';
+    } else if (lowerAmc.contains('franklin') ||
+        lowerScheme.contains('franklin') ||
+        lowerAmc.contains('templeton')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_franklin.png';
+    } else if (lowerAmc.contains('groww') || lowerScheme.contains('groww')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_groww.png';
+    } else if (lowerAmc.contains('sundaram') ||
+        lowerScheme.contains('sundaram')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_sundaram.png';
+    } else if (lowerAmc.contains('baroda') ||
+        lowerAmc.contains('bnp') ||
+        lowerAmc.contains('paribas')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_baroda_bnp.jpg';
+    } else if (lowerAmc.contains('hsbc') || lowerScheme.contains('hsbc')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_hsbc.jpg';
+    } else if (lowerAmc.contains('lic') || lowerScheme.contains('lic')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_lic.png';
+    } else if (lowerAmc.contains('union') || lowerScheme.contains('union')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_union.jpg';
+    } else if (lowerAmc.contains('bank of india') ||
+        lowerAmc.contains('boi') ||
+        lowerScheme.contains('bank of india')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_boi.jpg';
+    } else if (lowerAmc.contains('mahindra') || lowerAmc.contains('manulife')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_mahindra.png';
+    } else if (lowerAmc.contains('pgim') || lowerScheme.contains('pgim')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_pgim.png';
+    } else if (lowerAmc.contains('bajaj') || lowerScheme.contains('bajaj')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_bajaj.jpg';
+    } else if (lowerAmc.contains('iti') || lowerScheme.contains('iti')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_iti.png';
+    } else if (lowerAmc.contains('whiteoak') ||
+        lowerScheme.contains('whiteoak')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_whiteoak.jpg';
+    } else if (lowerAmc.contains('jm') ||
+        lowerScheme.contains('jm financial')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_jm.png';
+    } else if (lowerAmc.contains('navi') || lowerScheme.contains('navi')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_navi.png';
+    } else if (lowerAmc.contains('jio') || lowerAmc.contains('blackrock')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_jio_blackrock.png';
+    } else if (lowerAmc.contains('quantum') ||
+        lowerScheme.contains('quantum')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_quantum.jpg';
+    } else if (lowerAmc.contains('samco') || lowerScheme.contains('samco')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_samco.png';
+    } else if (lowerAmc.contains('trust') || lowerScheme.contains('trust')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_trust.jpg';
+    } else if (lowerAmc.contains('360 one') || lowerAmc.contains('360_one')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_360one.png';
+    } else if (lowerAmc.contains('shriram') ||
+        lowerScheme.contains('shriram')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_shriram.png';
+    } else if (lowerAmc.contains('helios') || lowerScheme.contains('helios')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_helios.jpg';
+    } else if (lowerAmc.contains('taurus') || lowerScheme.contains('taurus')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_taurus.png';
+    } else if (lowerAmc.contains('nj') || lowerScheme.contains('nj mutual')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_nj.png';
+    } else if (lowerAmc.contains('abakkus')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_abakkus.jpg';
+    } else if (lowerAmc.contains('angel one') ||
+        lowerAmc.contains('angel_one')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_angel_one.png';
+    } else if (lowerAmc.contains('capitalmind')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_capitalmind.png';
+    } else if (lowerAmc.contains('old bridge')) {
+      assetPath = 'assets/images/Mutual_Funds/mf_old_bridge.jpg';
+    } else if (lowerAmc.contains('wealth') ||
+        lowerScheme.contains('wealth company') ||
+        lowerAmc.contains('the wealth')) {
+      assetPath = 'assets/images/Mutual_Funds/wealthcompany.jpg';
     }
 
     if (assetPath != null) {
       return Container(
         width: size,
         height: size,
-        padding: const EdgeInsets.all(3),
+        padding: const EdgeInsets.all(0),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(borderRadius),
@@ -84,7 +180,8 @@ class AmcBrandLogo extends StatelessWidget {
         child: Image.asset(
           assetPath,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => _buildVectorFallback(lowerAmc, lowerScheme),
+          errorBuilder: (_, __, ___) =>
+              _buildVectorFallback(lowerAmc, lowerScheme),
         ),
       );
     }
@@ -109,29 +206,123 @@ class AmcBrandLogo extends StatelessWidget {
           color: const Color(0xFF003D7A),
           borderRadius: BorderRadius.circular(4),
         ),
-        child: const Text('HDFC', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 8)),
+        child: const Text(
+          'HDFC',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 8,
+          ),
+        ),
       );
-    } else if (lowerAmc.contains('bandhan') || lowerScheme.contains('bandhan')) {
+    } else if (lowerAmc.contains('bandhan') ||
+        lowerScheme.contains('bandhan')) {
       bg = const Color(0xFFF97316);
-      iconWidget = const Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 22);
+      iconWidget = const Icon(
+        Icons.local_fire_department_rounded,
+        color: Colors.white,
+        size: 22,
+      );
     } else if (lowerAmc.contains('nippon') || lowerScheme.contains('nippon')) {
       bg = const Color(0xFFDC2626);
-      iconWidget = const Icon(Icons.change_history_rounded, color: Colors.white, size: 22);
+      iconWidget = const Icon(
+        Icons.change_history_rounded,
+        color: Colors.white,
+        size: 22,
+      );
+    } else if (lowerAmc.contains('iti') || lowerScheme.contains('iti')) {
+      bg = const Color(0xFFEA580C);
+      iconWidget = const Text(
+        'iti',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+          fontSize: 13,
+        ),
+      );
+    } else if (lowerAmc.contains('invesco') ||
+        lowerScheme.contains('invesco')) {
+      bg = const Color(0xFF1E3A8A);
+      iconWidget = const Text(
+        'Invesco',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 7,
+        ),
+      );
+    } else if (lowerAmc.contains('bank of india') ||
+        lowerScheme.contains('bank of india') ||
+        lowerAmc.contains('boi')) {
+      bg = const Color(0xFF0284C7);
+      iconWidget = const Icon(
+        Icons.star_rounded,
+        color: Color(0xFFF97316),
+        size: 22,
+      );
+    } else if (lowerAmc.contains('quant') || lowerScheme.contains('quant')) {
+      bg = const Color(0xFF0F172A);
+      iconWidget = const Text(
+        'quant',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+          fontSize: 9,
+        ),
+      );
     } else if (lowerAmc.contains('axis') || lowerScheme.contains('axis')) {
       bg = const Color(0xFF9E1B46);
-      iconWidget = const Icon(Icons.pie_chart_rounded, color: Colors.white, size: 20);
-    } else if (lowerAmc.contains('quant') || lowerScheme.contains('quant')) {
-      bg = const Color(0xFF2563EB);
-      iconWidget = const Text('Q', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20));
+      iconWidget = const Icon(
+        Icons.pie_chart_rounded,
+        color: Colors.white,
+        size: 20,
+      );
+    } else if (lowerAmc.contains('groww') || lowerScheme.contains('groww')) {
+      bg = const Color(0xFF00D09C);
+      iconWidget = const Icon(
+        Icons.trending_up_rounded,
+        color: Colors.black,
+        size: 20,
+      );
+    } else if (lowerAmc.contains('tata') || lowerScheme.contains('tata')) {
+      bg = const Color(0xFF0284C7);
+      iconWidget = const Text(
+        'TATA',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 9,
+        ),
+      );
+    } else if (lowerAmc.contains('kotak') || lowerScheme.contains('kotak')) {
+      bg = const Color(0xFFDC2626);
+      iconWidget = const Text(
+        'kotak',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 9,
+        ),
+      );
     } else if (lowerAmc.contains('gold') || lowerScheme.contains('gold')) {
       bg = const Color(0xFFD4AF37);
-      iconWidget = const Icon(Icons.monetization_on_rounded, color: Colors.white, size: 22);
+      iconWidget = const Icon(
+        Icons.monetization_on_rounded,
+        color: Colors.white,
+        size: 22,
+      );
     } else {
       bg = const Color(0xFF334155);
-      final initials = amcName.isNotEmpty ? amcName.substring(0, min(2, amcName.length)).toUpperCase() : 'MF';
+      final initials = amcName.isNotEmpty
+          ? amcName.substring(0, min(2, amcName.length)).toUpperCase()
+          : 'MF';
       iconWidget = Text(
         initials,
-        style: TextStyle(color: fg, fontWeight: FontWeight.bold, fontSize: size * 0.35),
+        style: TextStyle(
+          color: fg,
+          fontWeight: FontWeight.bold,
+          fontSize: size * 0.35,
+        ),
       );
     }
 
@@ -186,8 +377,12 @@ class _MfSipCalculatorSheetState extends State<MfSipCalculatorSheet> {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final bg = dark ? GrowwColors.card : Colors.white;
-    final textPrimary = dark ? GrowwColors.textPrimary : const Color(0xFF1E293B);
-    final textSecondary = dark ? GrowwColors.textSecondary : const Color(0xFF64748B);
+    final textPrimary = dark
+        ? GrowwColors.textPrimary
+        : const Color(0xFF1E293B);
+    final textSecondary = dark
+        ? GrowwColors.textSecondary
+        : const Color(0xFF64748B);
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
@@ -222,12 +417,20 @@ class _MfSipCalculatorSheetState extends State<MfSipCalculatorSheet> {
                         color: GrowwColors.mintTeal.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.calculate_rounded, color: GrowwColors.mintTeal, size: 22),
+                      child: const Icon(
+                        Icons.calculate_rounded,
+                        color: GrowwColors.mintTeal,
+                        size: 22,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Text(
                       'SIP Calculator',
-                      style: TextStyle(color: textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -250,16 +453,26 @@ class _MfSipCalculatorSheetState extends State<MfSipCalculatorSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Monthly Investment', style: TextStyle(color: textSecondary, fontSize: 14)),
+                      Text(
+                        'Monthly Investment',
+                        style: TextStyle(color: textSecondary, fontSize: 14),
+                      ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: GrowwColors.mintTeal.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           '₹${_monthlySip.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
-                          style: const TextStyle(color: GrowwColors.mintTeal, fontWeight: FontWeight.bold, fontSize: 15),
+                          style: const TextStyle(
+                            color: GrowwColors.mintTeal,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
                       ),
                     ],
@@ -279,16 +492,26 @@ class _MfSipCalculatorSheetState extends State<MfSipCalculatorSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Expected Return Rate (p.a.)', style: TextStyle(color: textSecondary, fontSize: 14)),
+                      Text(
+                        'Expected Return Rate (p.a.)',
+                        style: TextStyle(color: textSecondary, fontSize: 14),
+                      ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: GrowwColors.mintTeal.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           '${_expectedReturn.toStringAsFixed(1)}%',
-                          style: const TextStyle(color: GrowwColors.mintTeal, fontWeight: FontWeight.bold, fontSize: 15),
+                          style: const TextStyle(
+                            color: GrowwColors.mintTeal,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
                       ),
                     ],
@@ -308,16 +531,26 @@ class _MfSipCalculatorSheetState extends State<MfSipCalculatorSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Time Period', style: TextStyle(color: textSecondary, fontSize: 14)),
+                      Text(
+                        'Time Period',
+                        style: TextStyle(color: textSecondary, fontSize: 14),
+                      ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: GrowwColors.mintTeal.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           '${_years.toInt()} Years',
-                          style: const TextStyle(color: GrowwColors.mintTeal, fontWeight: FontWeight.bold, fontSize: 15),
+                          style: const TextStyle(
+                            color: GrowwColors.mintTeal,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
                       ),
                     ],
@@ -341,18 +574,30 @@ class _MfSipCalculatorSheetState extends State<MfSipCalculatorSheet> {
                       gradient: LinearGradient(
                         colors: dark
                             ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                            : [const Color(0xFFF8FAFC), const Color(0xFFEEF2F6)],
+                            : [
+                                const Color(0xFFF8FAFC),
+                                const Color(0xFFEEF2F6),
+                              ],
                       ),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: GrowwColors.mintTeal.withOpacity(0.3)),
+                      border: Border.all(
+                        color: GrowwColors.mintTeal.withOpacity(0.3),
+                      ),
                     ),
                     child: Column(
                       children: [
-                        Text('Estimated Future Wealth', style: TextStyle(color: textSecondary, fontSize: 13)),
+                        Text(
+                          'Estimated Future Wealth',
+                          style: TextStyle(color: textSecondary, fontSize: 13),
+                        ),
                         const SizedBox(height: 6),
                         Text(
                           '₹${_futureValue.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
-                          style: TextStyle(color: textPrimary, fontSize: 28, fontWeight: FontWeight.w900),
+                          style: TextStyle(
+                            color: textPrimary,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                         const SizedBox(height: 20),
                         Row(
@@ -363,15 +608,32 @@ class _MfSipCalculatorSheetState extends State<MfSipCalculatorSheet> {
                               children: [
                                 Row(
                                   children: [
-                                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF64748B), shape: BoxShape.circle)),
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF64748B),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
                                     const SizedBox(width: 6),
-                                    Text('Invested Amount', style: TextStyle(color: textSecondary, fontSize: 12)),
+                                    Text(
+                                      'Invested Amount',
+                                      style: TextStyle(
+                                        color: textSecondary,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '₹${_totalInvested.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
-                                  style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                                  style: TextStyle(
+                                    color: textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
                                 ),
                               ],
                             ),
@@ -380,15 +642,32 @@ class _MfSipCalculatorSheetState extends State<MfSipCalculatorSheet> {
                               children: [
                                 Row(
                                   children: [
-                                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: GrowwColors.mintTeal, shape: BoxShape.circle)),
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: GrowwColors.mintTeal,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
                                     const SizedBox(width: 6),
-                                    Text('Est. Returns', style: TextStyle(color: textSecondary, fontSize: 12)),
+                                    Text(
+                                      'Est. Returns',
+                                      style: TextStyle(
+                                        color: textSecondary,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '+₹${_estReturns.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
-                                  style: const TextStyle(color: GrowwColors.mintTeal, fontWeight: FontWeight.bold, fontSize: 15),
+                                  style: const TextStyle(
+                                    color: GrowwColors.mintTeal,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
                                 ),
                               ],
                             ),
@@ -414,10 +693,19 @@ class _MfSipCalculatorSheetState extends State<MfSipCalculatorSheet> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: GrowwColors.mintTeal,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   elevation: 2,
                 ),
-                child: const Text('Explore SIP Plans', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                child: const Text(
+                  'Explore SIP Plans',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
               ),
             ),
           ),
@@ -446,11 +734,17 @@ class MfCompareModal extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final bg = dark ? GrowwColors.card : Colors.white;
-    final textPrimary = dark ? GrowwColors.textPrimary : const Color(0xFF1E293B);
-    final textSecondary = dark ? GrowwColors.textSecondary : const Color(0xFF64748B);
+    final textPrimary = dark
+        ? GrowwColors.textPrimary
+        : const Color(0xFF1E293B);
+    final textSecondary = dark
+        ? GrowwColors.textSecondary
+        : const Color(0xFF64748B);
 
     final f1 = schemes.isNotEmpty ? schemes[0] : null;
-    final f2 = schemes.length > 1 ? schemes[1] : (schemes.isNotEmpty ? schemes[0] : null);
+    final f2 = schemes.length > 1
+        ? schemes[1]
+        : (schemes.isNotEmpty ? schemes[0] : null);
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
@@ -465,7 +759,14 @@ class MfCompareModal extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Compare Funds', style: TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                'Compare Funds',
+                style: TextStyle(
+                  color: textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               IconButton(
                 icon: Icon(Icons.close_rounded, color: textSecondary),
                 onPressed: () => Navigator.pop(context),
@@ -480,9 +781,21 @@ class MfCompareModal extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      AmcBrandLogo(amcName: f1.amcName, schemeName: f1.schemeName, size: 36),
+                      AmcBrandLogo(
+                        amcName: f1.amcName,
+                        schemeName: f1.schemeName,
+                        size: 36,
+                      ),
                       const SizedBox(height: 8),
-                      Text(f1.schemeName, style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2),
+                      Text(
+                        f1.schemeName,
+                        style: TextStyle(
+                          color: textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        maxLines: 2,
+                      ),
                     ],
                   ),
                 ),
@@ -492,24 +805,76 @@ class MfCompareModal extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      AmcBrandLogo(amcName: f2.amcName, schemeName: f2.schemeName, size: 36),
+                      AmcBrandLogo(
+                        amcName: f2.amcName,
+                        schemeName: f2.schemeName,
+                        size: 36,
+                      ),
                       const SizedBox(height: 8),
-                      Text(f2.schemeName, style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2),
+                      Text(
+                        f2.schemeName,
+                        style: TextStyle(
+                          color: textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        maxLines: 2,
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
             const Divider(height: 32),
-            _buildRow('3Y Returns', '+${f1.cagr3Y}%', '+${f2.cagr3Y}%', textPrimary, textSecondary, isHighlight: true),
-            _buildRow('1Y Returns', '+${f1.cagr1Y}%', '+${f2.cagr1Y}%', textPrimary, textSecondary),
-            _buildRow('Min. SIP', '₹${f1.minSipAmount.toInt()}', '₹${f2.minSipAmount.toInt()}', textPrimary, textSecondary),
-            _buildRow('Expense Ratio', '${f1.expenseRatio}%', '${f2.expenseRatio}%', textPrimary, textSecondary),
-            _buildRow('Rating', '${f1.rating} ★', '${f2.rating} ★', textPrimary, textSecondary),
-            _buildRow('Risk Level', f1.riskLevel, f2.riskLevel, textPrimary, textSecondary),
+            _buildRow(
+              '3Y Returns',
+              '+${f1.cagr3Y}%',
+              '+${f2.cagr3Y}%',
+              textPrimary,
+              textSecondary,
+              isHighlight: true,
+            ),
+            _buildRow(
+              '1Y Returns',
+              '+${f1.cagr1Y}%',
+              '+${f2.cagr1Y}%',
+              textPrimary,
+              textSecondary,
+            ),
+            _buildRow(
+              'Min. SIP',
+              '₹${f1.minSipAmount.toInt()}',
+              '₹${f2.minSipAmount.toInt()}',
+              textPrimary,
+              textSecondary,
+            ),
+            _buildRow(
+              'Expense Ratio',
+              '${f1.expenseRatio}%',
+              '${f2.expenseRatio}%',
+              textPrimary,
+              textSecondary,
+            ),
+            _buildRow(
+              'Rating',
+              '${f1.rating} ★',
+              '${f2.rating} ★',
+              textPrimary,
+              textSecondary,
+            ),
+            _buildRow(
+              'Risk Level',
+              f1.riskLevel,
+              f2.riskLevel,
+              textPrimary,
+              textSecondary,
+            ),
           ] else ...[
             Center(
-              child: Text('Add funds to compare', style: TextStyle(color: textSecondary)),
+              child: Text(
+                'Add funds to compare',
+                style: TextStyle(color: textSecondary),
+              ),
             ),
           ],
         ],
@@ -517,7 +882,14 @@ class MfCompareModal extends StatelessWidget {
     );
   }
 
-  Widget _buildRow(String label, String v1, String v2, Color textPrimary, Color textSecondary, {bool isHighlight = false}) {
+  Widget _buildRow(
+    String label,
+    String v1,
+    String v2,
+    Color textPrimary,
+    Color textSecondary, {
+    bool isHighlight = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -567,8 +939,12 @@ class MfNfoSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final bg = dark ? GrowwColors.card : Colors.white;
-    final textPrimary = dark ? GrowwColors.textPrimary : const Color(0xFF1E293B);
-    final textSecondary = dark ? GrowwColors.textSecondary : const Color(0xFF64748B);
+    final textPrimary = dark
+        ? GrowwColors.textPrimary
+        : const Color(0xFF1E293B);
+    final textSecondary = dark
+        ? GrowwColors.textSecondary
+        : const Color(0xFF64748B);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -591,10 +967,21 @@ class MfNfoSheet extends StatelessWidget {
                       color: GrowwColors.mintTeal.withOpacity(0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.campaign_rounded, color: GrowwColors.mintTeal, size: 22),
+                    child: const Icon(
+                      Icons.campaign_rounded,
+                      color: GrowwColors.mintTeal,
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(width: 10),
-                  Text('New Fund Offers (NFOs)', style: TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(
+                    'New Fund Offers (NFOs)',
+                    style: TextStyle(
+                      color: textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
               IconButton(
@@ -625,7 +1012,13 @@ class MfNfoSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildNfoItem(String title, String subtitle, String nav, Color textPrimary, Color textSecondary) {
+  Widget _buildNfoItem(
+    String title,
+    String subtitle,
+    String nav,
+    Color textPrimary,
+    Color textSecondary,
+  ) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -640,9 +1033,19 @@ class MfNfoSheet extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: TextStyle(color: textSecondary, fontSize: 12)),
+                Text(
+                  subtitle,
+                  style: TextStyle(color: textSecondary, fontSize: 12),
+                ),
               ],
             ),
           ),
@@ -652,7 +1055,14 @@ class MfNfoSheet extends StatelessWidget {
               color: GrowwColors.mintTeal.withOpacity(0.15),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(nav, style: const TextStyle(color: GrowwColors.mintTeal, fontWeight: FontWeight.bold, fontSize: 12)),
+            child: Text(
+              nav,
+              style: const TextStyle(
+                color: GrowwColors.mintTeal,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
           ),
         ],
       ),

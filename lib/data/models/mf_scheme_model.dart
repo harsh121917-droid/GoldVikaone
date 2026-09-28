@@ -21,6 +21,7 @@ class MfSchemeModel {
   final double expenseRatio;
   final bool isPopular;
   final bool isFeatured;
+  final bool isRecommended;
   final List<NavHistoryPoint> navHistory;
 
   MfSchemeModel({
@@ -46,6 +47,7 @@ class MfSchemeModel {
     required this.expenseRatio,
     required this.isPopular,
     required this.isFeatured,
+    this.isRecommended = false,
     this.navHistory = const [],
   });
 
@@ -73,6 +75,7 @@ class MfSchemeModel {
       expenseRatio: (json['expenseRatio'] as num?)?.toDouble() ?? 0.85,
       isPopular: json['isPopular'] == true,
       isFeatured: json['isFeatured'] == true,
+      isRecommended: json['isRecommended'] == true,
       navHistory: (json['navHistory'] as List<dynamic>?)
               ?.map((e) => NavHistoryPoint.fromJson(e as Map<String, dynamic>))
               .toList() ??
