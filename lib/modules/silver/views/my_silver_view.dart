@@ -1,3 +1,4 @@
+import 'package:vika1/core/localization/localization_service.dart';
 import 'package:vika1/modules/notifications/controllers/notification_inbox_controller.dart';
 import 'package:vika1/routes/app_routes.dart';
 import 'dart:math';
@@ -64,6 +65,7 @@ class _MySilverViewState extends State<MySilverView>
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       final bg = dark ? const Color(0xFF060B16) : const Color(0xFFF5F0E8);
       final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
@@ -91,7 +93,7 @@ class _MySilverViewState extends State<MySilverView>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'My Silver',
+                'my_silver'.tr,
                 style: TextStyle(
                   color: tp,
                   fontSize: 18,
@@ -99,7 +101,7 @@ class _MySilverViewState extends State<MySilverView>
                 ),
               ),
               Text(
-                'Track your silver holdings and growth',
+                'track_silver_growth'.tr,
                 style: TextStyle(color: ts, fontSize: 11),
               ),
             ],
@@ -804,10 +806,10 @@ class _MySilverViewState extends State<MySilverView>
                         ),
                       ],
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text(
-                        'Buy More Silver',
-                        style: TextStyle(
+                        'buy_more_silver'.tr,
+                        style: const TextStyle(
                           color: Color(0xFF2A2E33),
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
@@ -832,10 +834,10 @@ class _MySilverViewState extends State<MySilverView>
                         color: const Color(0xFF3B82F6).withOpacity(0.4),
                       ),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text(
-                        'Sell Silver',
-                        style: TextStyle(
+                        'sell_silver'.tr,
+                        style: const TextStyle(
                           color: Color(0xFF3B82F6),
                           fontSize: 14,
                           fontWeight: FontWeight.w800,

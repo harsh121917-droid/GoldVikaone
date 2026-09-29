@@ -6,6 +6,7 @@ import '../../digi_gold/controllers/digi_gold_controller.dart';
 import '../../silver/controllers/silver_controller.dart';
 import '../controllers/jewellery_controller.dart';
 import 'jewellery_item_details_view.dart';
+import '../../../core/localization/localization_service.dart';
 
 const _gold = Color(0xFFD4A017);
 
@@ -47,11 +48,26 @@ class _T {
 class JewelleryView extends StatelessWidget {
   const JewelleryView({super.key});
 
+  String _localizedCategory(String cat) {
+    final lower = cat.toLowerCase().trim();
+    if (lower == 'all') return 'category_all'.tr;
+    if (lower == 'coins' || lower == 'coin') return 'category_coins'.tr;
+    if (lower == 'rings' || lower == 'ring') return 'category_rings'.tr;
+    if (lower == 'chains' || lower == 'chain') return 'category_chains'.tr;
+    if (lower == 'necklaces' || lower == 'necklace') return 'category_necklaces'.tr;
+    if (lower == 'bangles' || lower == 'bangle') return 'category_bangles'.tr;
+    if (lower == 'earrings' || lower == 'earring') return 'category_earrings'.tr;
+    if (lower == 'pendants' || lower == 'pendant') return 'category_pendants'.tr;
+    if (lower == 'bars' || lower == 'bar') return 'category_bars'.tr;
+    return cat;
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = JewelleryController.to;
 
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       final t = _T.of(dark);
 
@@ -69,7 +85,7 @@ class JewelleryView extends StatelessWidget {
           elevation: 0,
           centerTitle: true,
           title: Text(
-            'Payvika Jewellery',
+            'payvika_jewellery'.tr,
             style: TextStyle(
               color: t.ink,
               fontSize: 20,
@@ -109,12 +125,12 @@ class JewelleryView extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          children: const [
-                            Icon(Icons.savings_outlined, color: _gold, size: 16),
-                            SizedBox(width: 6),
+                          children: [
+                            const Icon(Icons.savings_outlined, color: _gold, size: 16),
+                            const SizedBox(width: 6),
                             Text(
-                              'My Metal Savings',
-                              style: TextStyle(
+                              'my_metal_savings'.tr,
+                              style: const TextStyle(
                                 color: _gold,
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -126,7 +142,7 @@ class JewelleryView extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              '${goldGrams.toStringAsFixed(3)} g Gold',
+                              '${goldGrams.toStringAsFixed(3)} ${'g_gold'.tr}',
                               style: TextStyle(
                                 color: t.ink,
                                 fontSize: 15,
@@ -140,7 +156,7 @@ class JewelleryView extends StatelessWidget {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              '${silverGrams.toStringAsFixed(2)} g Silver',
+                              '${silverGrams.toStringAsFixed(2)} ${'g_silver'.tr}',
                               style: TextStyle(
                                 color: t.ink,
                                 fontSize: 15,
@@ -151,7 +167,7 @@ class JewelleryView extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Redeem your accumulated gold & silver into certified hallmarked jewellery.',
+                          'redeem_metal_desc'.tr,
                           style: TextStyle(
                             color: t.inkMuted,
                             fontSize: 10.5,
@@ -185,7 +201,7 @@ class JewelleryView extends StatelessWidget {
                         onChanged: (val) => controller.setSearch(val),
                         style: TextStyle(color: t.ink, fontSize: 13),
                         decoration: InputDecoration(
-                          hintText: 'Search jewellery...',
+                          hintText: 'search_jewellery'.tr,
                           hintStyle: TextStyle(color: t.inkMuted, fontSize: 12.5),
                           prefixIcon: Icon(Icons.search, color: t.inkMuted, size: 18),
                           filled: true,
@@ -224,16 +240,20 @@ class JewelleryView extends StatelessWidget {
                           Icon(Icons.filter_list_rounded, color: t.ink, size: 16),
                           const SizedBox(width: 4),
                           Text(
-                            controller.selectedMetal.value.toUpperCase(),
+                            controller.selectedMetal.value == 'gold'
+                                ? 'gold_only'.tr
+                                : (controller.selectedMetal.value == 'silver'
+                                    ? 'silver_only'.tr
+                                    : 'all_metals'.tr),
                             style: TextStyle(color: t.ink, fontSize: 11.5, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
                     ),
                     itemBuilder: (ctx) => [
-                      const PopupMenuItem(value: 'all', child: Text('All Metals')),
-                      const PopupMenuItem(value: 'gold', child: Text('Gold Only')),
-                      const PopupMenuItem(value: 'silver', child: Text('Silver Only')),
+                      PopupMenuItem(value: 'all', child: Text('all_metals'.tr)),
+                      PopupMenuItem(value: 'gold', child: Text('gold_only'.tr)),
+                      PopupMenuItem(value: 'silver', child: Text('silver_only'.tr)),
                     ],
                   ),
 
@@ -256,11 +276,11 @@ class JewelleryView extends StatelessWidget {
                       child: Icon(Icons.sort_rounded, color: t.ink, size: 18),
                     ),
                     itemBuilder: (ctx) => [
-                      const PopupMenuItem(value: 'popular', child: Text('Most Popular')),
-                      const PopupMenuItem(value: 'price_low_high', child: Text('Price: Low to High')),
-                      const PopupMenuItem(value: 'price_high_low', child: Text('Price: High to Low')),
-                      const PopupMenuItem(value: 'weight_low_high', child: Text('Weight: Low to High')),
-                      const PopupMenuItem(value: 'weight_high_low', child: Text('Weight: High to Low')),
+                      PopupMenuItem(value: 'popular', child: Text('sort_popular'.tr)),
+                      PopupMenuItem(value: 'price_low_high', child: Text('sort_price_low_high'.tr)),
+                      PopupMenuItem(value: 'price_high_low', child: Text('sort_price_high_low'.tr)),
+                      PopupMenuItem(value: 'weight_low_high', child: Text('sort_weight_low_high'.tr)),
+                      PopupMenuItem(value: 'weight_high_low', child: Text('sort_weight_high_low'.tr)),
                     ],
                   ),
                 ],
@@ -300,7 +320,7 @@ class JewelleryView extends StatelessWidget {
                       ),
                       child: Center(
                         child: Text(
-                          catName,
+                          _localizedCategory(catName),
                           style: TextStyle(
                             color: isSelected ? t.ctaText : t.ink,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
@@ -323,7 +343,7 @@ class JewelleryView extends StatelessWidget {
                   : controller.products.isEmpty
                       ? Center(
                           child: Text(
-                            'No products found',
+                            'no_products_found'.tr,
                             style: TextStyle(color: t.inkMuted),
                           ),
                         )
@@ -480,7 +500,7 @@ class JewelleryView extends StatelessWidget {
                                                 ),
                                               ),
                                               Text(
-                                                'Making: ₹$making',
+                                                '${'making_charge'.tr}: ₹$making',
                                                 style: TextStyle(
                                                   color: t.inkMuted,
                                                   fontSize: 9.5,
@@ -512,9 +532,9 @@ class JewelleryView extends StatelessWidget {
                                                     borderRadius: BorderRadius.circular(8),
                                                   ),
                                                 ),
-                                                child: const Text(
-                                                  'Redeem',
-                                                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold),
+                                                child: Text(
+                                                  'redeem_btn'.tr,
+                                                  style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold),
                                                 ),
                                               ),
                                             ],

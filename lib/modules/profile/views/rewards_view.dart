@@ -1,3 +1,4 @@
+import 'package:vika1/core/localization/localization_service.dart';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -313,17 +314,19 @@ class _RewardsViewState extends State<RewardsView>
 
   @override
   Widget build(BuildContext context) {
-    final dark = ThemeController.to.isDark.value;
-    final t = _T.of(dark);
-    final pc = PointsController.to;
+    return Obx(() {
+      LocalizationService.to.currentLangCode.value;
+      final dark = ThemeController.to.isDark.value;
+      final t = _T.of(dark);
+      final pc = PointsController.to;
 
-    return Scaffold(
+      return Scaffold(
       backgroundColor: t.bg,
       appBar: AppBar(
         backgroundColor: t.card,
         elevation: 0,
         title: Text(
-          'Rewards Club',
+          'rewards_club'.tr,
           style: TextStyle(
             color: t.ink,
             fontSize: 18,
@@ -363,9 +366,9 @@ class _RewardsViewState extends State<RewardsView>
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Your Points Balance',
-                        style: TextStyle(
+                      Text(
+                        'your_points_balance'.tr,
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -423,7 +426,7 @@ class _RewardsViewState extends State<RewardsView>
 
             // ── Spin To Win Game Label ──
             Text(
-              'SPIN TO WIN',
+              'spin_to_win'.tr,
               style: TextStyle(
                 color: t.ink,
                 fontSize: 18,
@@ -432,7 +435,7 @@ class _RewardsViewState extends State<RewardsView>
               ),
             ),
             Text(
-              'Spin the wheel to earn points instantly!',
+              'spin_wheel_desc'.tr,
               style: TextStyle(color: t.inkMuted, fontSize: 12),
             ),
             const SizedBox(height: 24),
@@ -634,7 +637,7 @@ class _RewardsViewState extends State<RewardsView>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Refer & Earn Points',
+                                  'refer_earn_points'.tr,
                                   style: TextStyle(
                                     color: t.ink,
                                     fontSize: 16,
@@ -719,9 +722,9 @@ class _RewardsViewState extends State<RewardsView>
                                   color: t.primary,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Text(
-                                  'COPY CODE',
-                                  style: TextStyle(
+                                child: Text(
+                                  'copy_code'.tr,
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
@@ -747,9 +750,9 @@ class _RewardsViewState extends State<RewardsView>
                           ),
                           onPressed: () => _shareReferral(refCode),
                           icon: const Icon(Icons.share_rounded, size: 16),
-                          label: const Text(
-                            'SHARE BANNER',
-                            style: TextStyle(
+                          label: Text(
+                            'share_referral'.tr,
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
@@ -774,6 +777,7 @@ class _RewardsViewState extends State<RewardsView>
         ),
       ),
     );
+    });
   }
 
   Future<void> _shareReferral(String refCode) async {

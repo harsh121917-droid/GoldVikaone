@@ -9,6 +9,7 @@ import 'package:vika1/modules/digi_gold/controllers/digi_gold_controller.dart';
 import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 import 'sip_journey_view.dart';
+import '../../../core/localization/localization_service.dart';
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
 const _gold = Color(0xFFD4A017);
@@ -584,6 +585,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       final t = _T.of(dark);
 
@@ -630,7 +632,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
                           Row(
                             children: [
                               Text(
-                                'Digi Gold SIP',
+                                'digi_gold_sip'.tr,
                                 style: TextStyle(
                                   color: t.ink,
                                   fontSize: 17,
@@ -659,7 +661,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
                             ],
                           ),
                           Text(
-                            'Systematic Wealth Accumulation',
+                            'systematic_wealth'.tr,
                             style: TextStyle(color: t.inkMuted, fontSize: 11),
                           ),
                         ],
@@ -719,7 +721,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    'Create SIP',
+                                    'create_sip'.tr,
                                     style: TextStyle(
                                       color: _activeTab == 0
                                           ? Colors.white
@@ -772,7 +774,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    'My SIPs & Journey',
+                                    'my_active_sips'.tr,
                                     style: TextStyle(
                                       color: _activeTab == 1
                                           ? Colors.white
@@ -1307,7 +1309,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
 
           // ── Frequency Selector ────────────────────────────────────────
           Text(
-            'Select SIP Frequency',
+            'select_sip_frequency'.tr,
             style: TextStyle(
               color: t.ink,
               fontSize: 13,
@@ -1334,7 +1336,11 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
                       border: Border.all(color: isSel ? _gold : t.border),
                     ),
                     child: Text(
-                      f,
+                      f == 'Daily'
+                          ? 'freq_daily'.tr
+                          : (f == 'Weekly'
+                              ? 'freq_weekly'.tr
+                              : (f == 'Monthly' ? 'freq_monthly'.tr : f)),
                       style: TextStyle(
                         color: isSel ? Colors.black : t.ink,
                         fontSize: 12,
@@ -1463,7 +1469,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
 
           // ── Duration Selector ─────────────────────────────────────────
           Text(
-            'Investment Duration',
+            'tenure_duration'.tr,
             style: TextStyle(
               color: t.ink,
               fontSize: 13,
@@ -1492,7 +1498,10 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
                       border: Border.all(color: isSel ? _gold : t.border),
                     ),
                     child: Text(
-                      dur['label'] as String,
+                      (dur['label'] as String)
+                          .replaceAll('Months', 'months'.tr)
+                          .replaceAll('Years', 'years'.tr)
+                          .replaceAll('Year', 'years'.tr),
                       style: TextStyle(
                         color: isSel ? Colors.black : t.ink,
                         fontSize: 12,
@@ -1622,7 +1631,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
 
           // ── Payment & Auto-Debit Method Selector ──────────────────────
           Text(
-            'Select Payment & Auto-Debit Method',
+            'payment_mode'.tr,
             style: TextStyle(
               color: t.ink,
               fontSize: 13.5,
@@ -1681,7 +1690,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text(
-                              'Razorpay AutoPay (UPI / e-Mandate)',
+                              'autopay_upi'.tr,
                               style: TextStyle(
                                 color: t.ink,
                                 fontSize: 13,
@@ -1773,7 +1782,7 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'In-App Wallet Balance',
+                          'wallet_balance'.tr,
                           style: TextStyle(
                             color: t.ink,
                             fontSize: 13.5,
@@ -1843,8 +1852,8 @@ class _DigiGoldSavingsViewState extends State<DigiGoldSavingsView> {
                             _isStartingSip
                                 ? 'Connecting Razorpay AutoPay...'
                                 : _paymentMode == 'autopay'
-                                ? 'Enable AutoPay & Start Gold SIP ⚡'
-                                : 'Start Gold SIP from Wallet (₹${_amount.toStringAsFixed(0)})',
+                                ? '${'start_sip_now'.tr} (AutoPay) ⚡'
+                                : '${'start_sip_now'.tr} (₹${_amount.toStringAsFixed(0)})',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 15,

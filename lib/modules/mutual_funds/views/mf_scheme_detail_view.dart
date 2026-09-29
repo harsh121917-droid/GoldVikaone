@@ -70,32 +70,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
   }
 
 
-  static const Map<String, String> _directBenchmarkCodes = {
-    '100377': '118668', // Nippon India Growth Mid Cap Direct Growth
-    '105503': '120403', // Invesco India Mid Cap Direct Growth
-    '122640': '122639', // Parag Parikh Flexi Cap Fund Direct Growth
-    '119723': '119723', // SBI ELSS Tax Saver Direct
-    '113177': '118778', // Nippon India Small Cap Direct
-    '100795': '119588', // Sundaram Small Cap Direct
-    '118968': '118968', // HDFC Balanced Advantage Direct
-    '102875': '120164', // Kotak Small Cap Direct
-    '103360': '118525', // Franklin India Small Cap Direct
-    '147944': '147946', // Bandhan Small Cap Direct
-    '147920': '147922', // ITI Small Cap Direct
-    '145139': '145137', // Invesco India Small Cap Direct
-    '145677': '145675', // Bank of India Small Cap Direct
-    '100177': '120828', // Quant Small Cap Direct
-    '125350': '125354', // Axis Small Cap Direct
-    '145208': '145206', // Tata Small Cap Direct
-    '130502': '118989', // HDFC Mid Cap Direct
-    '125494': '125497', // SBI Small Cap Direct
-    '106823': '120594', // ICICI Prudential Small Cap Direct
-    '105989': '119232', // DSP Small Cap Direct
-    '153198': '147477', // Mirae Asset Small Cap Direct
-    '152232': '152232', // Motilal Oswal Small Cap
-    '154102': '154102', // Groww Small Cap
-  };
-
+  
   String _cleanSchemeName(String name) {
     var s = name
         .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan\s*-\s*Growth(\s+Option)?', caseSensitive: false), '')
@@ -142,17 +117,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
         }
       }
 
-      // Fetch Direct benchmark on mfapi.in to ensure returns, chart and NAV match Groww 1:1
-      final directCode = _directBenchmarkCodes[widget.scheme.schemeCode];
-      if (directCode != null) {
-        try {
-          final liveRes = await dio.get('https://api.mfapi.in/mf/$directCode');
-          if (liveRes.statusCode == 200 && liveRes.data is Map && liveRes.data['data'] is List) {
-            final rawList = liveRes.data['data'] as List;
-            _applyLiveDirectData(rawList);
-          }
-        } catch (_) {}
-      }
+      
     } catch (e) {
       debugPrint('[MfSchemeDetailView] _fetchSchemeDetails error: $e');
     } finally {
@@ -160,102 +125,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     }
   }
 
-  void _applyLiveDirectData(List rawList) {
-    if (rawList.isEmpty || !mounted) return;
-
-    final chronological = <Map<String, dynamic>>[];
-    for (int i = rawList.length - 1; i >= 0; i--) {
-      final item = rawList[i];
-      final navVal = double.tryParse(item['nav']?.toString() ?? '') ?? 0.0;
-      if (navVal > 0) {
-        final parts = (item['date'] ?? '').toString().split('-');
-        final isoDate = parts.length == 3 ? '${parts[2]}-${parts[1]}-${parts[0]}' : item['date'].toString();
-        chronological.add({'date': isoDate, 'nav': navVal});
-      }
-    }
-    if (chronological.isEmpty) return;
-
-    final latestItem = chronological.last;
-    final latestNav = (latestItem['nav'] as num).toDouble();
-    final latestDate = DateTime.tryParse(latestItem['date']) ?? DateTime.now();
-
-    double day1Ret = 0.40;
-    if (chronological.length >= 2) {
-      final p1 = (chronological[chronological.length - 2]['nav'] as num).toDouble();
-      if (p1 > 0) {
-        day1Ret = ((latestNav - p1) / p1) * 100;
-      }
-    }
-
-    List<Map<String, dynamic>> sampleSeries(int? daysBack, int maxPoints) {
-      List<Map<String, dynamic>> subset;
-      if (daysBack == null) {
-        subset = chronological;
-      } else {
-        final cutoff = latestDate.subtract(Duration(days: daysBack));
-        subset = chronological.where((p) {
-          final d = DateTime.tryParse(p['date']);
-          return d != null && d.isAfter(cutoff);
-        }).toList();
-      }
-      if (subset.isEmpty) subset = chronological.take(maxPoints).toList();
-      if (subset.length <= maxPoints) return subset;
-      final step = (subset.length - 1) / (maxPoints - 1);
-      final sampled = <Map<String, dynamic>>[];
-      for (int i = 0; i < maxPoints; i++) {
-        final idx = (i * step).round().clamp(0, subset.length - 1);
-        sampled.add(subset[idx]);
-      }
-      return sampled;
-    }
-
-    final newChartData = {
-      '1M': sampleSeries(30, 25),
-      '6M': sampleSeries(180, 60),
-      '1Y': sampleSeries(365, 90),
-      '3Y': sampleSeries(1095, 120),
-      '5Y': sampleSeries(1825, 150),
-      'All': sampleSeries(null, 180),
-    };
-
-    double calcCagr(String tf, double fallback) {
-      final pts = newChartData[tf];
-      if (pts != null && pts.length >= 2) {
-        final s = (pts.first['nav'] as num).toDouble();
-        final e = (pts.last['nav'] as num).toDouble();
-        if (s > 0 && e > 0) {
-          if (tf == '3Y') return (pow(e / s, 1.0 / 3.0) - 1.0) * 100;
-          if (tf == '5Y') return (pow(e / s, 1.0 / 5.0) - 1.0) * 100;
-          return ((e - s) / s) * 100;
-        }
-      }
-      return fallback;
-    }
-
-    final ret3Y = calcCagr('3Y', widget.scheme.cagr3Y > 0 ? widget.scheme.cagr3Y : 12.75);
-    final ret1Y = calcCagr('1Y', widget.scheme.cagr1Y);
-    final ret5Y = calcCagr('5Y', widget.scheme.cagr5Y);
-    final ret6M = calcCagr('6M', 5.51);
-    final ret1M = calcCagr('1M', -1.20);
-    final retAll = calcCagr('All', 32.40);
-
-    setState(() {
-      _chartDataMap = newChartData;
-      if (_detailData != null) {
-        _detailData!['nav'] = latestNav;
-        _detailData!['day1Return'] = day1Ret;
-        _detailData!['periodReturns'] = {
-          '1M': {'returnPercent': ret1M, 'isPositive': ret1M >= 0},
-          '6M': {'returnPercent': ret6M, 'isPositive': ret6M >= 0},
-          '1Y': {'returnPercent': ret1Y, 'isPositive': ret1Y >= 0},
-          '3Y': {'returnPercent': ret3Y, 'isPositive': ret3Y >= 0},
-          '5Y': {'returnPercent': ret5Y, 'isPositive': ret5Y >= 0},
-          'All': {'returnPercent': retAll, 'isPositive': retAll >= 0},
-        };
-      }
-    });
-  }
-
+  
   List<double>? _getPeriodNavValues(String period) {
     final points = _chartDataMap[period];
     if (points != null && points.isNotEmpty) {
@@ -268,18 +138,57 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
   }
 
   double get _currentReturn {
-    // 1. Check if backend periodReturns has exact return for this period
+    // 1. Check if backend periodReturns has exact return for this period (official Groww stats)
     if (_detailData != null && _detailData!['periodReturns'] is Map) {
       final pr = _detailData!['periodReturns'] as Map<String, dynamic>;
       if (pr.containsKey(_selectedPeriod)) {
         final pData = pr[_selectedPeriod];
         if (pData is Map && pData['returnPercent'] != null) {
           return (pData['returnPercent'] as num).toDouble();
+        } else if (pData is num) {
+          return pData.toDouble();
         }
       }
     }
 
-    // 2. Check if chart data points exist (CAGR for >1Y, simple for <=1Y)
+    // 2. Direct CAGR from backend root data if available
+    if (_detailData != null) {
+      if (_selectedPeriod == '1Y' && _detailData!['cagr1Y'] != null) {
+        return (_detailData!['cagr1Y'] as num).toDouble();
+      }
+      if (_selectedPeriod == '3Y' && _detailData!['cagr3Y'] != null) {
+        return (_detailData!['cagr3Y'] as num).toDouble();
+      }
+      if (_selectedPeriod == '5Y' && _detailData!['cagr5Y'] != null) {
+        return (_detailData!['cagr5Y'] as num).toDouble();
+      }
+    }
+
+    // 3. Fallback to backend returnsComparison
+    if (_detailData != null && _detailData!['returnsComparison'] is Map) {
+      final comp = _detailData!['returnsComparison'] as Map<String, dynamic>;
+      if (comp.containsKey(_selectedPeriod)) {
+        final pData = comp[_selectedPeriod];
+        if (pData is Map && pData['fund'] != null) {
+          return (pData['fund'] as num).toDouble();
+        }
+      }
+    }
+
+    // 4. Fallback to widget.scheme CAGR rates
+    switch (_selectedPeriod) {
+      case '1Y':
+        if (widget.scheme.cagr1Y > 0) return widget.scheme.cagr1Y;
+        break;
+      case '3Y':
+        if (widget.scheme.cagr3Y > 0) return widget.scheme.cagr3Y;
+        break;
+      case '5Y':
+        if (widget.scheme.cagr5Y > 0) return widget.scheme.cagr5Y;
+        break;
+    }
+
+    // 5. Check if chart data points exist (CAGR for >1Y, simple for <=1Y)
     final points = _chartDataMap[_selectedPeriod];
     if (points != null && points.length >= 2) {
       final start = (points.first['nav'] as num?)?.toDouble() ?? 0.0;
@@ -305,18 +214,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
       }
     }
 
-    // 3. Fallback to backend returnsComparison
-    if (_detailData != null && _detailData!['returnsComparison'] is Map) {
-      final comp = _detailData!['returnsComparison'] as Map<String, dynamic>;
-      if (comp.containsKey(_selectedPeriod)) {
-        final pData = comp[_selectedPeriod];
-        if (pData is Map && pData['fund'] != null) {
-          return (pData['fund'] as num).toDouble();
-        }
-      }
-    }
-
-    // 4. Fallback to scheme CAGR rates
+    // 6. Hard fallback to scheme CAGR rates
     switch (_selectedPeriod) {
       case '1M':
         return -0.98;

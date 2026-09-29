@@ -1,3 +1,4 @@
+import 'package:vika1/core/localization/localization_service.dart';
 import 'package:vika1/modules/notifications/controllers/notification_inbox_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -57,6 +58,7 @@ class _MyGoldViewState extends State<MyGoldView> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       final t = _T.of(dark);
       final bal = GoldController.to.balance.value;
@@ -99,7 +101,7 @@ class _MyGoldViewState extends State<MyGoldView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'My Gold',
+                            'my_gold'.tr,
                             style: TextStyle(
                               color: t.primary,
                               fontSize: 22,
@@ -107,7 +109,7 @@ class _MyGoldViewState extends State<MyGoldView> {
                             ),
                           ),
                           Text(
-                            'Track your gold holdings and growth',
+                            'track_gold_growth'.tr,
                             style: TextStyle(color: t.inkMuted, fontSize: 11),
                           ),
                         ],
@@ -737,19 +739,19 @@ class _MyGoldViewState extends State<MyGoldView> {
                             ),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.shopping_bag_rounded,
                                   color: Color(0xFF3D2B00),
                                   size: 16,
                                 ),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Buy More Gold',
-                                  style: TextStyle(
+                                  'buy_more_gold'.tr,
+                                  style: const TextStyle(
                                     color: Color(0xFF3D2B00),
                                     fontSize: 13,
                                     fontWeight: FontWeight.w800,
@@ -782,7 +784,7 @@ class _MyGoldViewState extends State<MyGoldView> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Sell Gold',
+                                  'sell_gold'.tr,
                                   style: TextStyle(
                                     color: t.primary,
                                     fontSize: 13,

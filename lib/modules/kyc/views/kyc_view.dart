@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../controllers/kyc_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/kyc_model.dart';
+import '../../../core/localization/localization_service.dart';
 
 class KycView extends GetView<KycController> {
   const KycView({super.key});
@@ -15,13 +16,16 @@ class KycView extends GetView<KycController> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        title: const Text(
-          'Complete KYC',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        title: Obx(() {
+          LocalizationService.to.currentLangCode.value;
+          return Text(
+            'complete_kyc'.tr,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          );
+        }),
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_rounded,
@@ -31,6 +35,7 @@ class KycView extends GetView<KycController> {
         ),
       ),
       body: Obx(() {
+        LocalizationService.to.currentLangCode.value;
         if (controller.isLoading.value) {
           return const Center(
             child: CircularProgressIndicator(color: AppColors.accent),
@@ -303,23 +308,23 @@ class _StatusBanner extends StatelessWidget {
     if (status == 'pending') {
       color = const Color(0xFFF39C12);
       icon = Icons.hourglass_top_rounded;
-      title = 'Verification Pending';
+      title = 'pending'.tr;
       subtitle = 'Your KYC is under review. This usually takes 24-48 hours.';
     } else if (status == 'approved') {
       color = const Color(0xFF2ECC71);
       icon = Icons.verified_rounded;
-      title = 'KYC Verified';
+      title = 'verified'.tr;
       subtitle = "You're all set to invest.";
     } else if (status == 'revoked') {
       color = const Color(0xFFE67E22);
       icon = Icons.warning_amber_rounded;
-      title = 'KYC Revoked';
+      title = 'rejected'.tr;
       subtitle =
           kyc?.rejectionReason ?? 'Your KYC verification was revoked. Please resubmit your details.';
     } else {
       color = const Color(0xFFE53E3E);
       icon = Icons.cancel_rounded;
-      title = 'KYC Rejected';
+      title = 'rejected'.tr;
       subtitle =
           kyc?.rejectionReason ?? 'Please review and resubmit your details.';
     }
@@ -374,12 +379,12 @@ class _KycForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionTitle(
+        _SectionTitle(
           icon: Icons.person_outline_rounded,
-          label: 'Personal Details',
+          label: 'personal_details'.tr,
         ),
         _LabeledField(
-          label: 'Full Name *',
+          label: '${'full_name'.tr} *',
           controller: controller.fullNameCtrl,
           hint: 'As per PAN card',
         ),
@@ -387,7 +392,7 @@ class _KycForm extends StatelessWidget {
         _DobField(controller: controller),
         const SizedBox(height: 12),
         _LabeledField(
-          label: 'Address Line *',
+          label: '${'address'.tr} *',
           controller: controller.addressCtrl,
           hint: 'House no, street, area',
         ),
@@ -396,7 +401,7 @@ class _KycForm extends StatelessWidget {
           children: [
             Expanded(
               child: _LabeledField(
-                label: 'City *',
+                label: '${'city'.tr} *',
                 controller: controller.cityCtrl,
                 hint: 'Mumbai',
               ),
@@ -404,7 +409,7 @@ class _KycForm extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: _LabeledField(
-                label: 'State *',
+                label: '${'state'.tr} *',
                 controller: controller.stateCtrl,
                 hint: 'Maharashtra',
               ),
@@ -413,7 +418,7 @@ class _KycForm extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _LabeledField(
-          label: 'Pincode *',
+          label: '${'pincode'.tr} *',
           controller: controller.pincodeCtrl,
           hint: '400050',
           keyboardType: TextInputType.number,
@@ -421,9 +426,9 @@ class _KycForm extends StatelessWidget {
         ),
 
         const SizedBox(height: 8),
-        const _SectionTitle(
+        _SectionTitle(
           icon: Icons.badge_outlined,
-          label: 'PAN Verification',
+          label: 'pan_verification'.tr,
         ),
         _LabeledField(
           label: 'PAN Number *',
@@ -435,16 +440,16 @@ class _KycForm extends StatelessWidget {
         const SizedBox(height: 12),
         Obx(
           () => _UploadBox(
-            label: 'Upload PAN Card *',
+            label: '${'upload_pan_front'.tr} *',
             file: controller.panImage.value,
             onTap: () => controller.pickImage(controller.panImage),
           ),
         ),
 
         const SizedBox(height: 8),
-        const _SectionTitle(
+        _SectionTitle(
           icon: Icons.fingerprint_rounded,
-          label: 'Aadhaar Verification',
+          label: 'aadhaar_verification'.tr,
         ),
         _LabeledField(
           label: 'Aadhaar Number *',
@@ -456,7 +461,7 @@ class _KycForm extends StatelessWidget {
         const SizedBox(height: 12),
         Obx(
           () => _UploadBox(
-            label: 'Aadhaar Front *',
+            label: '${'upload_aadhaar_front'.tr} *',
             file: controller.aadhaarFrontImage.value,
             onTap: () => controller.pickImage(controller.aadhaarFrontImage),
           ),
@@ -464,16 +469,16 @@ class _KycForm extends StatelessWidget {
         const SizedBox(height: 12),
         Obx(
           () => _UploadBox(
-            label: 'Aadhaar Back *',
+            label: '${'upload_aadhaar_back'.tr} *',
             file: controller.aadhaarBackImage.value,
             onTap: () => controller.pickImage(controller.aadhaarBackImage),
           ),
         ),
 
         const SizedBox(height: 8),
-        const _SectionTitle(
+        _SectionTitle(
           icon: Icons.account_balance_outlined,
-          label: 'Bank Details (for payouts)',
+          label: 'bank_details'.tr,
         ),
         _LabeledField(
           label: 'Account Holder Name',
@@ -580,9 +585,9 @@ class _KycForm extends StatelessWidget {
                             ),
                           ],
                         )
-                      : const Text(
-                          'Submit for Verification',
-                          style: TextStyle(
+                      : Text(
+                          'submit_for_verification'.tr,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
                             fontSize: 15,
@@ -696,9 +701,9 @@ class _DobField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Date of Birth *',
-          style: TextStyle(
+        Text(
+          '${'date_of_birth'.tr} *',
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 13,
             fontWeight: FontWeight.w600,
@@ -733,7 +738,7 @@ class _DobField extends StatelessWidget {
                   const SizedBox(width: 10),
                   Text(
                     controller.selectedDob.value.isEmpty
-                        ? 'Select date of birth'
+                        ? 'select_dob'.tr
                         : controller.selectedDob.value,
                     style: TextStyle(
                       color: controller.selectedDob.value.isEmpty
@@ -1022,9 +1027,9 @@ class _SoldierVerificationCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '🎖️ Veer Jawan / Soldier Verification',
-                        style: TextStyle(
+                      Text(
+                        'soldier_verification'.tr,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -1066,10 +1071,10 @@ class _SoldierVerificationCard extends StatelessWidget {
                   ),
                   child: Text(
                     isVerified
-                        ? 'VERIFIED ✓'
+                        ? '${'verified'.tr.toUpperCase()} ✓'
                         : (status == 'pending'
-                            ? 'IN REVIEW'
-                            : (status == 'rejected' ? 'REJECTED' : 'NOT VERIFIED')),
+                            ? 'under_review'.tr.toUpperCase()
+                            : (status == 'rejected' ? 'rejected'.tr.toUpperCase() : 'not_verified'.tr.toUpperCase())),
                     style: TextStyle(
                       color: isVerified
                           ? const Color(0xFF10B981)
@@ -1307,14 +1312,14 @@ class _SoldierVerificationCard extends StatelessWidget {
                           width: 18,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
-                      : const Row(
+                      : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.upload_file_rounded, size: 16),
-                            SizedBox(width: 8),
+                            const Icon(Icons.upload_file_rounded, size: 16),
+                            const SizedBox(width: 8),
                             Text(
-                              'Submit Soldier ID for Verification',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              'submit_for_verification'.tr,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                           ],
                         ),
@@ -1383,20 +1388,20 @@ class _QuickPhotoKycCard extends StatelessWidget {
                   const SizedBox(width: 10),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
-                        'Quick Photo KYC',
-                        style: TextStyle(
+                        'quick_photo_kyc'.tr,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
                           letterSpacing: -0.2,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        'Upload document photos only',
-                        style: TextStyle(
+                        'upload_doc_photos'.tr,
+                        style: const TextStyle(
                           color: Color(0xFF9EBAAA),
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
@@ -1440,7 +1445,7 @@ class _QuickPhotoKycCard extends StatelessWidget {
           // Upload 1: PAN Card Photo
           Obx(
             () => _PhotoUploadTile(
-              title: '1. PAN Card Photo *',
+              title: '${'upload_pan_front'.tr} *',
               subtitle: 'Front side showing name & photo',
               icon: Icons.badge_outlined,
               file: controller.panImage.value,
@@ -1452,7 +1457,7 @@ class _QuickPhotoKycCard extends StatelessWidget {
           // Upload 2: Aadhaar Front Photo
           Obx(
             () => _PhotoUploadTile(
-              title: '2. Aadhaar / ID Front Photo *',
+              title: '${'upload_aadhaar_front'.tr} *',
               subtitle: 'Front side showing photo & details',
               icon: Icons.fingerprint_rounded,
               file: controller.aadhaarFrontImage.value,
@@ -1464,7 +1469,7 @@ class _QuickPhotoKycCard extends StatelessWidget {
           // Upload 3: Aadhaar Back Photo (Optional)
           Obx(
             () => _PhotoUploadTile(
-              title: '3. Aadhaar Back Photo (Optional)',
+              title: '${'upload_aadhaar_back'.tr} (Optional)',
               subtitle: 'Back side showing address details',
               icon: Icons.flip_to_back_rounded,
               file: controller.aadhaarBackImage.value,
@@ -1551,14 +1556,14 @@ class _QuickPhotoKycCard extends StatelessWidget {
                               ),
                             ],
                           )
-                        : const Row(
+                        : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.cloud_upload_rounded, size: 20),
-                              SizedBox(width: 8),
+                              const Icon(Icons.cloud_upload_rounded, size: 20),
+                              const SizedBox(width: 8),
                               Text(
-                                'Submit Photo KYC Now',
-                                style: TextStyle(
+                                'submit_photo_kyc'.tr,
+                                style: const TextStyle(
                                   fontSize: 14.5,
                                   fontWeight: FontWeight.w800,
                                 ),
@@ -1681,7 +1686,7 @@ class _PhotoUploadTile extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    hasFile ? 'Change' : 'Upload',
+                    hasFile ? 'change_btn'.tr : 'upload_btn'.tr,
                     style: TextStyle(
                       color: hasFile
                           ? const Color(0xFF2ECC71)

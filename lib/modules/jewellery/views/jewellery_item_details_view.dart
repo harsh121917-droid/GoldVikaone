@@ -6,6 +6,7 @@ import '../../digi_gold/controllers/digi_gold_controller.dart';
 import '../../silver/controllers/silver_controller.dart';
 import '../../wallet/controllers/wallet_controller.dart';
 import '../controllers/jewellery_controller.dart';
+import '../../../core/localization/localization_service.dart';
 
 const _gold = Color(0xFFD4A017);
 const _goldLight = Color(0xFFFFD54F);
@@ -120,7 +121,9 @@ class JewelleryItemDetailsView extends StatelessWidget {
     final selectedPaymentMethod = 'razorpay'.obs;
     final isFavorite = false.obs;
 
-    return Scaffold(
+    return Obx(() {
+      LocalizationService.to.currentLangCode.value;
+      return Scaffold(
       backgroundColor: p.bg,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
@@ -279,7 +282,7 @@ class JewelleryItemDetailsView extends StatelessWidget {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              item['inStock'] == false ? 'Out of Stock' : 'In Stock • Ready to Dispatch',
+                              item['inStock'] == false ? 'out_of_stock'.tr : 'in_stock'.tr,
                               style: TextStyle(
                                 color: item['inStock'] == false ? Colors.red : _emerald,
                                 fontSize: 11,
@@ -322,7 +325,7 @@ class JewelleryItemDetailsView extends StatelessWidget {
                         const Icon(Icons.show_chart_rounded, color: _gold, size: 16),
                         const SizedBox(width: 6),
                         Text(
-                          'Live MCX ${metalType.toUpperCase()} Rate: ',
+                          '${'live_mcx_rate'.tr} (${metalType.toUpperCase()}): ',
                           style: TextStyle(color: p.inkMuted, fontSize: 11.5, fontWeight: FontWeight.w600),
                         ),
                         Text(
@@ -416,7 +419,8 @@ class JewelleryItemDetailsView extends StatelessWidget {
         dark: dark,
       ),
     );
-  }
+  });
+}
 
   // ── Spec Grid Builder ──
   Widget _buildSpecsMatrix(Map<String, dynamic> item, bool isGold, double weight, _Palette p) {
@@ -431,12 +435,12 @@ class JewelleryItemDetailsView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              Icon(Icons.tune_rounded, color: _gold, size: 16),
-              SizedBox(width: 6),
+            children: [
+              const Icon(Icons.tune_rounded, color: _gold, size: 16),
+              const SizedBox(width: 6),
               Text(
-                'Product Specifications',
-                style: TextStyle(
+                'product_specs'.tr,
+                style: const TextStyle(
                   color: _gold,
                   fontSize: 12.5,
                   fontWeight: FontWeight.bold,
@@ -450,14 +454,14 @@ class JewelleryItemDetailsView extends StatelessWidget {
             children: [
               _specTile(
                 Icons.scale_rounded,
-                'Net Weight',
+                'net_weight'.tr,
                 '${weight.toStringAsFixed(3)} g',
                 p,
               ),
               const SizedBox(width: 8),
               _specTile(
                 Icons.verified_rounded,
-                'Purity',
+                'metal_purity'.tr,
                 (item['purity'] ?? (isGold ? '22K Gold' : '999 Silver')).toString(),
                 p,
               ),
@@ -476,7 +480,7 @@ class JewelleryItemDetailsView extends StatelessWidget {
               _specTile(
                 Icons.shield_outlined,
                 'Hallmark',
-                'BIS 100% Certified',
+                'bis_hallmark'.tr,
                 p,
               ),
             ],
@@ -594,7 +598,7 @@ class JewelleryItemDetailsView extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'My ${metalType.toUpperCase()} Vault Savings',
+                          '${'my_vault_savings'.tr} (${metalType.toUpperCase()})',
                           style: TextStyle(
                             color: p.ink,
                             fontSize: 14,
@@ -733,12 +737,12 @@ class JewelleryItemDetailsView extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
-                  children: const [
-                    Icon(Icons.receipt_long_rounded, size: 18, color: _gold),
-                    SizedBox(width: 8),
+                  children: [
+                    const Icon(Icons.receipt_long_rounded, size: 18, color: _gold),
+                    const SizedBox(width: 8),
                     Text(
-                      'Price Breakdown',
-                      style: TextStyle(
+                      'price_breakdown'.tr,
+                      style: const TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'DM Serif Display',
@@ -753,7 +757,7 @@ class JewelleryItemDetailsView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    isApplying ? 'Vault Applied' : 'Direct Buy',
+                    isApplying ? 'vault_applied'.tr : 'direct_buy'.tr,
                     style: TextStyle(
                       color: isApplying ? _emerald : _gold,
                       fontSize: 11,
@@ -767,9 +771,9 @@ class JewelleryItemDetailsView extends StatelessWidget {
             const Divider(height: 1),
             const SizedBox(height: 12),
 
-            _rowItem('Total Item Metal Weight', '${weightGrams.toStringAsFixed(3)} g', p),
-            _rowItem('Live Metal Rate', '₹${effectiveLiveRate.toStringAsFixed(2)} / g', p),
-            _rowItem('Gross Pure Metal Value', '₹${grossMetalValue.toStringAsFixed(0)}', p),
+            _rowItem('net_weight'.tr, '${weightGrams.toStringAsFixed(3)} g', p),
+            _rowItem('live_mcx_rate'.tr, '₹${effectiveLiveRate.toStringAsFixed(2)} / g', p),
+            _rowItem('metal_value'.tr, '₹${grossMetalValue.toStringAsFixed(0)}', p),
 
             if (isApplying && usedGrams > 0) ...[
               Padding(
@@ -811,8 +815,8 @@ class JewelleryItemDetailsView extends StatelessWidget {
                 ),
             ],
 
-            _rowItem('Making & Artistry Charges', '₹${makingCharges.toStringAsFixed(0)}', p),
-            _rowItem('GST (${gstPct.toStringAsFixed(0)}% on Cash Amount)', '₹${gstAmount.toStringAsFixed(0)}', p),
+            _rowItem('making_cost'.tr, '₹${makingCharges.toStringAsFixed(0)}', p),
+            _rowItem('${'gst_tax'.tr} (${gstPct.toStringAsFixed(0)}%)', '₹${gstAmount.toStringAsFixed(0)}', p),
 
             const SizedBox(height: 16),
 
@@ -839,7 +843,7 @@ class JewelleryItemDetailsView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isApplying ? 'Net Cash Amount to Pay' : 'Total Amount to Pay',
+                        isApplying ? 'cash_to_pay'.tr : 'total_payable'.tr,
                         style: TextStyle(
                           color: isApplying ? const Color(0xFFA7F3D0) : _goldLight,
                           fontSize: 12,
@@ -900,11 +904,11 @@ class JewelleryItemDetailsView extends StatelessWidget {
   Widget _buildAssuranceRow(_Palette p) {
     return Row(
       children: [
-        _trustTile(Icons.verified_rounded, '100% BIS Hallmarked', p),
+        _trustTile(Icons.verified_rounded, 'bis_hallmarked'.tr, p),
         const SizedBox(width: 8),
-        _trustTile(Icons.local_shipping_rounded, 'Insured Express Delivery', p),
+        _trustTile(Icons.local_shipping_rounded, 'insured_transit'.tr, p),
         const SizedBox(width: 8),
-        _trustTile(Icons.published_with_changes_rounded, 'Lifetime 100% Buyback', p),
+        _trustTile(Icons.published_with_changes_rounded, 'lifetime_buyback'.tr, p),
       ],
     );
   }
@@ -949,7 +953,7 @@ class JewelleryItemDetailsView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Select Payment Option',
+                'select_payment_option'.tr,
                 style: TextStyle(
                   color: p.ink,
                   fontSize: 13.5,
@@ -1008,7 +1012,7 @@ class JewelleryItemDetailsView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'UPI / Cards / NetBanking (Razorpay)',
+                            'pay_online_rzp'.tr,
                             style: TextStyle(
                               color: p.ink,
                               fontSize: 12.5,
@@ -1058,7 +1062,7 @@ class JewelleryItemDetailsView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Payvika In-App Wallet',
+                            'pay_app_wallet'.tr,
                             style: TextStyle(
                               color: p.ink,
                               fontSize: 12.5,
@@ -1146,7 +1150,7 @@ class JewelleryItemDetailsView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isApplying && usedGrams > 0 ? 'Cash to Pay' : 'Total Payable',
+                    isApplying && usedGrams > 0 ? 'cash_to_pay'.tr : 'total_payable'.tr,
                     style: TextStyle(color: p.inkMuted, fontSize: 11, fontWeight: FontWeight.w600),
                   ),
                   Text(
@@ -1217,8 +1221,8 @@ class JewelleryItemDetailsView extends StatelessWidget {
                             children: [
                               Text(
                                 isApplying && usedGrams > 0
-                                    ? 'Pay ₹${netCashPayable.toStringAsFixed(0)} & Order'
-                                    : 'Buy Now • ₹${netCashPayable.toStringAsFixed(0)}',
+                                    ? '${'order_now'.tr} • ₹${netCashPayable.toStringAsFixed(0)}'
+                                    : '${'buy_now'.tr} • ₹${netCashPayable.toStringAsFixed(0)}',
                                 style: const TextStyle(
                                   fontSize: 14.5,
                                   fontWeight: FontWeight.w800,

@@ -350,7 +350,7 @@ class ProfileView extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'My Gold Balance',
+                              'gold_balance'.tr,
                               style: TextStyle(
                                 color: textSecondary,
                                 fontSize: 11,
@@ -385,7 +385,7 @@ class ProfileView extends StatelessWidget {
                           children: [
                             Expanded(
                               child: _miniStat(
-                                'Total Invested',
+                                'total_invested'.tr,
                                 '₹${totalInvested.toStringAsFixed(0)}',
                                 Icons.payments_outlined,
                                 textSecondary,
@@ -394,7 +394,7 @@ class ProfileView extends StatelessWidget {
                             ),
                             Expanded(
                               child: _miniStat(
-                                'Current Value',
+                                'current_value'.tr,
                                 '₹${goldValuation.toStringAsFixed(0)}',
                                 Icons.trending_up_rounded,
                                 textSecondary,
@@ -403,7 +403,7 @@ class ProfileView extends StatelessWidget {
                             ),
                             Expanded(
                               child: _miniStat(
-                                'Total Returns',
+                                'total_returns'.tr,
                                 '${totalReturns >= 0 ? '+' : ''}₹${totalReturns.toStringAsFixed(0)}',
                                 Icons.workspace_premium_outlined,
                                 textSecondary,
@@ -477,7 +477,7 @@ class ProfileView extends StatelessWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Available Balance',
+                              'available_balance'.tr,
                               style: TextStyle(
                                 color: textSecondary,
                                 fontSize: 11,
@@ -509,9 +509,9 @@ class ProfileView extends StatelessWidget {
                               MaterialTapTargetSize.shrinkWrap, // ← ADD
                         ),
                         icon: const Icon(Icons.arrow_forward_rounded, size: 14),
-                        label: const Text(
-                          'Manage',
-                          style: TextStyle(
+                        label: Text(
+                          'manage'.tr,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
@@ -542,30 +542,30 @@ class ProfileView extends StatelessWidget {
                     children: [
                       _actionTab(
                         Icons.assignment_outlined,
-                        'My Orders',
+                        'my_orders'.tr,
                         () => Get.toNamed(AppRoutes.transactions),
                       ),
                       _actionTab(
                         Icons.loop_outlined,
-                        'SIP & Schemes',
+                        'sip_schemes'.tr,
                         () => Get.toNamed(AppRoutes.goldSchemes),
                       ),
                       _actionTab(
                         Icons.receipt_long_outlined,
-                        'History',
+                        'history'.tr,
                         () => Get.toNamed(AppRoutes.transactions),
                       ),
                       _actionTab(
                         Icons.share_outlined,
-                        'My Referrals',
+                        'my_referrals'.tr,
                         () => Get.toNamed(AppRoutes.rewards),
                       ),
-                      _actionTab(Icons.headset_mic_outlined, 'Help Support', () {
+                      _actionTab(Icons.headset_mic_outlined, 'help_support'.tr, () {
                         Get.dialog(
                           AlertDialog(
                             backgroundColor: cardColor,
                             title: Text(
-                              'Customer Care',
+                              'customer_care'.tr,
                               style: TextStyle(color: textPrimary),
                             ),
                             content: Text(
@@ -575,9 +575,9 @@ class ProfileView extends StatelessWidget {
                             actions: [
                               TextButton(
                                 onPressed: () => Get.back(),
-                                child: const Text(
-                                  'Dismiss',
-                                  style: TextStyle(color: _gold),
+                                child: Text(
+                                  'cancel'.tr,
+                                  style: const TextStyle(color: _gold),
                                 ),
                               ),
                             ],
@@ -763,16 +763,16 @@ class ProfileView extends StatelessWidget {
                             kyc == 'approved' || kyc == 'verified';
                         final isPending = kyc == 'pending';
 
-                        String statusText = 'Not Verified';
+                        String statusText = 'not_verified'.tr;
                         Color badgeColor = Colors.grey.withOpacity(0.12);
                         Color textColor = Colors.grey;
 
                         if (isVerified) {
-                          statusText = 'Verified';
+                          statusText = 'verified'.tr;
                           badgeColor = const Color(0xFFE8F5E9);
                           textColor = const Color(0xFF2E7D32);
                         } else if (isPending) {
-                          statusText = 'Pending';
+                          statusText = 'pending'.tr;
                           badgeColor = const Color(0xFFFFF3E0);
                           textColor = const Color(0xFFE65100);
                         }
@@ -828,7 +828,7 @@ class ProfileView extends StatelessWidget {
                       ),
                       _menuRow(
                         icon: Icons.receipt_long_outlined,
-                        label: 'Invoice Preview (Sample)',
+                        label: 'invoice_preview'.tr,
                         textPrimary: textPrimary,
                         borderSide: borderSideColor,
                         onTap: () async {
@@ -948,7 +948,7 @@ class ProfileView extends StatelessWidget {
                       // ),
                       _menuRow(
                         icon: Icons.card_giftcard_rounded,
-                        label: 'Refer & Earn',
+                        label: 'refer_earn'.tr,
                         textPrimary: textPrimary,
                         borderSide: borderSideColor,
                         onTap: () => Get.toNamed(AppRoutes.rewards),
@@ -961,7 +961,7 @@ class ProfileView extends StatelessWidget {
                         onTap: () => Get.toNamed(
                           AppRoutes.policy,
                           arguments: {
-                            'title': 'Terms & Conditions',
+                            'title': 'terms_conditions'.tr,
                             'content': PolicyTexts.terms,
                           },
                         ),
@@ -974,46 +974,46 @@ class ProfileView extends StatelessWidget {
                         onTap: () => Get.toNamed(
                           AppRoutes.policy,
                           arguments: {
-                            'title': 'Privacy Policy',
+                            'title': 'privacy_policy'.tr,
                             'content': PolicyTexts.privacy,
                           },
                         ),
                       ),
                       _menuRow(
                         icon: Icons.local_shipping_outlined,
-                        label: 'Shipping Policy',
+                        label: 'shipping_policy'.tr,
                         textPrimary: textPrimary,
                         borderSide: borderSideColor,
                         onTap: () => Get.toNamed(
                           AppRoutes.policy,
                           arguments: {
-                            'title': 'Shipping Policy',
+                            'title': 'shipping_policy'.tr,
                             'content': PolicyTexts.shipping,
                           },
                         ),
                       ),
                       _menuRow(
                         icon: Icons.assignment_return_outlined,
-                        label: 'Return Policy',
+                        label: 'return_policy'.tr,
                         textPrimary: textPrimary,
                         borderSide: borderSideColor,
                         onTap: () => Get.toNamed(
                           AppRoutes.policy,
                           arguments: {
-                            'title': 'Return Policy',
+                            'title': 'return_policy'.tr,
                             'content': PolicyTexts.returns,
                           },
                         ),
                       ),
                       _menuRow(
                         icon: Icons.currency_rupee_outlined,
-                        label: 'Refund Policy',
+                        label: 'refund_policy'.tr,
                         textPrimary: textPrimary,
                         borderSide: borderSideColor,
                         onTap: () => Get.toNamed(
                           AppRoutes.policy,
                           arguments: {
-                            'title': 'Refund Policy',
+                            'title': 'refund_policy'.tr,
                             'content': PolicyTexts.refund,
                           },
                         ),
@@ -1022,7 +1022,7 @@ class ProfileView extends StatelessWidget {
                         icon: dark
                             ? Icons.dark_mode_rounded
                             : Icons.wb_sunny_rounded,
-                        label: dark ? 'Theme: Dark Mode' : 'Theme: Light Mode',
+                        label: dark ? 'theme_dark'.tr : 'theme_light'.tr,
                         textPrimary: textPrimary,
                         borderSide: borderSideColor,
                         onTap: () {
@@ -1039,7 +1039,7 @@ class ProfileView extends StatelessWidget {
                       ),
                       _menuRow(
                         icon: Icons.logout_rounded,
-                        label: 'Logout',
+                        label: 'logout'.tr,
                         textPrimary: const Color(0xFFD32F2F),
                         borderSide: Colors.transparent,
                         onTap: () {
@@ -1047,19 +1047,19 @@ class ProfileView extends StatelessWidget {
                             AlertDialog(
                               backgroundColor: cardColor,
                               title: Text(
-                                'Sign Out',
+                                'sign_out'.tr,
                                 style: TextStyle(color: textPrimary),
                               ),
                               content: Text(
-                                'Are you sure you want to log out of Vikaone?',
+                                'sign_out_confirm'.tr,
                                 style: TextStyle(color: textSecondary),
                               ),
                               actions: [
                                 TextButton(
                                   onPressed: () => Get.back(),
-                                  child: const Text(
-                                    'Cancel',
-                                    style: TextStyle(color: Colors.grey),
+                                  child: Text(
+                                    'cancel'.tr,
+                                    style: const TextStyle(color: Colors.grey),
                                   ),
                                 ),
                                 TextButton(
@@ -1067,9 +1067,9 @@ class ProfileView extends StatelessWidget {
                                     Get.back();
                                     Get.find<AuthController>().logout();
                                   },
-                                  child: const Text(
-                                    'Log Out',
-                                    style: TextStyle(color: Color(0xFFD32F2F)),
+                                  child: Text(
+                                    'logout'.tr,
+                                    style: const TextStyle(color: Color(0xFFD32F2F)),
                                   ),
                                 ),
                               ],

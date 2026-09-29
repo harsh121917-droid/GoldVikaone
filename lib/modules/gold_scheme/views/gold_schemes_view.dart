@@ -1,3 +1,4 @@
+import 'package:vika1/core/localization/localization_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -111,6 +112,7 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       final t = _T.of(dark);
 
@@ -149,7 +151,7 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                'Gold Schemes',
+                'gold_schemes'.tr,
                 style: TextStyle(
                   color: t.ink,
                   fontSize: 16,
@@ -158,7 +160,7 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
               ),
               const SizedBox(height: 2),
               Text(
-                'Save today, own gold tomorrow ✨',
+                'save_today_gold_tomorrow'.tr,
                 style: TextStyle(
                   color: t.inkMuted,
                   fontSize: 11,
@@ -384,7 +386,7 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Start a new Gold Scheme',
+                                      'start_new_scheme'.tr,
                                       style: TextStyle(
                                         color: t.ink,
                                         fontSize: 13.5,
@@ -418,17 +420,17 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
-                                    children: const [
+                                    children: [
                                       Text(
-                                        'Start a Scheme',
-                                        style: TextStyle(
+                                        'start_a_scheme'.tr,
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 11.5,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      SizedBox(width: 6),
-                                      Icon(
+                                      const SizedBox(width: 6),
+                                      const Icon(
                                         Icons.arrow_forward_rounded,
                                         color: Colors.white,
                                         size: 12,
@@ -450,7 +452,7 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'My Enrolled Schemes',
+                              'my_enrolled_schemes'.tr,
                               style: TextStyle(
                                 color: t.ink,
                                 fontSize: 15.5,
@@ -982,9 +984,9 @@ class _EnrollmentCard extends StatelessWidget {
                           horizontal: 14,
                           vertical: 8,
                         ),
-                        child: const Text(
-                          'View Details',
-                          style: TextStyle(
+                        child: Text(
+                          'view_details'.tr,
+                          style: const TextStyle(
                             color: Colors.black87,
                             fontSize: 11,
                             fontWeight: FontWeight.bold,

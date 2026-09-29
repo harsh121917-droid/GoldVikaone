@@ -1,3 +1,4 @@
+import 'package:vika1/core/localization/localization_service.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:vika1/data/repositories/silver_repository.dart';
 import 'package:vika1/core/network/api_client.dart';
@@ -274,7 +275,7 @@ class _BuySilverViewState extends State<BuySilverView> {
           // Silver Tab
           Expanded(
             child: _metalTab(
-              label: 'Silver 999 Fine',
+              label: 'silver_999'.tr,
               icon: Icons.workspace_premium_rounded,
               isSelected: currentMetal == 'silver',
               activeColor: const Color(0xFF8A95A5),
@@ -289,7 +290,7 @@ class _BuySilverViewState extends State<BuySilverView> {
           // Silver Tab
           Expanded(
             child: _metalTab(
-              label: 'Silver 999',
+              label: 'silver_999'.tr,
               icon: Icons.circle_outlined,
               isSelected: currentMetal == 'silver',
               activeColor: const Color(0xFF8A95A5),
@@ -304,7 +305,7 @@ class _BuySilverViewState extends State<BuySilverView> {
           // Copper Tab
           Expanded(
             child: _metalTab(
-              label: 'Copper 999',
+              label: 'copper_999'.tr,
               icon: Icons.layers_rounded,
               isSelected: currentMetal == 'copper',
               activeColor: const Color(0xFFEA580C),
@@ -384,6 +385,7 @@ class _BuySilverViewState extends State<BuySilverView> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       final t = _T.of(dark);
 
@@ -423,11 +425,11 @@ class _BuySilverViewState extends State<BuySilverView> {
                         ),
                       ),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Center(
                         child: Text(
-                          'Buy Silver',
-                          style: TextStyle(
+                          'buy_silver'.tr,
+                          style: const TextStyle(
                             color: Color(0xFF0B3D2E),
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
@@ -447,16 +449,16 @@ class _BuySilverViewState extends State<BuySilverView> {
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(
+                        children: [
+                          const Icon(
                             Icons.show_chart_rounded,
                             color: Color(0xFF0B3D2E),
                             size: 14,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
-                            'Live Rate',
-                            style: TextStyle(
+                            'live_rate'.tr,
+                            style: const TextStyle(
                               color: Color(0xFF0B3D2E),
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -681,13 +683,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                               ),
                                         ),
                                         const SizedBox(width: 4),
-                                        Text(
-                                          'Gold',
-                                          style: TextStyle(
-                                            color: t.inkMuted,
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                        Text('gold'.tr, style: TextStyle(color: t.inkMuted, fontSize: 11.5, fontWeight: FontWeight.bold),
                                         ),
                                       ],
                                     ),
@@ -723,13 +719,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                               ),
                                         ),
                                         const SizedBox(width: 4),
-                                        Text(
-                                          'Silver',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                        Text('silver'.tr, style: TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.bold),
                                         ),
                                       ],
                                     ),
@@ -759,13 +749,7 @@ class _BuySilverViewState extends State<BuySilverView> {
                                           size: 13,
                                         ),
                                         const SizedBox(width: 4),
-                                        Text(
-                                          'Copper',
-                                          style: TextStyle(
-                                            color: t.inkMuted,
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                        Text('copper'.tr, style: TextStyle(color: t.inkMuted, fontSize: 11.5, fontWeight: FontWeight.bold),
                                         ),
                                       ],
                                     ),
@@ -2081,15 +2065,15 @@ class _BuySilverViewState extends State<BuySilverView> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
-                                    children: const [
-                                      Icon(
+                                    children: [
+                                      const Icon(
                                         Icons.lock_outline_rounded,
                                         color: Colors.white,
                                         size: 16,
                                       ),
-                                      SizedBox(width: 8),
+                                      const SizedBox(width: 8),
                                       Text(
-                                        'Buy Silver Now',
+                                        'buy_silver_now'.tr,
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 14,

@@ -1,3 +1,4 @@
+import 'package:vika1/core/localization/localization_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -76,6 +77,7 @@ class _SellGoldViewState extends State<SellGoldView> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       final t = _T.of(dark);
 
@@ -119,16 +121,16 @@ class _SellGoldViewState extends State<SellGoldView> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            'Sell Gold',
-                            style: TextStyle(
+                          Text(
+                            'sell_gold'.tr,
+                            style: const TextStyle(
                               color: Color(0xFF0B3D2E),
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                           Text(
-                            'Convert your gold to cash',
+                            'convert_gold_cash'.tr,
                             style: TextStyle(color: t.inkMuted, fontSize: 11),
                           ),
                         ],
@@ -735,15 +737,15 @@ class _SellGoldViewState extends State<SellGoldView> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
-                                    children: const [
-                                      Icon(
+                                    children: [
+                                      const Icon(
                                         Icons.lock_outline_rounded,
                                         color: Colors.white,
                                         size: 16,
                                       ),
-                                      SizedBox(width: 8),
+                                      const SizedBox(width: 8),
                                       Text(
-                                        'Sell Gold Now',
+                                        'sell_gold_now'.tr,
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 14,

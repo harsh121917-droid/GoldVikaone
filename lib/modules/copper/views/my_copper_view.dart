@@ -1,3 +1,4 @@
+import 'package:vika1/core/localization/localization_service.dart';
 import 'package:vika1/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -59,6 +60,7 @@ class _MyCopperViewState extends State<MyCopperView> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       final t = _CopperTheme.of(dark);
 
@@ -83,7 +85,7 @@ class _MyCopperViewState extends State<MyCopperView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'My Copper',
+                'my_copper'.tr,
                 style: TextStyle(
                   color: t.tp,
                   fontSize: 18,
@@ -92,7 +94,7 @@ class _MyCopperViewState extends State<MyCopperView> {
                 ),
               ),
               Text(
-                'Track your 999 electrolytic copper holdings',
+                'track_copper_growth'.tr,
                 style: TextStyle(color: t.ts, fontSize: 11),
               ),
             ],
@@ -903,10 +905,10 @@ class _MyCopperViewState extends State<MyCopperView> {
                         ),
                       ],
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text(
-                        'Buy Copper',
-                        style: TextStyle(
+                        'buy_more_copper'.tr,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
@@ -929,10 +931,10 @@ class _MyCopperViewState extends State<MyCopperView> {
                         color: _copperAccent.withOpacity(0.4),
                       ),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text(
-                        'Sell Copper',
-                        style: TextStyle(
+                        'sell_copper'.tr,
+                        style: const TextStyle(
                           color: _copperAccent,
                           fontSize: 14,
                           fontWeight: FontWeight.w800,

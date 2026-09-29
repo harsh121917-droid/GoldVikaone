@@ -1,3 +1,4 @@
+import 'package:vika1/core/localization/localization_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vika1/data/repositories/scheme_repository.dart';
@@ -114,6 +115,7 @@ class _AllSchemesViewState extends State<AllSchemesView> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       final bg = dark ? const Color(0xFF060B16) : const Color(0xFFF8F9FA);
       final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
@@ -192,17 +194,17 @@ class _AllSchemesViewState extends State<AllSchemesView> {
                                   Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
-                                    children: const [
+                                    children: [
                                       Text(
-                                        'Start a Scheme',
-                                        style: TextStyle(
+                                        'start_a_scheme'.tr,
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 20,
                                           fontWeight: FontWeight.w900,
                                         ),
                                       ),
                                       SizedBox(height: 2),
-                                      Text(
+                                      const Text(
                                         'Choose a plan that fits your goals ✨',
                                         style: TextStyle(
                                           color: Colors.white70,
@@ -564,8 +566,8 @@ class _AllSchemesViewState extends State<AllSchemesView> {
                                             children: [
                                               Text(
                                                 meta.isPopular
-                                                    ? 'Start This Scheme'
-                                                    : 'View Details',
+                                                    ? 'start_this_scheme'.tr
+                                                    : 'view_details'.tr,
                                                 style: TextStyle(
                                                   color: meta.isPopular
                                                       ? Colors.white

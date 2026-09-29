@@ -1,3 +1,4 @@
+import 'package:vika1/core/localization/localization_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -76,6 +77,7 @@ class _SellCopperViewState extends State<SellCopperView> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       final t = _T.of(dark);
 
@@ -121,7 +123,7 @@ class _SellCopperViewState extends State<SellCopperView> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'Sell Copper',
+                              'sell_copper'.tr,
                               style: TextStyle(
                                 color: t.primary,
                                 fontSize: 18,
@@ -129,7 +131,7 @@ class _SellCopperViewState extends State<SellCopperView> {
                               ),
                             ),
                             Text(
-                              'Convert your copper to cash',
+                              'convert_copper_cash'.tr,
                               style: TextStyle(color: t.inkMuted, fontSize: 11),
                             ),
                           ],
@@ -732,15 +734,15 @@ class _SellCopperViewState extends State<SellCopperView> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
-                                    children: const [
-                                      Icon(
+                                    children: [
+                                      const Icon(
                                         Icons.lock_outline_rounded,
                                         color: Colors.white,
                                         size: 16,
                                       ),
-                                      SizedBox(width: 8),
+                                      const SizedBox(width: 8),
                                       Text(
-                                        'Sell Copper Now',
+                                        'sell_copper_now'.tr,
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 14,
