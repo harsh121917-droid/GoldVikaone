@@ -64,6 +64,7 @@ import '../modules/wallet/controllers/wallet_controller.dart';
 import 'package:vika1/modules/profile/views/transactions_view.dart';
 import 'package:vika1/modules/profile/views/rewards_view.dart';
 import 'package:vika1/modules/profile/views/policy_view.dart';
+import 'package:vika1/modules/profile/views/language_settings_view.dart';
 import 'package:vika1/modules/orders/views/my_orders_view.dart';
 
 abstract class AppRoutes {
@@ -81,6 +82,7 @@ abstract class AppRoutes {
   static const security = '/security';
   static const rewards = '/profile/rewards';
   static const policy = '/policy';
+  static const language = '/language';
 
   static const digiGold = '/digi-gold';
   static const digiGoldSavings = '/digi-gold/savings';
@@ -166,6 +168,7 @@ final appPages = [
   GetPage(name: AppRoutes.transactions, page: () => const TransactionsView()),
   GetPage(name: AppRoutes.rewards, page: () => const RewardsView()),
   GetPage(name: AppRoutes.policy, page: () => const PolicyView()),
+  GetPage(name: AppRoutes.language, page: () => const LanguageSettingsView()),
 
   // ── Digi Gold (home tab + my gold) ──────────────────────────────────────
   GetPage(

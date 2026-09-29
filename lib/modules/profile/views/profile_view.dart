@@ -1,5 +1,4 @@
 import 'package:image_picker/image_picker.dart';
-import 'dart:ui';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -9,7 +8,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:vika1/modules/wallet/views/wallet_view.dart';
 import 'package:vika1/data/repositories/gold_repository.dart';
 import 'package:vika1/modules/invoice/views/invoice_viewer_view.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../digi_gold/controllers/digi_gold_controller.dart'
@@ -17,9 +15,9 @@ import '../../digi_gold/controllers/digi_gold_controller.dart'
 import '../../kyc/controllers/kyc_controller.dart' show KycController;
 import '../../../data/repositories/kyc_repository.dart' show KycRepository;
 import '../../wallet/controllers/wallet_controller.dart' show WalletController;
-import '../../../core/services/lock_service.dart';
 import '../../../routes/app_routes.dart';
 import 'package:vika1/modules/profile/utils/policy_texts.dart';
+import '../../../core/localization/localization_service.dart';
 
 const _gold = Color(0xFFD4A017);
 
@@ -40,6 +38,7 @@ class ProfileView extends StatelessWidget {
         : Get.put(WalletController());
 
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
 
       final bg = dark ? const Color(0xFF03160E) : const Color(0xFFF4F7F4);
@@ -88,7 +87,7 @@ class ProfileView extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'My Profile',
+                      'my_profile'.tr,
                       style: TextStyle(
                         color: textPrimary,
                         fontSize: 24,
@@ -612,7 +611,7 @@ class ProfileView extends StatelessWidget {
                     children: [
                       _menuRow(
                         icon: Icons.person_outline_rounded,
-                        label: 'Personal Information',
+                        label: 'personal_info'.tr,
                         textPrimary: textPrimary,
                         borderSide: borderSideColor,
                         onTap: () {
@@ -780,7 +779,7 @@ class ProfileView extends StatelessWidget {
 
                         return _menuRow(
                           icon: Icons.verified_user_outlined,
-                          label: 'KYC Verification',
+                          label: 'kyc_verification'.tr,
                           textPrimary: textPrimary,
                           borderSide: borderSideColor,
                           onTap: () => Get.toNamed(AppRoutes.kyc),
@@ -822,7 +821,7 @@ class ProfileView extends StatelessWidget {
 
                       _menuRow(
                         icon: Icons.account_balance_outlined,
-                        label: 'Bank & Payment Details',
+                        label: 'bank_payment_details'.tr,
                         textPrimary: textPrimary,
                         borderSide: borderSideColor,
                         onTap: () => Get.toNamed(AppRoutes.bankAccounts),
@@ -893,17 +892,52 @@ class ProfileView extends StatelessWidget {
                       ),
                       _menuRow(
                         icon: Icons.local_shipping_outlined,
-                        label: 'My Orders & Tracking',
+                        label: 'orders_tracking'.tr,
                         textPrimary: textPrimary,
                         borderSide: borderSideColor,
                         onTap: () => Get.toNamed(AppRoutes.orders),
                       ),
                       _menuRow(
                         icon: Icons.lock_outline_rounded,
-                        label: 'Security Settings',
+                        label: 'security_settings'.tr,
                         textPrimary: textPrimary,
                         borderSide: borderSideColor,
                         onTap: () => Get.toNamed(AppRoutes.security),
+                      ),
+                      _menuRow(
+                        icon: Icons.translate_rounded,
+                        label: 'change_language'.tr,
+                        textPrimary: textPrimary,
+                        borderSide: borderSideColor,
+                        trailing: Obx(
+                          () => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _gold.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _gold.withValues(alpha: 0.35),
+                              ),
+                            ),
+                            child: Text(
+                              LocalizationService.to.isMarathi
+                                  ? 'मराठी'
+                                  : 'English',
+                              style: const TextStyle(
+                                color: _gold,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Get.toNamed(AppRoutes.language);
+                        },
                       ),
                       // _menuRow(
                       //   icon: Icons.star_outline_rounded,
@@ -921,7 +955,7 @@ class ProfileView extends StatelessWidget {
                       ),
                       _menuRow(
                         icon: Icons.description_outlined,
-                        label: 'Terms & Conditions',
+                        label: 'terms_conditions'.tr,
                         textPrimary: textPrimary,
                         borderSide: borderSideColor,
                         onTap: () => Get.toNamed(
@@ -934,7 +968,7 @@ class ProfileView extends StatelessWidget {
                       ),
                       _menuRow(
                         icon: Icons.privacy_tip_outlined,
-                        label: 'Privacy Policy',
+                        label: 'privacy_policy'.tr,
                         textPrimary: textPrimary,
                         borderSide: borderSideColor,
                         onTap: () => Get.toNamed(

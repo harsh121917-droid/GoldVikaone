@@ -1,3 +1,5 @@
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -18,6 +20,7 @@ class MfUccOnboardingView extends StatefulWidget {
 }
 
 class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
+  final ScrollController _scrollController = ScrollController();
   final _formKey = GlobalKey<FormState>();
   final MutualFundsController controller = Get.find<MutualFundsController>();
 
@@ -31,6 +34,8 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
   String _registeredName = '';
   bool _isNameConfirmed = false;
   String? _panErrorText;
+  bool _isFreshInvestor = false;
+  final TextEditingController _nameController = TextEditingController();
 
   // Personal Details
   String _gender = 'M'; // M, F, O
@@ -57,7 +62,8 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
     super.initState();
     // Prefill if controller already has prefill data from user profile
     final prefillPan = controller.uccPrefill['pan']?.toString() ?? '';
-    if (prefillPan.isNotEmpty) {
+    const dummyPans = ['ABCDE1234F', 'AAAAA0000A', 'XXXXX0000X', 'TYJPS0689R', 'PHOTO_SUBMITTED'];
+    if (prefillPan.isNotEmpty && !dummyPans.contains(prefillPan.toUpperCase())) {
       _panController.text = prefillPan.toUpperCase();
       _triggerPanVerification(_panController.text);
     }
@@ -68,6 +74,8 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
     _panController.dispose();
     _dobController.dispose();
     _nomineeNameController.dispose();
+    _scrollController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -91,11 +99,17 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
 
     try {
       final res = await controller.verifyPan(cleanPan);
-      if (res != null && res['isValid'] == true && res['registeredName'] != null && res['registeredName'].toString().trim().isNotEmpty) {
+      if (res != null && (res['isValid'] == true || res['success'] == true)) {
+        final data = res['data'] is Map ? res['data'] as Map<String, dynamic> : res;
+        final name = (data['registeredName'] ?? '').toString().trim().toUpperCase();
+        final isFresh = data['isFreshInvestor'] == true || data['nseKycStatus'] == 'NEW';
+
         setState(() {
           _isPanVerified = true;
-          _registeredName = res['registeredName'].toString().trim().toUpperCase();
-          _isNameConfirmed = true;
+          _isFreshInvestor = isFresh;
+          _registeredName = name;
+          _nameController.text = name;
+          _isNameConfirmed = false;
           _isVerifyingPan = false;
           _panErrorText = null;
         });
@@ -103,6 +117,7 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
         setState(() {
           _isPanVerified = false;
           _registeredName = '';
+          _nameController.clear();
           _isNameConfirmed = false;
           _panErrorText = res?['message']?.toString() ?? 'PAN verification failed. Please enter a valid registered PAN.';
           _isVerifyingPan = false;
@@ -155,10 +170,10 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
   Future<void> _submitKyc() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (!_isPanVerified || !_isNameConfirmed) {
+    if (!_isPanVerified) {
       Get.snackbar(
         'Verify PAN',
-        'Please enter a valid PAN and confirm your registered name to proceed.',
+        'Please enter a valid 10-character PAN to proceed.',
         backgroundColor: Colors.redAccent,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -166,7 +181,25 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
       return;
     }
 
-    final success = await controller.registerUcc(
+    if (!_isNameConfirmed) {
+      Get.snackbar(
+        'Confirm Name',
+        'Please tap "Yes, That\'s Me" to confirm your registered name.',
+        backgroundColor: Colors.amber.shade800,
+        colorText: Colors.black,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          120,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+        );
+      }
+      return;
+    }
+
+    final res = await controller.registerUcc(
       pan: _panController.text.trim().toUpperCase(),
       fullName: _registeredName,
       dob: _dobController.text.trim(),
@@ -176,14 +209,181 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
       nomineeRelation: _addNominee ? _nomineeRelation : '01',
     );
 
-    if (success) {
-      // Re-fetch status so home page cards update instantly
-      controller.fetchOnboardingStatus();
-      Get.back(result: true);
+    if (res != null && res['success'] == true) {
+      if (!mounted) return;
+      _showNseSuccessSheet(res['clientCode']?.toString() ?? '', res['authUrl']?.toString());
     }
   }
 
-  @override
+  void _showNseSuccessSheet(String clientCode, String? authUrl) {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+          decoration: const BoxDecoration(
+            color: Color(0xFF131722),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(top: BorderSide(color: GrowwColors.mintTeal, width: 1.2)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: GrowwColors.mintTeal.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.verified_user_rounded, color: GrowwColors.mintTeal, size: 36),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'NSE Investor Account Created! 🎉',
+                style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Your official NSE Client Code is $clientCode\nNSE MFSS has registered your investor profile.',
+                style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 13, height: 1.4),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+
+              // Exchange Notice Card
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: GrowwColors.cardElevated,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: GrowwColors.goldAccent.withOpacity(0.4)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: GrowwColors.goldAccent.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.mark_email_read_outlined, color: GrowwColors.goldAccent, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Official Exchange OTP Sent by NSE',
+                            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'NSE India (NSEINV) sends the official SMS with verification OTP and link to your Aadhaar/PAN linked mobile.',
+                            style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11, height: 1.3),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              if (authUrl != null && authUrl.isNotEmpty) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final uri = Uri.parse(authUrl);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: GrowwColors.goldAccent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.open_in_browser_rounded, color: Colors.black, size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          'Open NSE Official Authorization Portal',
+                          style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+
+              // AutoPay Step 2 button
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.pop(context, true);
+                    controller.initiateMandateSetup(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: GrowwColors.mintTeal,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Set Up AutoPay Mandate (Step 2) →',
+                        style: TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 42,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.pop(context, true);
+                  },
+                  child: const Text(
+                    'Explore Mutual Funds',
+                    style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+@override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: GrowwColors.background,
@@ -211,6 +411,7 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
         ),
       ),
       body: SingleChildScrollView(
+        controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         child: Form(
           key: _formKey,
@@ -421,16 +622,23 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0F2621), Color(0xFF131722)],
+        gradient: LinearGradient(
+          colors: _isFreshInvestor
+              ? [const Color(0xFF162536), const Color(0xFF131722)]
+              : [const Color(0xFF0F2621), const Color(0xFF131722)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: GrowwColors.mintTeal.withOpacity(0.5), width: 1.2),
+        border: Border.all(
+          color: _isFreshInvestor
+              ? Colors.lightBlueAccent.withOpacity(0.5)
+              : GrowwColors.mintTeal.withOpacity(0.5),
+          width: 1.2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: GrowwColors.mintTeal.withOpacity(0.08),
+            color: (_isFreshInvestor ? Colors.lightBlueAccent : GrowwColors.mintTeal).withOpacity(0.08),
             blurRadius: 14,
             offset: const Offset(0, 3),
           ),
@@ -443,17 +651,21 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
             children: [
               Container(
                 padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: GrowwColors.mintTeal,
+                decoration: BoxDecoration(
+                  color: _isFreshInvestor ? Colors.lightBlueAccent : GrowwColors.mintTeal,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_rounded, color: Colors.black, size: 14),
+                child: Icon(
+                  _isFreshInvestor ? Icons.person_add_alt_1_rounded : Icons.check_rounded,
+                  color: Colors.black,
+                  size: 14,
+                ),
               ),
               const SizedBox(width: 8),
-              const Text(
-                'NAME FOUND IN PAN RECORDS',
+              Text(
+                _isFreshInvestor ? "FIRST-TIME INVESTOR • CONFIRM LEGAL NAME" : "NAME FOUND IN PAN RECORDS (KRA VERIFIED)",
                 style: TextStyle(
-                  color: GrowwColors.mintTeal,
+                  color: _isFreshInvestor ? Colors.lightBlueAccent : GrowwColors.mintTeal,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
@@ -462,19 +674,46 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            _registeredName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
+          if (_isFreshInvestor) ...[
+            TextFormField(
+              controller: _nameController,
+              textCapitalization: TextCapitalization.characters,
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                hintText: "Enter Full Legal Name as per PAN",
+                labelText: "Full Legal Name as per PAN Card",
+                labelStyle: const TextStyle(color: Colors.lightBlueAccent, fontSize: 12),
+                hintStyle: TextStyle(color: GrowwColors.textTertiary, fontSize: 14),
+                filled: true,
+                fillColor: GrowwColors.cardElevated,
+                prefixIcon: const Icon(Icons.person_outline, color: Colors.lightBlueAccent, size: 20),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Colors.lightBlueAccent, width: 1.5),
+                ),
+              ),
+              onChanged: (val) {
+                _registeredName = val.trim().toUpperCase();
+              },
             ),
-          ),
+          ] else ...[
+            Text(
+              _registeredName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
           const SizedBox(height: 6),
-          const Text(
-            'Confirm if this is your full legal name as per Income Tax records to register with NSE MFSS.',
-            style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12, height: 1.3),
+          Text(
+            _isFreshInvestor
+                ? "Please confirm your full legal name as per Income Tax records. Fresh investor KYC will be seamlessly processed on NSE."
+                : "Confirm if this is your full legal name as per Income Tax records to register with NSE MFSS.",
+            style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12, height: 1.3),
           ),
           const SizedBox(height: 14),
           Row(
@@ -482,24 +721,57 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () {
+                    FocusScope.of(context).unfocus();
+                    if (_nameController.text.trim().isNotEmpty) {
+                      _registeredName = _nameController.text.trim().toUpperCase();
+                    }
+                    if (_registeredName.isEmpty) {
+                      Get.snackbar(
+                        "Name Required",
+                        "Please enter your full legal name as per your PAN card.",
+                        backgroundColor: Colors.amber.shade800,
+                        colorText: Colors.black,
+                      );
+                      return;
+                    }
                     setState(() => _isNameConfirmed = true);
+                    HapticFeedback.lightImpact();
+                    Get.snackbar(
+                      "Name Confirmed",
+                      "Verified as " + _registeredName + ". Please verify details below.",
+                      backgroundColor: const Color(0xFF00D09C),
+                      colorText: Colors.black,
+                      duration: const Duration(seconds: 2),
+                      snackPosition: SnackPosition.TOP,
+                    );
+                    Future.delayed(const Duration(milliseconds: 250), () {
+                      if (_scrollController.hasClients) {
+                        _scrollController.animateTo(
+                          260,
+                          duration: const Duration(milliseconds: 500),
+                          curve: Curves.easeOutCubic,
+                        );
+                      }
+                    });
                   },
                   icon: Icon(
-                    _isNameConfirmed ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                    _isNameConfirmed ? Icons.check_circle_rounded : Icons.check_rounded,
                     size: 18,
-                    color: _isNameConfirmed ? Colors.black : Colors.white,
+                    color: Colors.black,
                   ),
                   label: Text(
-                    _isNameConfirmed ? 'Yes, That\'s Me ✓' : 'Confirm Name',
-                    style: TextStyle(
-                      color: _isNameConfirmed ? Colors.black : Colors.white,
+                    _isNameConfirmed
+                        ? "Name Confirmed ✓"
+                        : (_isFreshInvestor ? "Confirm Legal Name & Continue ✓" : "Yes, That's Me ✓"),
+                    style: const TextStyle(
+                      color: Colors.black,
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _isNameConfirmed ? GrowwColors.mintTeal : GrowwColors.cardElevated,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    backgroundColor: _isFreshInvestor ? Colors.lightBlueAccent : GrowwColors.mintTeal,
+                    padding: const EdgeInsets.symmetric(vertical: 11),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     elevation: 0,
                   ),
@@ -510,13 +782,14 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
                 onPressed: () {
                   setState(() {
                     _isPanVerified = false;
-                    _registeredName = '';
+                    _registeredName = "";
+                    _nameController.clear();
                     _isNameConfirmed = false;
                     _panController.clear();
                   });
                 },
                 child: const Text(
-                  'Change PAN',
+                  "Change PAN",
                   style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12),
                 ),
               ),
@@ -847,3 +1120,5 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
     );
   }
 }
+
+/// Sleek Groww-Style 6-Digit In-App OTP Verification Modal

@@ -23,6 +23,7 @@ import 'package:vika1/data/repositories/gold_repository.dart';
 import 'package:vika1/data/repositories/silver_repository.dart';
 import 'package:vika1/modules/silver_sip/views/silver_transaction_detail_view.dart';
 import 'transaction_detail_view.dart';
+import '../../../core/localization/localization_service.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const _gold = Color(0xFFD4A017);
@@ -107,9 +108,9 @@ class _DigiGoldViewState extends State<DigiGoldView>
 
   String _greeting() {
     final h = DateTime.now().hour;
-    if (h < 12) return 'Good Morning';
-    if (h < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (h < 12) return 'greeting_morning'.tr;
+    if (h < 17) return 'greeting_afternoon'.tr;
+    return 'greeting_evening'.tr;
   }
 
   @override
@@ -117,6 +118,7 @@ class _DigiGoldViewState extends State<DigiGoldView>
     return SafeArea(
       top: true,
       child: Obx(() {
+        LocalizationService.to.currentLangCode.value;
         final dark = ThemeController.to.isDark.value;
         final t = _T.of(dark);
         return Scaffold(
@@ -240,7 +242,7 @@ class _TopBar extends StatelessWidget {
                     children: [
                       Flexible(
                         child: Text(
-                          'Welcome Back${user != null ? ', ${user.name.split(' ')[0]}' : ''}!',
+                          '${'welcome_back'.tr}${user != null ? ', ${user.name.split(' ')[0]}' : ''}!',
                           style: TextStyle(
                             color: t.ink,
                             fontSize: 18,
@@ -257,7 +259,7 @@ class _TopBar extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Obx(() {
             final notifCtrl = NotificationInboxController.to;
             final unread = notifCtrl.unreadCount;
@@ -377,8 +379,8 @@ class _GoldHeroCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    'GOLD BALANCE',
+                  Text(
+                    'gold_balance'.tr,
                     style: TextStyle(
                       color: _gold,
                       fontSize: 12,
@@ -399,11 +401,11 @@ class _GoldHeroCard extends StatelessWidget {
                         border: Border.all(color: const Color(0xFF0B3D2E)),
                         color: const Color(0xFF0B3D2E),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Details',
+                            'details'.tr,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 11,
@@ -446,8 +448,8 @@ class _GoldHeroCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const Text(
-                'Current Value',
+              Text(
+                'current_value'.tr,
                 style: TextStyle(color: Colors.white70, fontSize: 11),
               ),
               const SizedBox(height: 14),
@@ -455,7 +457,7 @@ class _GoldHeroCard extends StatelessWidget {
                 children: [
                   _pill(
                     Icons.add,
-                    'Buy Gold',
+                    'buy_gold'.tr,
                     Colors.black.withOpacity(0.35),
                     _gold,
                     () => Get.toNamed(AppRoutes.buyGold),
@@ -465,7 +467,7 @@ class _GoldHeroCard extends StatelessWidget {
                   const SizedBox(width: 10),
                   _pill(
                     Icons.north_east_rounded,
-                    'Sell Gold',
+                    'sell_gold'.tr,
                     Colors.black.withOpacity(0.35),
                     _gold,
                     () => Get.toNamed(AppRoutes.sellGold),
@@ -475,11 +477,11 @@ class _GoldHeroCard extends StatelessWidget {
                   const Spacer(),
                   GestureDetector(
                     onTap: () => Get.toNamed(AppRoutes.myGold),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'View Chart',
+                          'view_chart'.tr,
                           style: TextStyle(
                             color: _gold,
                             fontSize: 11,
@@ -587,8 +589,8 @@ class _SilverHeroCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    'SILVER BALANCE',
+                  Text(
+                    'silver_balance'.tr,
                     style: TextStyle(
                       color: darkMuted,
                       fontSize: 12,
@@ -608,11 +610,11 @@ class _SilverHeroCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: darkMuted.withOpacity(0.5)),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Details',
+                            'details'.tr,
                             style: TextStyle(
                               color: darkInk,
                               fontSize: 11,
@@ -655,8 +657,8 @@ class _SilverHeroCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const Text(
-                'Current Value',
+              Text(
+                'current_value'.tr,
                 style: TextStyle(color: darkMuted, fontSize: 11),
               ),
               const SizedBox(height: 14),
@@ -664,7 +666,7 @@ class _SilverHeroCard extends StatelessWidget {
                 children: [
                   _pill(
                     Icons.add,
-                    'Buy Silver',
+                    'buy_silver'.tr,
                     const Color(0xFF0B3D2E),
                     Colors.white,
                     () => Get.toNamed(AppRoutes.buySilver),
@@ -672,7 +674,7 @@ class _SilverHeroCard extends StatelessWidget {
                   const SizedBox(width: 10),
                   _pill(
                     Icons.north_east_rounded,
-                    'Sell Silver',
+                    'sell_silver'.tr,
                     Colors.white.withOpacity(0.5),
                     darkInk,
                     () => Get.toNamed(AppRoutes.sellSilver),
@@ -682,11 +684,11 @@ class _SilverHeroCard extends StatelessWidget {
                   const Spacer(),
                   GestureDetector(
                     onTap: () => Get.toNamed(AppRoutes.mySilver),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'View Chart',
+                          'view_chart'.tr,
                           style: TextStyle(
                             color: _gold,
                             fontSize: 11,
@@ -804,8 +806,8 @@ class _CopperHeroCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    'COPPER BALANCE',
+                  Text(
+                    'copper_balance'.tr,
                     style: TextStyle(
                       color: _copperLight,
                       fontSize: 12,
@@ -825,11 +827,11 @@ class _CopperHeroCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: _copper.withOpacity(0.5)),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Details',
+                            'details'.tr,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 11,
@@ -872,8 +874,8 @@ class _CopperHeroCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const Text(
-                'Current Value',
+              Text(
+                'current_value'.tr,
                 style: TextStyle(color: Colors.white70, fontSize: 11),
               ),
               const SizedBox(height: 14),
@@ -881,7 +883,7 @@ class _CopperHeroCard extends StatelessWidget {
                 children: [
                   _pill(
                     Icons.add,
-                    'Buy Copper',
+                    'buy_copper'.tr,
                     _copper,
                     Colors.white,
                     () => Get.toNamed(AppRoutes.buyCopper),
@@ -889,7 +891,7 @@ class _CopperHeroCard extends StatelessWidget {
                   const SizedBox(width: 10),
                   _pill(
                     Icons.north_east_rounded,
-                    'Sell Copper',
+                    'sell_copper'.tr,
                     Colors.white.withOpacity(0.15),
                     Colors.white,
                     () => Get.toNamed(AppRoutes.sellCopper),
@@ -899,11 +901,11 @@ class _CopperHeroCard extends StatelessWidget {
                   const Spacer(),
                   GestureDetector(
                     onTap: () => Get.toNamed(AppRoutes.myCopper),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'View Chart',
+                          'view_chart'.tr,
                           style: TextStyle(
                             color: _copperLight,
                             fontSize: 11,
@@ -986,25 +988,25 @@ class _QuickActionsState extends State<_QuickActions> {
     final row1 = [
       (
         Icons.shopping_bag_outlined,
-        'Buy Gold',
+        'buy_gold'.tr,
         const Color(0xFFD4A017),
         () => Get.toNamed(AppRoutes.buyGold),
       ),
       (
         Icons.shopping_bag_outlined,
-        'Buy Silver',
+        'buy_silver'.tr,
         const Color(0xFF9AA3AD),
         () => Get.toNamed(AppRoutes.buySilver),
       ),
       (
         Icons.history_rounded,
-        'Transactions',
+        'transactions'.tr,
         Colors.blue,
         () => Get.toNamed(AppRoutes.transactions),
       ),
       (
         Icons.calendar_month_outlined,
-        'SIP Plan',
+        'sip_plan'.tr,
         Colors.purple,
         () {
           Get.bottomSheet(
@@ -1020,7 +1022,7 @@ class _QuickActionsState extends State<_QuickActions> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Start Savings Plan (SIP)',
+                    'start_savings_plan_sip'.tr,
                     style: TextStyle(
                       color: t.ink,
                       fontSize: 18,
@@ -1030,7 +1032,7 @@ class _QuickActionsState extends State<_QuickActions> {
                   const SizedBox(height: 15),
                   ListTile(
                     leading: const Icon(Icons.diamond_outlined, color: _gold),
-                    title: Text('Gold SIP', style: TextStyle(color: t.ink)),
+                    title: Text('gold_sip'.tr, style: TextStyle(color: t.ink)),
                     onTap: () {
                       Get.back();
                       Get.toNamed(AppRoutes.digiGoldSavings);
@@ -1038,7 +1040,7 @@ class _QuickActionsState extends State<_QuickActions> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.hexagon_outlined, color: _silver),
-                    title: Text('Silver SIP', style: TextStyle(color: t.ink)),
+                    title: Text('silver_sip'.tr, style: TextStyle(color: t.ink)),
                     onTap: () {
                       Get.back();
                       Get.toNamed(AppRoutes.silverSip);
@@ -1053,7 +1055,7 @@ class _QuickActionsState extends State<_QuickActions> {
       ),
       (
         Icons.pie_chart_rounded,
-        'Mutual Funds',
+        'mutual_funds'.tr,
           const Color(0xFF2563EB),
           () => Get.toNamed(AppRoutes.mutualFunds),
       ),
@@ -1062,13 +1064,13 @@ class _QuickActionsState extends State<_QuickActions> {
     final row2 = [
       (
         Icons.wallet_outlined,
-        'Add Money',
+        'add_money'.tr,
         const Color(0xFFD4A017),
         () => Get.toNamed(AppRoutes.wallet),
       ),
       (
         Icons.swap_horizontal_circle_outlined,
-        'Sell',
+        'sell'.tr,
         const Color(0xFF2ecc71),
         () {
           Get.bottomSheet(
@@ -1084,7 +1086,7 @@ class _QuickActionsState extends State<_QuickActions> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Sell Assets',
+                    'sell_assets'.tr,
                     style: TextStyle(
                       color: t.ink,
                       fontSize: 18,
@@ -1094,7 +1096,7 @@ class _QuickActionsState extends State<_QuickActions> {
                   const SizedBox(height: 15),
                   ListTile(
                     leading: const Icon(Icons.diamond_outlined, color: _gold),
-                    title: Text('Sell Gold', style: TextStyle(color: t.ink)),
+                    title: Text('sell_gold'.tr, style: TextStyle(color: t.ink)),
                     onTap: () {
                       Get.back();
                       Get.toNamed(AppRoutes.sellGold);
@@ -1102,7 +1104,7 @@ class _QuickActionsState extends State<_QuickActions> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.hexagon_outlined, color: _silver),
-                    title: Text('Sell Silver', style: TextStyle(color: t.ink)),
+                    title: Text('sell_silver'.tr, style: TextStyle(color: t.ink)),
                     onTap: () {
                       Get.back();
                       Get.toNamed(AppRoutes.sellSilver);
@@ -1117,19 +1119,19 @@ class _QuickActionsState extends State<_QuickActions> {
       ),
       (
         Icons.trending_up_rounded,
-        'Price Chart',
+        'price_chart'.tr,
         const Color(0xFFD4A017),
         () => Get.toNamed(AppRoutes.myGold),
       ),
       (
         Icons.card_giftcard_rounded,
-        'Gift',
+        'gift'.tr,
         Colors.orange,
         () => Get.toNamed(AppRoutes.gift),
       ),
       (
         Icons.share_outlined,
-        'Refer & Earn',
+        'refer_earn'.tr,
         Colors.indigo,
         () => Get.toNamed(AppRoutes.rewards),
       ),
@@ -1181,7 +1183,7 @@ class _QuickActionsState extends State<_QuickActions> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  _isExpanded ? 'Show Less' : 'Show More',
+                  _isExpanded ? 'show_less'.tr : 'show_more'.tr,
                   style: TextStyle(
                     color: t.primary,
                     fontSize: 12,
@@ -1302,7 +1304,7 @@ class _LiveRatesState extends State<_LiveRates> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Live Market Rates',
+                'live_market_rates'.tr,
                 style: TextStyle(
                   color: widget.t.ink,
                   fontSize: 16,
@@ -1320,8 +1322,8 @@ class _LiveRatesState extends State<_LiveRates> {
                     children: [
                       Text(
                         updated != null
-                            ? 'Updated ${updated.day}/${updated.month}, ${updated.hour}:${updated.minute.toString().padLeft(2, '0')}'
-                            : 'Tap to refresh',
+                            ? '${'updated'.tr} ${updated.day}/${updated.month}, ${updated.hour}:${updated.minute.toString().padLeft(2, '0')}'
+                            : 'tap_to_refresh'.tr,
                         style: TextStyle(
                           color: widget.t.inkMuted,
                           fontSize: 10.5,
@@ -1350,7 +1352,7 @@ class _LiveRatesState extends State<_LiveRates> {
                 SizedBox(
                   width: 150,
                   child: _rateCard(
-                    'Gold (24K)',
+                    'gold_24k'.tr,
                     () => GoldController.to.buyRate,
                     () => GoldController.to.goldPct,
                     _gold,
@@ -1362,7 +1364,7 @@ class _LiveRatesState extends State<_LiveRates> {
                 SizedBox(
                   width: 150,
                   child: _rateCard(
-                    'Silver (999)',
+                    'silver_999'.tr,
                     () => GoldController.to.silverRate,
                     () => GoldController.to.silverPct,
                     _silver,
@@ -1374,7 +1376,7 @@ class _LiveRatesState extends State<_LiveRates> {
                 SizedBox(
                   width: 150,
                   child: _rateCard(
-                    'Platinum (950)',
+                    'platinum_950'.tr,
                     () => GoldController.to.platinumRate,
                     () => GoldController.to.platinumPct,
                     const Color(0xFFE5E8EB),
@@ -1398,7 +1400,7 @@ class _LiveRatesState extends State<_LiveRates> {
                 SizedBox(
                   width: 150,
                   child: _rateCard(
-                    'Copper',
+                    'copper'.tr,
                     () => GoldController.to.copperRate,
                     () => GoldController.to.copperPct,
                     const Color(0xFFD35400),
@@ -1466,7 +1468,7 @@ class _LiveRatesState extends State<_LiveRates> {
             children: [
               Expanded(
                 child: Text(
-                  '₹${rate().toStringAsFixed(2)}/g',
+                  '₹${rate().toStringAsFixed(2)}${'per_gram'.tr}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -1553,9 +1555,9 @@ class _PromoBanner extends StatelessWidget {
                       children: [
                         // NOW LIVE Badge
                         Row(
-                          children: const [
+                          children: [
                             Text(
-                              "🚀 COMING SOON",
+                              'coming_soon_badge'.tr,
                               style: TextStyle(
                                 color: Color(0xFFF59E0B),
                                 fontSize: 11,
@@ -1566,8 +1568,8 @@ class _PromoBanner extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 6),
-                        const Text(
-                          "More ways to grow your wealth!",
+                        Text(
+                          'promo_title'.tr,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16.5,
@@ -1577,8 +1579,8 @@ class _PromoBanner extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        const Text(
-                          "Mutual Funds, Fixed Deposits, SIP & more powerful investment options coming soon.",
+                        Text(
+                          'promo_subtitle'.tr,
                           style: TextStyle(
                             color: Color(0xFF9FBDB2),
                             fontSize: 11,
@@ -1611,9 +1613,9 @@ class _PromoBanner extends StatelessWidget {
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
-                              children: const [
+                              children: [
                                 Text(
-                                  "Explore What's Coming",
+                                  'explore_whats_coming'.tr,
                                   style: TextStyle(
                                     color: Color(0xFF261800),
                                     fontSize: 11.5,
@@ -1621,7 +1623,7 @@ class _PromoBanner extends StatelessWidget {
                                   ),
                                 ),
                                 SizedBox(width: 4),
-                                Icon(
+                                const Icon(
                                   Icons.arrow_forward_rounded,
                                   color: Color(0xFF261800),
                                   size: 13,
@@ -1759,19 +1761,19 @@ class _SipPromoCard extends StatelessWidget {
                       ),
                       children: [
                         TextSpan(
-                          text: 'Set up SIP in ',
+                          text: 'setup_sip_in'.tr,
                           style: TextStyle(color: t.ink),
                         ),
-                        const TextSpan(
-                          text: 'Gold',
+                        TextSpan(
+                          text: 'gold'.tr,
                           style: TextStyle(color: _gold),
                         ),
                         TextSpan(
-                          text: ' or ',
+                          text: 'or'.tr,
                           style: TextStyle(color: t.ink),
                         ),
-                        const TextSpan(
-                          text: 'Silver',
+                        TextSpan(
+                          text: 'silver'.tr,
                           style: TextStyle(color: _silver),
                         ),
                       ],
@@ -1779,7 +1781,7 @@ class _SipPromoCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Build wealth regularly with small investments.',
+                    'sip_tagline'.tr,
                     style: TextStyle(
                       color: t.inkMuted,
                       fontSize: 11,
@@ -1790,12 +1792,12 @@ class _SipPromoCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _featureItem(Icons.tune_rounded, 'Flexible Amount'),
+                      _featureItem(Icons.tune_rounded, 'flexible_amount'.tr),
                       _featureItem(
                         Icons.verified_user_outlined,
-                        'Secure Investment',
+                        'secure_investment'.tr,
                       ),
-                      _featureItem(Icons.show_chart_rounded, 'Wealth Growth'),
+                      _featureItem(Icons.show_chart_rounded, 'wealth_growth'.tr),
                     ],
                   ),
                 ],
@@ -1817,7 +1819,7 @@ class _SipPromoCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Choose SIP Asset',
+                          'choose_sip_asset'.tr,
                           style: TextStyle(
                             color: t.ink,
                             fontSize: 18,
@@ -1831,7 +1833,7 @@ class _SipPromoCard extends StatelessWidget {
                             color: _gold,
                           ),
                           title: Text(
-                            'Gold SIP',
+                            'gold_sip'.tr,
                             style: TextStyle(color: t.ink),
                           ),
                           onTap: () {
@@ -1845,7 +1847,7 @@ class _SipPromoCard extends StatelessWidget {
                             color: _silver,
                           ),
                           title: Text(
-                            'Silver SIP',
+                            'silver_sip'.tr,
                             style: TextStyle(color: t.ink),
                           ),
                           onTap: () {
@@ -1871,8 +1873,8 @@ class _SipPromoCard extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Start SIP',
+                    Text(
+                      'start_sip'.tr,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -1944,7 +1946,7 @@ class _TrustCertificatesSection extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                'Trust & Security Certifications',
+                'trust_security_cert'.tr,
                 style: TextStyle(
                   color: t.ink,
                   fontSize: 16,
@@ -1958,16 +1960,16 @@ class _TrustCertificatesSection extends StatelessWidget {
           // Certificate 1: BIS Hallmarked
           _CertificateCard(
             t: t,
-            title: 'BIS Hallmarked',
-            badge: '24K 99.9% PURE',
+            title: 'bis_hallmarked'.tr,
+            badge: 'bis_badge'.tr,
             subtitle:
                 'Government-approved hallmark purity guarantee for 99.9% 24K Gold & Silver.',
             icon: Icons.workspace_premium_rounded,
             accentColor: _gold,
-            chips: const [
-              '🥇 24K Pure',
-              '🏛️ Govt. Approved',
-              '🔒 100% Backed',
+            chips: [
+              'pure_24k'.tr,
+              'govt_approved'.tr,
+              'backed_100'.tr,
             ],
             gradient: const LinearGradient(
               colors: [Color(0xFF2C2208), Color(0xFF16161B)],
@@ -1994,16 +1996,16 @@ class _TrustCertificatesSection extends StatelessWidget {
           // Certificate 2: ISO 27001:2022 Certified
           _CertificateCard(
             t: t,
-            title: 'ISO 27001:2022 Certified',
+            title: 'iso_certified'.tr,
             badge: 'ISMS CERTIFIED',
             subtitle:
                 'Certified Information Security Management System ensuring bank-grade data privacy.',
             icon: Icons.shield_rounded,
             accentColor: const Color(0xFF00B4D8),
-            chips: const [
-              '🛡️ Bank-Grade',
-              '🔐 256-Bit SSL',
-              '👁️ Privacy First',
+            chips: [
+              'bank_grade'.tr,
+              'ssl_256'.tr,
+              'privacy_first'.tr,
             ],
             gradient: const LinearGradient(
               colors: [Color(0xFF082230), Color(0xFF16161B)],
@@ -2443,15 +2445,15 @@ class _DeliveryBanner extends StatelessWidget {
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              Icon(
+                            children: [
+                              const Icon(
                                 Icons.local_shipping_outlined,
                                 color: Color(0xFFD4A017),
                                 size: 13,
                               ),
                               SizedBox(width: 6),
                               Text(
-                                'PHYSICAL DELIVERY',
+                                'physical_delivery'.tr,
                                 style: TextStyle(
                                   color: Color(0xFFD4A017),
                                   fontSize: 8.5,
@@ -2464,7 +2466,7 @@ class _DeliveryBanner extends StatelessWidget {
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          'Doorstep Gold Delivery',
+                          'doorstep_gold_delivery'.tr,
                           style: TextStyle(
                             color: textColor,
                             fontSize: 18,
@@ -2474,7 +2476,7 @@ class _DeliveryBanner extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Convert your digital savings into 999.9 pure certified physical coins safely delivered to your home.',
+                          'doorstep_delivery_desc'.tr,
                           style: TextStyle(
                             color: textSubColor,
                             fontSize: 11.5,
@@ -2506,9 +2508,9 @@ class _DeliveryBanner extends StatelessWidget {
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
-                              children: const [
+                              children: [
                                 Text(
-                                  'Get Delivery',
+                                  'get_delivery'.tr,
                                   style: TextStyle(
                                     color: Color(0xFF3D2B00),
                                     fontSize: 12.5,
@@ -2516,7 +2518,7 @@ class _DeliveryBanner extends StatelessWidget {
                                   ),
                                 ),
                                 SizedBox(width: 6),
-                                Icon(
+                                const Icon(
                                   Icons.arrow_forward_rounded,
                                   color: Color(0xFF3D2B00),
                                   size: 14,
@@ -2652,7 +2654,7 @@ class _HomeCouponsSectionState extends State<_HomeCouponsSection> {
                   const Icon(Icons.local_offer_rounded, color: _gold, size: 18),
                   const SizedBox(width: 6),
                   Text(
-                    'Exclusive Offers & Coupons',
+                    'exclusive_offers_coupons'.tr,
                     style: TextStyle(
                       color: t.ink,
                       fontSize: 15,
@@ -2664,8 +2666,8 @@ class _HomeCouponsSectionState extends State<_HomeCouponsSection> {
               GestureDetector(
                 onTap: () =>
                     Get.to(() => const SelectCouponView(currentAmount: 100)),
-                child: const Text(
-                  'View All',
+                child: Text(
+                  'view_all'.tr,
                   style: TextStyle(
                     color: _gold,
                     fontSize: 12.5,
@@ -2757,6 +2759,7 @@ class _RecommendedGoalsSectionState extends State<_RecommendedGoalsSection> {
       'id': 'soldier',
       'label': '5% EXTRA PER ANNUM',
       'title': 'Veer Jawan',
+      'titleKey': 'goal_soldier',
       'tagline': '5% extra return per annum\n• 0% Platform Fee',
       'badge': '🎖️ 5% Extra/yr',
       'icon': Icons.military_tech_rounded,
@@ -2769,6 +2772,7 @@ class _RecommendedGoalsSectionState extends State<_RecommendedGoalsSection> {
       'id': 'education',
       'label': 'ZERO CHARGES',
       'title': 'Education',
+      'titleKey': 'goal_education',
       'tagline': 'Invest in knowledge,\nearns the best returns.',
       'badge': '🎓 Zero Fee',
       'icon': Icons.school_rounded,
@@ -2781,6 +2785,7 @@ class _RecommendedGoalsSectionState extends State<_RecommendedGoalsSection> {
       'id': 'home',
       'label': 'HIGH RETURN',
       'title': 'Dream Home',
+      'titleKey': 'goal_home',
       'tagline': 'Build your castle,\nbrick by golden brick.',
       'badge': '🏡 Wealth',
       'icon': Icons.cottage_rounded,
@@ -2793,6 +2798,7 @@ class _RecommendedGoalsSectionState extends State<_RecommendedGoalsSection> {
       'id': 'wealth',
       'label': 'LONG TERM',
       'title': 'Retirement',
+      'titleKey': 'goal_wealth',
       'tagline': 'Your future self will\nthank you today.',
       'badge': '🌴 Wealth',
       'icon': Icons.beach_access_rounded,
@@ -2805,6 +2811,7 @@ class _RecommendedGoalsSectionState extends State<_RecommendedGoalsSection> {
       'id': 'wedding',
       'label': 'MOST POPULAR',
       'title': 'Wedding Gold',
+      'titleKey': 'goal_wedding',
       'tagline': 'Celebrate with\npure 24K brilliance.',
       'badge': '💍 Popular',
       'icon': Icons.diamond_outlined,
@@ -2833,7 +2840,7 @@ class _RecommendedGoalsSectionState extends State<_RecommendedGoalsSection> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Your Goals',
+                    'your_goals'.tr,
                     style: TextStyle(
                       color: t.ink,
                       fontSize: 19,
@@ -2843,7 +2850,7 @@ class _RecommendedGoalsSectionState extends State<_RecommendedGoalsSection> {
                   ),
                   const SizedBox(height: 1),
                   Text(
-                    'Tap any goal to start investing ✨',
+                    'tap_goal_invest'.tr,
                     style: TextStyle(
                       color: t.inkMuted,
                       fontSize: 11.5,
@@ -2863,9 +2870,9 @@ class _RecommendedGoalsSectionState extends State<_RecommendedGoalsSection> {
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
+                    children: [
                       Text(
-                        'See All',
+                        'view_all'.tr,
                         style: TextStyle(
                           color: _gold,
                           fontSize: 12,
@@ -2873,7 +2880,7 @@ class _RecommendedGoalsSectionState extends State<_RecommendedGoalsSection> {
                         ),
                       ),
                       SizedBox(width: 2),
-                      Icon(Icons.arrow_forward_ios_rounded, color: _gold, size: 11),
+                      const Icon(Icons.arrow_forward_ios_rounded, color: _gold, size: 11),
                     ],
                   ),
                 ),
@@ -3044,7 +3051,7 @@ class _RecommendedGoalsSectionState extends State<_RecommendedGoalsSection> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          g['title'] as String,
+                                          g['titleKey'] != null ? (g['titleKey'] as String).tr : (g['title'] as String),
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 22,
@@ -3398,12 +3405,12 @@ class _PartnerMarqueeCarouselState extends State<_PartnerMarqueeCarousel> {
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(Icons.hub_rounded, color: _gold, size: 12),
-                        SizedBox(width: 5),
+                      children: [
+                        const Icon(Icons.hub_rounded, color: _gold, size: 12),
+                        const SizedBox(width: 5),
                         Text(
-                          'STRATEGIC ALLIANCES',
-                          style: TextStyle(
+                          'strategic_alliances'.tr,
+                          style: const TextStyle(
                             color: _gold,
                             fontSize: 9.5,
                             fontWeight: FontWeight.w900,
@@ -3435,9 +3442,9 @@ class _PartnerMarqueeCarouselState extends State<_PartnerMarqueeCarousel> {
                           ),
                         ),
                         const SizedBox(width: 5),
-                        const Text(
-                          'Active Network',
-                          style: TextStyle(
+                        Text(
+                          'active_network'.tr,
+                          style: const TextStyle(
                             color: Color(0xFF2ECC71),
                             fontSize: 9.5,
                             fontWeight: FontWeight.w700,
@@ -3450,7 +3457,7 @@ class _PartnerMarqueeCarouselState extends State<_PartnerMarqueeCarousel> {
               ),
               const SizedBox(height: 8),
               Text(
-                'In Partnership With',
+                'in_partnership_with'.tr,
                 style: TextStyle(
                   color: t.ink,
                   fontSize: 18,
@@ -3460,7 +3467,7 @@ class _PartnerMarqueeCarouselState extends State<_PartnerMarqueeCarousel> {
               ),
               const SizedBox(height: 3),
               Text(
-                "Integrated with India's premier banking, AMC & exchange institutions",
+                'alliances_desc'.tr,
                 style: TextStyle(
                   color: t.inkMuted,
                   fontSize: 12,

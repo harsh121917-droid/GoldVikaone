@@ -708,12 +708,15 @@ class MutualFundsController extends GetxController {
       }
       return null;
     } catch (e) {
+      if (e is DioException && e.response?.data is Map) {
+        return e.response!.data as Map<String, dynamic>;
+      }
       return null;
     }
   }
 
-  // ── Register User UCC (Groww-Style Modern Paperless Flow) ──
-  Future<bool> registerUcc({
+  // ── Register User UCC (Groww-Style Modern Paperless Flow via NSE MFSS) ──
+  Future<Map<String, dynamic>?> registerUcc({
     required String pan,
     String? fullName,
     String? accountNo,
@@ -747,34 +750,42 @@ class MutualFundsController extends GetxController {
 
       if (res.statusCode == 200 && res.data['success'] == true) {
         hasUcc.value = true;
-        userUcc.value = MfUccModel.fromJson(res.data['data']);
-        Get.snackbar(
-          'UCC Registered',
-          'Your NSE investor code has been activated: ${userUcc.value?.clientCode}',
-          backgroundColor: const Color(0xFF00D09C),
-          colorText: Colors.black,
-          snackPosition: SnackPosition.BOTTOM,
-        );
-        return true;
+        if (res.data['data'] != null) {
+          userUcc.value = MfUccModel.fromJson(Map<String, dynamic>.from(res.data['data']));
+        }
+        await fetchOnboardingStatus();
+        return {
+          'success': true,
+          'clientCode': userUcc.value?.clientCode ?? '',
+          'authUrl': res.data['authUrl']?.toString(),
+          'message': res.data['message']?.toString() ?? 'UCC registered with NSE MFSS',
+        };
       } else {
         Get.snackbar(
           'Registration Failed',
-          res.data['message'] ?? 'Could not register UCC with NSE',
-          backgroundColor: Colors.red,
+          res.data['message']?.toString() ?? 'Could not register UCC with NSE',
+          backgroundColor: Colors.redAccent,
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
         );
-        return false;
+        return null;
       }
     } catch (e) {
+      String errMsg = 'Failed to connect to NSE gateway: $e';
+      if (e is DioException) {
+        final serverMsg = e.response?.data?['message'];
+        if (serverMsg != null) {
+          errMsg = serverMsg.toString();
+        }
+      }
       Get.snackbar(
-        'Error',
-        'Failed to connect to NSE gateway: $e',
-        backgroundColor: Colors.red,
+        'Registration Failed',
+        errMsg,
+        backgroundColor: Colors.redAccent,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
-      return false;
+      return null;
     } finally {
       isUccLoading.value = false;
     }

@@ -5,13 +5,13 @@ import 'package:get/get.dart';
 import 'package:vika1/modules/home/controllers/main_shell_controller.dart';
 import 'package:vika1/modules/digi_gold/views/digi_gold_view.dart';
 import 'package:vika1/modules/profile/views/rewards_view.dart';
-import 'package:vika1/modules/wallet/views/wallet_view.dart';
 import 'package:vika1/modules/gold_scheme/views/gold_schemes_view.dart';
 import 'package:vika1/modules/profile/views/profile_view.dart';
 import 'package:vika1/modules/jewellery/views/jewellery_view.dart';
 import 'package:vika1/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
+import '../../../core/localization/localization_service.dart';
 
 class MainShellView extends GetView<MainShellController> {
   const MainShellView({super.key});
@@ -35,10 +35,13 @@ class MainShellView extends GetView<MainShellController> {
       ),
       bottomNavigationBar: SafeArea(
         child: Obx(
-          () => _GlassNav(
-            selected: controller.tabIndex.value,
-            onTap: controller.changeTab,
-          ),
+          () {
+            LocalizationService.to.currentLangCode.value;
+            return _GlassNav(
+              selected: controller.tabIndex.value,
+              onTap: controller.changeTab,
+            );
+          },
         ),
       ),
     );
@@ -48,16 +51,16 @@ class MainShellView extends GetView<MainShellController> {
 // ─── Items ────────────────────────────────────────────────────────────────────
 class _NI {
   final IconData icon;
-  final String label;
-  const _NI(this.icon, this.label);
+  final String labelKey;
+  const _NI(this.icon, this.labelKey);
 }
 
 const _items = [
-  _NI(Icons.home_rounded, 'Home'),
-  _NI(Icons.workspace_premium_outlined, 'Schemes'),
-  _NI(Icons.grid_view_rounded, 'Jewellery'),
-  _NI(Icons.emoji_events_outlined, 'Rewards'),
-  _NI(Icons.person_outline_rounded, 'Profile'),
+  _NI(Icons.home_rounded, 'nav_home'),
+  _NI(Icons.workspace_premium_outlined, 'nav_schemes'),
+  _NI(Icons.grid_view_rounded, 'nav_jewellery'),
+  _NI(Icons.emoji_events_outlined, 'nav_rewards'),
+  _NI(Icons.person_outline_rounded, 'nav_profile'),
 ];
 
 // ─── Glass Nav Bar ────────────────────────────────────────────────────────────
@@ -331,7 +334,7 @@ class _GlassBtnState extends State<_GlassBtn>
                     fontWeight: active ? FontWeight.w800 : FontWeight.w400,
                     letterSpacing: active ? 0.3 : 0,
                   ),
-                  child: Text(widget.item.label),
+                  child: Text(widget.item.labelKey.tr),
                 ),
               ],
             ),
@@ -414,7 +417,7 @@ class _AppDrawer extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                'Digital Gold & Silver',
+                                'app_tagline'.tr,
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.5),
                                   fontSize: 11,
@@ -447,7 +450,7 @@ class _AppDrawer extends StatelessWidget {
                         children: [
                           _DrawerTile(
                             icon: Icons.home_rounded,
-                            label: 'Home',
+                            label: 'nav_home'.tr,
                             onTap: () {
                               shell.changeTab(0);
                               Get.back();
@@ -455,7 +458,7 @@ class _AppDrawer extends StatelessWidget {
                           ),
                           _DrawerTile(
                             icon: Icons.workspace_premium_outlined,
-                            label: 'Schemes',
+                            label: 'nav_schemes'.tr,
                             onTap: () {
                               shell.changeTab(1);
                               Get.back();
@@ -463,7 +466,7 @@ class _AppDrawer extends StatelessWidget {
                           ),
                           _DrawerTile(
                             icon: Icons.grid_view_rounded,
-                            label: 'Jewellery',
+                            label: 'nav_jewellery'.tr,
                             onTap: () {
                               shell.changeTab(2);
                               Get.back();
@@ -471,7 +474,7 @@ class _AppDrawer extends StatelessWidget {
                           ),
                           _DrawerTile(
                             icon: Icons.pie_chart_outline_rounded,
-                            label: 'Mutual Funds',
+                            label: 'nav_mutual_funds'.tr,
                             onTap: () {
                               Get.back();
                               Get.toNamed(AppRoutes.mutualFunds);
@@ -479,7 +482,7 @@ class _AppDrawer extends StatelessWidget {
                           ),
                           _DrawerTile(
                             icon: Icons.emoji_events_outlined,
-                            label: 'Rewards',
+                            label: 'nav_rewards'.tr,
                             onTap: () {
                               shell.changeTab(3);
                               Get.back();
@@ -487,10 +490,39 @@ class _AppDrawer extends StatelessWidget {
                           ),
                           _DrawerTile(
                             icon: Icons.person_outline_rounded,
-                            label: 'Profile',
+                            label: 'nav_profile'.tr,
                             onTap: () {
                               shell.changeTab(4);
                               Get.back();
+                            },
+                          ),
+                          _DrawerTile(
+                            icon: Icons.translate_rounded,
+                            label: 'change_language'.tr,
+                            trailing: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.accent.withOpacity(0.18),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.accent.withOpacity(0.4),
+                                ),
+                              ),
+                              child: Text(
+                                LocalizationService.to.isMarathi ? 'मराठी' : 'English',
+                                style: const TextStyle(
+                                  color: AppColors.accent,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            onTap: () {
+                              Get.back();
+                              Get.toNamed(AppRoutes.language);
                             },
                           ),
                         ],
@@ -534,9 +566,9 @@ class _AppDrawer extends StatelessWidget {
                                 color: const Color(0xFF2ecc71).withOpacity(0.3),
                               ),
                             ),
-                            child: const Text(
-                              'LIVE',
-                              style: TextStyle(
+                            child: Text(
+                              'live_badge'.tr,
+                              style: const TextStyle(
                                 color: Color(0xFF2ecc71),
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
@@ -563,10 +595,12 @@ class _DrawerTile extends StatefulWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.trailing,
   });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Widget? trailing;
   @override
   State<_DrawerTile> createState() => _DrawerTileState();
 }
@@ -629,14 +663,17 @@ class _DrawerTileState extends State<_DrawerTile> {
               child: Icon(widget.icon, color: AppColors.accent, size: 18),
             ),
             const SizedBox(width: 14),
-            Text(
-              widget.label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+            Expanded(
+              child: Text(
+                widget.label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
+            if (widget.trailing != null) widget.trailing!,
           ],
         ),
       ),
