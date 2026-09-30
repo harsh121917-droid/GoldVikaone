@@ -619,9 +619,17 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                       Expanded(
                         child: Builder(builder: (_) {
                           final double aumVal = (_detailData?['aum'] as num?)?.toDouble() ?? widget.scheme.aum;
-                          final String aumStr = aumVal >= 1000
-                              ? '₹${aumVal.toStringAsFixed(0)} Cr'
-                              : '₹${aumVal.toStringAsFixed(2)} Cr';
+                          String aumStr;
+                          if (aumVal >= 1000) {
+                            final intVal = aumVal.round();
+                            final withCommas = intVal.toString().replaceAllMapped(
+                              RegExp(r'(\d+?)(?=(\d{3})+$)'),
+                              (m) => '${m[1]},',
+                            );
+                            aumStr = '₹$withCommas Cr';
+                          } else {
+                            aumStr = '₹${aumVal.toStringAsFixed(2)} Cr';
+                          }
                           return _buildMetricItem('Fund size', aumStr, textSecondary, textPrimary);
                         }),
                       ),

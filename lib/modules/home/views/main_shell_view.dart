@@ -512,7 +512,7 @@ class _AppDrawer extends StatelessWidget {
                                 ),
                               ),
                               child: Text(
-                                LocalizationService.to.isMarathi ? 'मराठी' : 'English',
+                                LocalizationService.to.isMarathi ? 'मराठी' : (LocalizationService.to.isHindi ? 'हिन्दी' : 'English'),
                                 style: const TextStyle(
                                   color: AppColors.accent,
                                   fontSize: 10.5,

@@ -925,7 +925,7 @@ class ProfileView extends StatelessWidget {
                             child: Text(
                               LocalizationService.to.isMarathi
                                   ? 'मराठी'
-                                  : 'English',
+                                  : (LocalizationService.to.isHindi ? 'हिन्दी' : 'English'),
                               style: const TextStyle(
                                 color: _gold,
                                 fontSize: 11,

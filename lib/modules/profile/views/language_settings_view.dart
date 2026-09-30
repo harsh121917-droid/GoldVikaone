@@ -193,6 +193,20 @@ class _LanguageSettingsViewState extends State<LanguageSettingsView> {
                         cardColor: cardColor,
                         borderSideColor: borderSideColor,
                       ),
+                      const SizedBox(height: 12),
+
+                      // ── Language Card: Hindi ──
+                      _buildLanguageTile(
+                        code: 'hi',
+                        title: 'हिन्दी',
+                        subtitle: 'Hindi (भारत)',
+                        badgeText: 'popular_badge'.tr,
+                        dark: dark,
+                        textPrimary: textPrimary,
+                        textSecondary: textSecondary,
+                        cardColor: cardColor,
+                        borderSideColor: borderSideColor,
+                      ),
                       const SizedBox(height: 24),
 
                       // ── Live Preview Box ──
@@ -248,7 +262,7 @@ class _LanguageSettingsViewState extends State<LanguageSettingsView> {
                                   Text(
                                     _selectedCode == 'mr'
                                         ? 'सोन्याची शिल्लक'
-                                        : 'Gold Balance',
+                                        : (_selectedCode == 'hi' ? 'सोने की शेष राशि' : 'Gold Balance'),
                                     style: TextStyle(
                                       color: textSecondary,
                                       fontSize: 12,
@@ -281,7 +295,7 @@ class _LanguageSettingsViewState extends State<LanguageSettingsView> {
                                   Text(
                                     _selectedCode == 'mr'
                                         ? 'लाइव्ह बाजार दर'
-                                        : 'Live Market Rate',
+                                        : (_selectedCode == 'hi' ? 'लाइव बाजार दर' : 'Live Market Rate'),
                                     style: TextStyle(
                                       color: textSecondary,
                                       fontSize: 12,
@@ -322,7 +336,7 @@ class _LanguageSettingsViewState extends State<LanguageSettingsView> {
                         'Success ✓',
                         _selectedCode == 'mr'
                             ? 'भाषा मराठीमध्ये बदलली'
-                            : 'Language changed to English',
+                            : (_selectedCode == 'hi' ? 'भाषा हिन्दी में बदल दी गई' : 'Language changed to English'),
                         backgroundColor: const Color(0xFF10B981),
                         colorText: Colors.white,
                         snackPosition: SnackPosition.BOTTOM,
