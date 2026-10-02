@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:vika1/data/repositories/scheme_repository.dart';
 import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
+import '../../../core/localization/localization_service.dart';
 
 class SchemeDetailView extends StatefulWidget {
   const SchemeDetailView({super.key, required this.enrollmentId});
@@ -109,6 +110,7 @@ class _SchemeDetailViewState extends State<SchemeDetailView> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       final bg = dark ? const Color(0xFF060B16) : const Color(0xFFF5F0E8);
       final cardBg = dark ? const Color(0xFF0E1626) : Colors.white;
@@ -133,7 +135,7 @@ class _SchemeDetailViewState extends State<SchemeDetailView> {
             ),
           ),
           title: Text(
-            _e?.schemeName ?? 'Scheme Details',
+            _e?.schemeName ?? 'scheme_details'.tr,
             style: TextStyle(
               color: tp,
               fontSize: 17,
@@ -263,12 +265,12 @@ class _SchemeDetailViewState extends State<SchemeDetailView> {
           child: Row(
             children: [
               Expanded(
-                child: _StatCol('Start Date', _fmtDate(e.startedAt), tp, ts),
+                child: _StatCol('start_date'.tr, _fmtDate(e.startedAt), tp, ts),
               ),
               _VDiv(border),
               Expanded(
                 child: _StatCol(
-                  e.status == 'completed' ? 'Completed' : 'End Date',
+                  e.status == 'completed' ? 'verified'.tr : 'end_date'.tr,
                   e.completedAt != null
                       ? _fmtDate(e.completedAt!)
                       : _fmtDate(_endDate),
@@ -279,7 +281,7 @@ class _SchemeDetailViewState extends State<SchemeDetailView> {
               _VDiv(border),
               Expanded(
                 child: _StatCol(
-                  'Total Gold',
+                  'total_gold'.tr,
                   '${e.totalGoldGrams.toStringAsFixed(4)}g',
                   const Color(0xFFD4A017),
                   ts,
@@ -291,9 +293,9 @@ class _SchemeDetailViewState extends State<SchemeDetailView> {
         const SizedBox(height: 16),
 
         if (e.status == 'active') ...[
-          const Text(
-            'Select Payment Method',
-            style: TextStyle(
+          Text(
+            'select_payment_option'.tr,
+            style: const TextStyle(
               color: Colors.white70,
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -488,7 +490,7 @@ class _SchemeDetailViewState extends State<SchemeDetailView> {
 
         // ── EMI history ──────────────────────────────────────────────────
         Text(
-          'Installment History',
+          'history'.tr,
           style: TextStyle(
             color: tp,
             fontSize: 15,

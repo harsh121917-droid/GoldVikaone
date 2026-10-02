@@ -7,6 +7,7 @@ import 'package:vika1/modules/digi_gold/views/transaction_detail_view.dart';
 import 'package:vika1/modules/silver_sip/views/silver_transaction_detail_view.dart';
 import 'package:vika1/modules/copper/views/copper_transaction_detail_view.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
+import '../../../core/localization/localization_service.dart';
 
 // ─── Local theme helper ──────────────────────────────────────────────────────
 class _T {
@@ -132,6 +133,7 @@ class _TransactionsViewState extends State<TransactionsView>
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       final t = _T.of(dark);
 
@@ -152,7 +154,7 @@ class _TransactionsViewState extends State<TransactionsView>
             ),
           ),
           title: Text(
-            'Transaction History',
+            'transaction_history'.tr,
             style: TextStyle(
               color: t.ink,
               fontSize: 18,
@@ -166,10 +168,10 @@ class _TransactionsViewState extends State<TransactionsView>
             indicatorColor: t.primary,
             indicatorWeight: 3,
             labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            tabs: const [
-              Tab(text: 'Gold'),
-              Tab(text: 'Silver'),
-              Tab(text: 'Copper'),
+            tabs: [
+              Tab(text: 'gold'.tr),
+              Tab(text: 'silver'.tr),
+              Tab(text: 'copper'.tr),
             ],
           ),
         ),
@@ -192,7 +194,7 @@ class _TransactionsViewState extends State<TransactionsView>
         return const Center(child: CircularProgressIndicator());
       }
       if (_ctrl.goldTxns.isEmpty) {
-        return _buildEmptyState('No gold transactions yet', t);
+        return _buildEmptyState('no_transactions_found'.tr, t);
       }
       return RefreshIndicator(
         onRefresh: () => _ctrl.loadGoldTxns(),
@@ -226,7 +228,7 @@ class _TransactionsViewState extends State<TransactionsView>
         return const Center(child: CircularProgressIndicator());
       }
       if (_ctrl.silverTxns.isEmpty) {
-        return _buildEmptyState('No silver transactions yet', t);
+        return _buildEmptyState('no_transactions_found'.tr, t);
       }
       return RefreshIndicator(
         onRefresh: () => _ctrl.loadSilverTxns(),
@@ -260,7 +262,7 @@ class _TransactionsViewState extends State<TransactionsView>
         return const Center(child: CircularProgressIndicator());
       }
       if (_ctrl.copperTxns.isEmpty) {
-        return _buildEmptyState('No copper transactions yet', t);
+        return _buildEmptyState('no_transactions_found'.tr, t);
       }
       return RefreshIndicator(
         onRefresh: () => _ctrl.loadCopperTxns(),

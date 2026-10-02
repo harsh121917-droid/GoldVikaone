@@ -249,9 +249,9 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              const Text(
-                                                'Total Schemes Value',
-                                                style: TextStyle(
+                                              Text(
+                                                'total_schemes_value'.tr,
+                                                style: const TextStyle(
                                                   color: Colors.white70,
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.bold,
@@ -289,9 +289,9 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            const Text(
-                                              'Total Schemes',
-                                              style: TextStyle(
+                                            Text(
+                                              'total_schemes'.tr,
+                                              style: const TextStyle(
                                                 color: Colors.white60,
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
@@ -321,9 +321,9 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            const Text(
-                                              'Matured Value',
-                                              style: TextStyle(
+                                            Text(
+                                              'matured_value'.tr,
+                                              style: const TextStyle(
                                                 color: Colors.white60,
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
@@ -395,7 +395,7 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      'Begin your gold saving journey today',
+                                      'begin_gold_journey'.tr,
                                       style: TextStyle(
                                         color: t.inkMuted,
                                         fontSize: 11,
@@ -479,7 +479,7 @@ class _GoldSchemesViewState extends State<GoldSchemesView> {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'Filter',
+                                    'filter'.tr,
                                     style: TextStyle(
                                       color: t.ink,
                                       fontSize: 11,
@@ -558,9 +558,9 @@ class _WhyInvestSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Why invest in Gold Schemes?',
-            style: TextStyle(
+          Text(
+            'why_invest_schemes'.tr,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 14.5,
               fontWeight: FontWeight.w900,
@@ -572,23 +572,23 @@ class _WhyInvestSection extends StatelessWidget {
             children: [
               _buildFeature(
                 Icons.verified_user_outlined,
-                '100% Secure',
-                'Your gold is safe & insured',
+                'secure_100'.tr,
+                'gold_safe_insured'.tr,
               ),
               _buildFeature(
                 Icons.savings_outlined,
-                'Small Savings',
-                'Start with as low as ₹100',
+                'small_savings'.tr,
+                'start_low_100'.tr,
               ),
               _buildFeature(
                 Icons.trending_up_rounded,
-                'Wealth Growth',
-                'Build wealth for your future',
+                'wealth_growth'.tr,
+                'sip_tagline'.tr,
               ),
               _buildFeature(
                 Icons.lock_open_rounded,
-                'Flexible Tenure',
-                'Choose tenure that suits you',
+                'flexible_tenure'.tr,
+                'choose_tenure_suits'.tr,
               ),
             ],
           ),
@@ -651,7 +651,7 @@ class _EmptyMySchemes extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          "You haven't joined any scheme yet",
+          'no_schemes_joined'.tr,
           style: TextStyle(
             color: t.ink,
             fontSize: 13,
@@ -660,7 +660,7 @@ class _EmptyMySchemes extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Pick one below to get started',
+          'pick_scheme_started'.tr,
           style: TextStyle(color: t.inkMuted, fontSize: 11),
         ),
       ],
@@ -795,19 +795,19 @@ class _EnrollmentCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _buildStatColumn(
-                        'Monthly Investment',
+                        'monthly_investment'.tr,
                         '₹ ${e.monthlyAmount.toStringAsFixed(0)}',
                         t,
                         false,
                       ),
                       _buildStatColumn(
-                        'Total Invested',
+                        'total_invested'.tr,
                         '₹ ${(e.installmentsPaid * e.monthlyAmount).toStringAsFixed(0)}',
                         t,
                         false,
                       ),
                       _buildStatColumn(
-                        'Gold Accumulated',
+                        'gold_accumulated'.tr,
                         '${e.totalGoldGrams.toStringAsFixed(3)} g',
                         t,
                         true,
@@ -915,9 +915,9 @@ class _EnrollmentCard extends StatelessWidget {
                               horizontal: 14,
                               vertical: 8,
                             ),
-                            child: const Text(
-                              'Pay Now',
-                              style: TextStyle(
+                            child: Text(
+                              'pay_now'.tr,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -1193,7 +1193,7 @@ class _EnrollSchemeSheetState extends State<EnrollSchemeSheet> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Monthly Amount',
+                  'monthly_amount'.tr,
                   style: TextStyle(
                     color: t.inkMuted,
                     fontSize: 12,
@@ -1258,9 +1258,9 @@ class _EnrollSchemeSheetState extends State<EnrollSchemeSheet> {
                   style: const TextStyle(color: _gold, fontSize: 12),
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'Select Payment Method',
-                  style: TextStyle(
+                Text(
+                  'select_payment_option'.tr,
+                  style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -1372,7 +1372,7 @@ class _EnrollSchemeSheetState extends State<EnrollSchemeSheet> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Direct Pay',
+                                      'direct_pay'.tr,
                                       style: TextStyle(
                                         color: t.ink,
                                         fontSize: 12,
@@ -1560,8 +1560,8 @@ class _EnrollSchemeSheetState extends State<EnrollSchemeSheet> {
                               final short = _amount - bal;
                               return Text(
                                 short > 0
-                                    ? 'Add ₹${short.toStringAsFixed(0)} & Pay — ₹${_amount.toStringAsFixed(0)}'
-                                    : 'Pay First Installment — ₹${_amount.toStringAsFixed(0)}',
+                                    ? '${'add_money'.tr} ₹${short.toStringAsFixed(0)} & ${'pay_now'.tr} — ₹${_amount.toStringAsFixed(0)}'
+                                    : '${'pay_first_installment'.tr} — ₹${_amount.toStringAsFixed(0)}',
                                 style: TextStyle(
                                   color: _valid
                                       ? const Color(0xFF3D2B00)

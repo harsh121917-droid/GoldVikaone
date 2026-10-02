@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:vika1/data/repositories/sip_repository.dart';
 import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
+import '../../../core/localization/localization_service.dart';
 
 const _gold = Color(0xFFD4A017);
 const _silver = Color(0xFF9E9E9E);
@@ -148,12 +149,12 @@ class _SipJourneyViewState extends State<SipJourneyView> {
         actions: [
           TextButton(
             onPressed: () => Get.back(result: false),
-            child: const Text('Keep Active'),
+            child: Text('keep_active'.tr),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: _danger),
             onPressed: () => Get.back(result: true),
-            child: const Text('Cancel SIP', style: TextStyle(color: Colors.white)),
+            child: Text('cancel_sip'.tr, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -197,6 +198,7 @@ class _SipJourneyViewState extends State<SipJourneyView> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       final t = _T.of(dark);
 
@@ -210,7 +212,7 @@ class _SipJourneyViewState extends State<SipJourneyView> {
             onPressed: () => Get.back(),
           ),
           title: Text(
-            'SIP Journey & Timeline',
+            'sip_journey_timeline'.tr,
             style: TextStyle(
               color: t.ink,
               fontSize: 17,

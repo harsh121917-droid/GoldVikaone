@@ -13,11 +13,15 @@ class LocalizationService extends GetxService {
   static const Locale englishLocale = Locale('en', 'US');
   static const Locale marathiLocale = Locale('mr', 'IN');
   static const Locale hindiLocale = Locale('hi', 'IN');
+  static const Locale kannadaLocale = Locale('kn', 'IN');
+  static const Locale gujaratiLocale = Locale('gu', 'IN');
 
   static const List<Locale> supportedLocales = [
     englishLocale,
     marathiLocale,
     hindiLocale,
+    kannadaLocale,
+    gujaratiLocale,
   ];
 
   static const Locale defaultLocale = englishLocale;
@@ -29,6 +33,8 @@ class LocalizationService extends GetxService {
   final RxString currentLangCode = 'en'.obs;
   bool get isMarathi => currentLangCode.value == 'mr';
   bool get isHindi => currentLangCode.value == 'hi';
+  bool get isKannada => currentLangCode.value == 'kn';
+  bool get isGujarati => currentLangCode.value == 'gu';
 
   static Locale get initialLocale {
     final box = GetStorage();
@@ -38,6 +44,12 @@ class LocalizationService extends GetxService {
     }
     if (savedLang == 'hi') {
       return hindiLocale;
+    }
+    if (savedLang == 'kn') {
+      return kannadaLocale;
+    }
+    if (savedLang == 'gu') {
+      return gujaratiLocale;
     }
     return englishLocale;
   }
@@ -52,6 +64,12 @@ class LocalizationService extends GetxService {
     } else if (savedLang == 'hi') {
       _currentLocale.value = hindiLocale;
       currentLangCode.value = 'hi';
+    } else if (savedLang == 'kn') {
+      _currentLocale.value = kannadaLocale;
+      currentLangCode.value = 'kn';
+    } else if (savedLang == 'gu') {
+      _currentLocale.value = gujaratiLocale;
+      currentLangCode.value = 'gu';
     } else {
       _currentLocale.value = englishLocale;
       currentLangCode.value = 'en';
@@ -61,7 +79,11 @@ class LocalizationService extends GetxService {
   Future<void> changeLocale(String langCode) async {
     final newLocale = langCode == 'mr'
         ? marathiLocale
-        : (langCode == 'hi' ? hindiLocale : englishLocale);
+        : (langCode == 'hi'
+            ? hindiLocale
+            : (langCode == 'kn'
+                ? kannadaLocale
+                : (langCode == 'gu' ? gujaratiLocale : englishLocale)));
     currentLangCode.value = langCode;
     _currentLocale.value = newLocale;
 
@@ -193,6 +215,32 @@ class LocalizationService extends GetxService {
                     onTap: () {
                       HapticFeedback.selectionClick();
                       changeLocale('hi');
+                      Get.back();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _languageOption(
+                    title: 'ಕನ್ನಡ',
+                    subtitle: 'Kannada',
+                    nativeScript: 'ಕ',
+                    isSelected: activeLang == 'kn',
+                    dark: dark,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      changeLocale('kn');
+                      Get.back();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _languageOption(
+                    title: 'ગુજરાતી',
+                    subtitle: 'Gujarati',
+                    nativeScript: 'ગુ',
+                    isSelected: activeLang == 'gu',
+                    dark: dark,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      changeLocale('gu');
                       Get.back();
                     },
                   ),

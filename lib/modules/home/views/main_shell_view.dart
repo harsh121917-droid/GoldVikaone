@@ -353,6 +353,7 @@ class _AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final shell = Get.find<MainShellController>();
     return Obx(() {
+      LocalizationService.to.currentLangCode.value;
       final dark = ThemeController.to.isDark.value;
       return Drawer(
         backgroundColor: Colors.transparent,
@@ -512,7 +513,7 @@ class _AppDrawer extends StatelessWidget {
                                 ),
                               ),
                               child: Text(
-                                LocalizationService.to.isMarathi ? 'मराठी' : (LocalizationService.to.isHindi ? 'हिन्दी' : 'English'),
+                                LocalizationService.to.isMarathi ? 'मराठी' : (LocalizationService.to.isHindi ? 'हिन्दी' : (LocalizationService.to.isKannada ? 'ಕನ್ನಡ' : (LocalizationService.to.isGujarati ? 'ગુજરાતી' : 'English'))),
                                 style: const TextStyle(
                                   color: AppColors.accent,
                                   fontSize: 10.5,

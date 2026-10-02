@@ -207,6 +207,34 @@ class _LanguageSettingsViewState extends State<LanguageSettingsView> {
                         cardColor: cardColor,
                         borderSideColor: borderSideColor,
                       ),
+                      const SizedBox(height: 12),
+
+                      // ── Language Card: Kannada ──
+                      _buildLanguageTile(
+                        code: 'kn',
+                        title: 'ಕನ್ನಡ',
+                        subtitle: 'Kannada (ಕರ್ನಾಟಕ)',
+                        badgeText: 'popular_badge'.tr,
+                        dark: dark,
+                        textPrimary: textPrimary,
+                        textSecondary: textSecondary,
+                        cardColor: cardColor,
+                        borderSideColor: borderSideColor,
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ── Language Card: Gujarati ──
+                      _buildLanguageTile(
+                        code: 'gu',
+                        title: 'ગુજરાતી',
+                        subtitle: 'Gujarati (ગુજરાત)',
+                        badgeText: 'popular_badge'.tr,
+                        dark: dark,
+                        textPrimary: textPrimary,
+                        textSecondary: textSecondary,
+                        cardColor: cardColor,
+                        borderSideColor: borderSideColor,
+                      ),
                       const SizedBox(height: 24),
 
                       // ── Live Preview Box ──
@@ -262,7 +290,13 @@ class _LanguageSettingsViewState extends State<LanguageSettingsView> {
                                   Text(
                                     _selectedCode == 'mr'
                                         ? 'सोन्याची शिल्लक'
-                                        : (_selectedCode == 'hi' ? 'सोने की शेष राशि' : 'Gold Balance'),
+                                        : (_selectedCode == 'hi'
+                                            ? 'सोने की शेष राशि'
+                                            : (_selectedCode == 'kn'
+                                                ? 'ಚಿನ್ನದ ಬ್ಯಾಲೆನ್ಸ್'
+                                                : (_selectedCode == 'gu'
+                                                    ? 'સોનાનું બેલેન્સ'
+                                                    : 'Gold Balance'))),
                                     style: TextStyle(
                                       color: textSecondary,
                                       fontSize: 12,
@@ -295,7 +329,13 @@ class _LanguageSettingsViewState extends State<LanguageSettingsView> {
                                   Text(
                                     _selectedCode == 'mr'
                                         ? 'लाइव्ह बाजार दर'
-                                        : (_selectedCode == 'hi' ? 'लाइव बाजार दर' : 'Live Market Rate'),
+                                        : (_selectedCode == 'hi'
+                                            ? 'लाइव बाजार दर'
+                                            : (_selectedCode == 'kn'
+                                                ? 'ಲೈವ್ ಮಾರುಕಟ್ಟೆ ದರ'
+                                                : (_selectedCode == 'gu'
+                                                    ? 'લાઈવ બજાર ભાવ'
+                                                    : 'Live Market Rate'))),
                                     style: TextStyle(
                                       color: textSecondary,
                                       fontSize: 12,
@@ -336,7 +376,13 @@ class _LanguageSettingsViewState extends State<LanguageSettingsView> {
                         'Success ✓',
                         _selectedCode == 'mr'
                             ? 'भाषा मराठीमध्ये बदलली'
-                            : (_selectedCode == 'hi' ? 'भाषा हिन्दी में बदल दी गई' : 'Language changed to English'),
+                            : (_selectedCode == 'hi'
+                                ? 'भाषा हिन्दी में बदल दी गई'
+                                : (_selectedCode == 'kn'
+                                    ? 'ಭಾಷೆಯನ್ನು ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಲಾಗಿದೆ'
+                                    : (_selectedCode == 'gu'
+                                        ? 'ભાષા ગુજરાતીમાં બદલાઈ ગઈ'
+                                        : 'Language changed to English'))),
                         backgroundColor: const Color(0xFF10B981),
                         colorText: Colors.white,
                         snackPosition: SnackPosition.BOTTOM,

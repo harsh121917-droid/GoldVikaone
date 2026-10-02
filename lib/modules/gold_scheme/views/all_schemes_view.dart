@@ -204,9 +204,9 @@ class _AllSchemesViewState extends State<AllSchemesView> {
                                         ),
                                       ),
                                       SizedBox(height: 2),
-                                      const Text(
-                                        'Choose a plan that fits your goals ✨',
-                                        style: TextStyle(
+                                      Text(
+                                        'choose_plan_goals'.tr,
+                                        style: const TextStyle(
                                           color: Colors.white70,
                                           fontSize: 12,
                                           fontWeight: FontWeight.w500,
@@ -245,22 +245,22 @@ class _AllSchemesViewState extends State<AllSchemesView> {
                               children: [
                                 _featurePill(
                                   Icons.shield_outlined,
-                                  '100% Secured',
-                                  'Vault Storage',
+                                  'secure_100'.tr,
+                                  'vault_storage'.tr,
                                   ts,
                                   tp,
                                 ),
                                 _featurePill(
                                   Icons.verified_user_outlined,
-                                  'BIS Purity',
-                                  '24K Pure Gold',
+                                  'bis_purity'.tr,
+                                  'pure_24k'.tr,
                                   ts,
                                   tp,
                                 ),
                                 _featurePill(
                                   Icons.card_giftcard_rounded,
-                                  'Flexible Plans',
-                                  'For Every Goal',
+                                  'flexible_plans'.tr,
+                                  'for_every_goal'.tr,
                                   ts,
                                   tp,
                                 ),
@@ -277,7 +277,7 @@ class _AllSchemesViewState extends State<AllSchemesView> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Available Schemes',
+                              'available_schemes'.tr,
                               style: TextStyle(
                                 color: tp,
                                 fontSize: 16,
@@ -484,21 +484,21 @@ class _AllSchemesViewState extends State<AllSchemesView> {
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         _statBox(
-                                          'Min. Installment',
+                                          'min_installment'.tr,
                                           '₹ ${s.minAmount.toStringAsFixed(0)}',
                                           isSilver ? 'per week' : 'per month',
                                           ts,
                                           tp,
                                         ),
                                         _statBox(
-                                          'Tenure',
+                                          'tenure'.tr,
                                           meta.tenureLabel,
                                           '',
                                           ts,
                                           tp,
                                         ),
                                         _statBox(
-                                          'Benefits',
+                                          'benefits'.tr,
                                           meta.benefitLabel,
                                           '',
                                           ts,

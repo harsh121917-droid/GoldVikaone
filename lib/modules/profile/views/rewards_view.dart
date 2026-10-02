@@ -646,7 +646,7 @@ class _RewardsViewState extends State<RewardsView>
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Invite friends to get referral bonus points',
+                                  'invite_friends_bonus'.tr,
                                   style: TextStyle(
                                     color: t.inkMuted,
                                     fontSize: 11,
@@ -675,9 +675,9 @@ class _RewardsViewState extends State<RewardsView>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'YOUR REFERRAL CODE',
-                                    style: TextStyle(
+                                  Text(
+                                    'your_referral_code'.tr,
+                                    style: const TextStyle(
                                       color: Colors.grey,
                                       fontSize: 9,
                                       fontWeight: FontWeight.w800,
@@ -843,7 +843,7 @@ class _RewardsViewState extends State<RewardsView>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Redeem Points Catalog',
+            'redeem_catalog'.tr,
             style: TextStyle(
               color: t.ink,
               fontSize: 16,
@@ -888,7 +888,7 @@ class _RewardsViewState extends State<RewardsView>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '$cost points required',
+                            '$cost ${'points_required'.tr}',
                             style: TextStyle(color: t.inkMuted, fontSize: 11),
                           ),
                         ],
@@ -929,9 +929,9 @@ class _RewardsViewState extends State<RewardsView>
                                   }
                                 }
                               : null,
-                          child: const Text(
-                            'Redeem',
-                            style: TextStyle(
+                          child: Text(
+                            'redeem_btn'.tr,
+                            style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),
@@ -962,7 +962,7 @@ class _RewardsViewState extends State<RewardsView>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Points History (Gains & Redemptions)',
+            'points_history'.tr,
             style: TextStyle(
               color: t.ink,
               fontSize: 16,
@@ -975,7 +975,7 @@ class _RewardsViewState extends State<RewardsView>
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     child: Text(
-                      'No point history found',
+                      'no_points_history'.tr,
                       style: TextStyle(color: t.inkMuted, fontSize: 12),
                     ),
                   ),
@@ -1113,9 +1113,9 @@ class _RewardsViewState extends State<RewardsView>
                   Text(
                     pointsWon > 0
                         ? isJackpot
-                              ? '🚨 JACKPOT WON! 🚨'
-                              : 'Congratulations!'
-                        : 'Aww! Try Again',
+                            ? 'jackpot_won'.tr
+                            : 'congratulations'.tr
+                        : 'try_again'.tr,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: pointsWon > 0
@@ -1178,10 +1178,10 @@ class _RewardsViewState extends State<RewardsView>
                             : const Color(0xFF0F172A),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Text(
-                          'Done',
-                          style: TextStyle(
+                          'continue_btn'.tr,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
