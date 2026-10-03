@@ -12,6 +12,8 @@ dependencies:
   flutter_local_notifications: ^17.2.3
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   get: ^4.6.6
   get_storage: ^2.1.1
   dio: ^5.7.0

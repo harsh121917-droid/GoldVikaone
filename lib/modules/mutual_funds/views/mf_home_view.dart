@@ -377,7 +377,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              '+${s.cagr3Y}%',
+                              s.cagr3Y != null ? '+${s.cagr3Y}%' : '—',
                               style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 14, fontWeight: FontWeight.w900),
                             ),
                             const Text('3Y', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
@@ -1418,7 +1418,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '+${returnVal}%',
+                    returnVal != null ? '${returnVal > 0 ? "+" : ""}${returnVal}%' : '—',
                     style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 14, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 2),

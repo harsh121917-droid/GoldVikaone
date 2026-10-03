@@ -45,7 +45,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
     super.initState();
     _isSip = widget.initialIsSip;
     final defaultAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
-    _amountController = TextEditingController(text: defaultAmount.toInt().toString());
+    _amountController = TextEditingController(text: defaultAmount != null ? defaultAmount.toInt().toString() : '');
   }
 
   @override
@@ -131,7 +131,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                       onTap: () {
                         setState(() {
                           _isSip = true;
-                          _amountController.text = widget.scheme.minSipAmount.toInt().toString();
+                          _amountController.text = widget.scheme.minSipAmount != null ? widget.scheme.minSipAmount!.toInt().toString() : '';
                         });
                       },
                       child: Container(
@@ -157,7 +157,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                       onTap: () {
                         setState(() {
                           _isSip = false;
-                          _amountController.text = widget.scheme.minPurchaseAmount.toInt().toString();
+                          _amountController.text = widget.scheme.minPurchaseAmount != null ? widget.scheme.minPurchaseAmount!.toInt().toString() : '';
                         });
                       },
                       child: Container(

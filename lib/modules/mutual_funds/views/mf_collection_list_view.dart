@@ -285,7 +285,7 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
       final remaining = rawList
           .where((s) => !growwPriorityCodes.contains(s.schemeCode))
           .toList()
-        ..sort((a, b) => b.cagr3Y.compareTo(a.cagr3Y));
+        ..sort((a, b) => (b.cagr3Y ?? 0.0).compareTo(a.cagr3Y ?? 0.0));
 
       for (final s in remaining) {
         final amcKey = s.amcName.trim().toLowerCase();
@@ -302,7 +302,7 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
     final Map<String, MfSchemeModel> amcMap = {};
     for (final s in rawList) {
       final key = s.amcName.trim().toLowerCase();
-      if (!amcMap.containsKey(key) || s.cagr3Y > amcMap[key]!.cagr3Y) {
+      if (!amcMap.containsKey(key) || (s.cagr3Y ?? 0.0) > (amcMap[key]!.cagr3Y ?? 0.0)) {
         amcMap[key] = s;
       }
     }
@@ -318,10 +318,10 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
     List<MfSchemeModel> local = [];
     switch (widget.collectionId) {
       case 'high_return':
-        local = List<MfSchemeModel>.from(pool)..sort((a, b) => b.cagr3Y.compareTo(a.cagr3Y));
+        local = List<MfSchemeModel>.from(pool)..sort((a, b) => (b.cagr3Y ?? 0.0).compareTo(a.cagr3Y ?? 0.0));
         break;
       case 'sip_100':
-        local = List<MfSchemeModel>.from(pool)..sort((a, b) => b.rating.compareTo(a.rating));
+        local = List<MfSchemeModel>.from(pool)..sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
         break;
       case 'gold_silver':
         local = pool.where((s) {
@@ -367,17 +367,17 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
 
     // Sort by return period
     if (_returnPeriod == '1Y') {
-      list.sort((a, b) => b.cagr1Y.compareTo(a.cagr1Y));
+      list.sort((a, b) => (b.cagr1Y ?? 0.0).compareTo(a.cagr1Y ?? 0.0));
     } else if (_returnPeriod == '5Y') {
       list.sort((a, b) {
-        final aVal = a.cagr5Y > 0 ? a.cagr5Y : a.cagr3Y;
-        final bVal = b.cagr5Y > 0 ? b.cagr5Y : b.cagr3Y;
+        final aVal = (a.cagr5Y ?? 0) > 0 ? a.cagr5Y! : (a.cagr3Y ?? 0.0);
+        final bVal = (b.cagr5Y ?? 0) > 0 ? b.cagr5Y! : (b.cagr3Y ?? 0.0);
         return bVal.compareTo(aVal);
       });
     } else {
       // 3Y Returns: Maintain Groww flagship priority order for small cap
       if (widget.collectionId != 'small_cap') {
-        list.sort((a, b) => b.cagr3Y.compareTo(a.cagr3Y));
+        list.sort((a, b) => (b.cagr3Y ?? 0.0).compareTo(a.cagr3Y ?? 0.0));
       }
     }
 
@@ -712,21 +712,21 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
   }
 
   Widget _buildGrowwFundRow(MfSchemeModel scheme) {
-    double returnVal = scheme.cagr3Y;
+    double? returnVal = scheme.cagr3Y;
     if (_returnPeriod == '1Y') {
       returnVal = scheme.cagr1Y;
     } else if (_returnPeriod == '5Y') {
-      returnVal = scheme.cagr5Y > 0 ? scheme.cagr5Y : scheme.cagr3Y;
+      returnVal = (scheme.cagr5Y ?? 0) > 0 ? scheme.cagr5Y : scheme.cagr3Y;
     }
 
     final String cleanName = _cleanSchemeName(scheme.schemeName);
     final String catText = scheme.category.isNotEmpty ? scheme.category : 'Equity';
     final String subCatText = scheme.subCategory.isNotEmpty ? scheme.subCategory : widget.title;
 
-    final bool hasReturn = returnVal > 0;
-    final String returnStr = hasReturn
-        ? '+${returnVal.toStringAsFixed(2)}%'
-        : '--';
+    final bool hasReturn = returnVal != null && returnVal != 0;
+    final String returnStr = (returnVal != null && returnVal != 0)
+        ? '${returnVal >= 0 ? "+" : ""}${returnVal.toStringAsFixed(2)}%'
+        : '—';
     final Color returnColor = hasReturn ? const Color(0xFF00D09C) : const Color(0xFF94A3B8);
 
     return InkWell(
@@ -773,13 +773,13 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (scheme.rating > 0) ...[
+                      if (scheme.rating != null && scheme.rating! > 0) ...[
                         const Text(
                           ' • ',
                           style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                         ),
                         Text(
-                          '${scheme.rating.toInt()}',
+                          '${scheme.rating!.toInt()}',
                           style: const TextStyle(
                             color: Color(0xFF94A3B8),
                             fontSize: 12,

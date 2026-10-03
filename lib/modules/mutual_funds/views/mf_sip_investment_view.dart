@@ -32,7 +32,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     super.initState();
     _isSip = widget.isSip;
     final minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
-    _amountStr = minAmount.toInt().toString();
+    _amountStr = minAmount != null ? minAmount.toInt().toString() : '';
     controller.checkUserUcc();
   }
 
@@ -241,8 +241,12 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
       return;
     }
 
-    final double minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
-    if (_amount < minAmount) {
+    final double? minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
+    if (_amount <= 0) {
+      Get.snackbar('Invalid Amount', 'Please enter an investment amount', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+    if (minAmount != null && _amount < minAmount) {
       Get.snackbar(
         'Minimum Amount Required',
         'Minimum ${_isSip ? "SIP" : "investment"} amount for this fund is ₹${minAmount.toInt()}',
@@ -262,7 +266,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
             setState(() {
               _isSip = false;
               final minAmt = widget.scheme.minPurchaseAmount;
-              if (_amount < minAmt) {
+              if (minAmt != null && _amount < minAmt) {
                 _amountStr = minAmt.toInt().toString();
               }
             });
@@ -312,8 +316,8 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     const textSecondary = Color(0xFF8B949E);
     const mintGreen = Color(0xFF00D09C);
 
-    final double minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
-    final bool isValidAmount = _amount >= minAmount;
+    final double? minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
+    final bool isValidAmount = minAmount != null ? _amount >= minAmount : _amount > 0;
 
     return Scaffold(
       backgroundColor: bg,
@@ -333,7 +337,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                 setState(() {
                   _isSip = !_isSip;
                   final minAmt = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
-                  if (_amount < minAmt) {
+                  if (minAmt != null && _amount < minAmt) {
                     _amountStr = minAmt.toInt().toString();
                   }
                 });

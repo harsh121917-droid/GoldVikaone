@@ -24,7 +24,6 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
 
   static const Color darkBg = Color(0xFF0F141E);
   static const Color cardBg = Color(0xFF161E2D);
-  static const Color cardHeaderBg = Color(0xFF1C273B);
   static const Color mintGreen = Color(0xFF00D09C);
   static const Color borderColor = Color(0xFF22304A);
   static const Color subtleText = Color(0xFF8E9BAE);
@@ -393,9 +392,9 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
     double max5Y = -999;
 
     for (final f in _selectedFunds) {
-      if (f.cagr1Y > max1Y) max1Y = f.cagr1Y;
-      if (f.cagr3Y > max3Y) max3Y = f.cagr3Y;
-      if (f.cagr5Y > max5Y) max5Y = f.cagr5Y;
+      if ((f.cagr1Y ?? -999) > max1Y) max1Y = f.cagr1Y!;
+      if ((f.cagr3Y ?? -999) > max3Y) max3Y = f.cagr3Y!;
+      if ((f.cagr5Y ?? -999) > max5Y) max5Y = f.cagr5Y!;
     }
 
     return Container(
@@ -409,25 +408,25 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
         children: [
           _buildMetricRow(
             label: '1Y Annualized Return',
-            values: _selectedFunds.map((f) => '${f.cagr1Y >= 0 ? '+' : ''}${f.cagr1Y.toStringAsFixed(2)}%').toList(),
-            winners: _selectedFunds.map((f) => f.cagr1Y == max1Y && max1Y != -999).toList(),
+            values: _selectedFunds.map((f) => f.cagr1Y != null ? '${f.cagr1Y! >= 0 ? '+' : ''}${f.cagr1Y!.toStringAsFixed(2)}%' : '—').toList(),
+            winners: _selectedFunds.map((f) => f.cagr1Y != null && f.cagr1Y == max1Y && max1Y != -999).toList(),
           ),
           const Divider(color: borderColor, height: 1),
           _buildMetricRow(
             label: '3Y Annualized Return',
-            values: _selectedFunds.map((f) => '${f.cagr3Y >= 0 ? '+' : ''}${f.cagr3Y.toStringAsFixed(2)}%').toList(),
-            winners: _selectedFunds.map((f) => f.cagr3Y == max3Y && max3Y != -999).toList(),
+            values: _selectedFunds.map((f) => f.cagr3Y != null ? '${f.cagr3Y! >= 0 ? '+' : ''}${f.cagr3Y!.toStringAsFixed(2)}%' : '—').toList(),
+            winners: _selectedFunds.map((f) => f.cagr3Y != null && f.cagr3Y == max3Y && max3Y != -999).toList(),
           ),
           const Divider(color: borderColor, height: 1),
           _buildMetricRow(
             label: '5Y Annualized Return',
-            values: _selectedFunds.map((f) => '${f.cagr5Y >= 0 ? '+' : ''}${f.cagr5Y.toStringAsFixed(2)}%').toList(),
-            winners: _selectedFunds.map((f) => f.cagr5Y == max5Y && max5Y != -999).toList(),
+            values: _selectedFunds.map((f) => f.cagr5Y != null ? '${f.cagr5Y! >= 0 ? '+' : ''}${f.cagr5Y!.toStringAsFixed(2)}%' : '—').toList(),
+            winners: _selectedFunds.map((f) => f.cagr5Y != null && f.cagr5Y == max5Y && max5Y != -999).toList(),
           ),
           const Divider(color: borderColor, height: 1),
           _buildMetricRow(
             label: 'Current NAV',
-            values: _selectedFunds.map((f) => '₹${f.nav.toStringAsFixed(2)}').toList(),
+            values: _selectedFunds.map((f) => f.nav != null ? '₹${f.nav!.toStringAsFixed(2)}' : '—').toList(),
           ),
         ],
       ),
@@ -437,7 +436,7 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
   Widget _buildDetailsComparison() {
     double minExp = 999;
     for (final f in _selectedFunds) {
-      if (f.expenseRatio < minExp && f.expenseRatio > 0) minExp = f.expenseRatio;
+      if (f.expenseRatio != null && f.expenseRatio! < minExp && f.expenseRatio! > 0) minExp = f.expenseRatio!;
     }
 
     return Container(
@@ -451,19 +450,19 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
         children: [
           _buildMetricRow(
             label: 'Fund Rating',
-            values: _selectedFunds.map((f) => '${f.rating} / 5 ★').toList(),
+            values: _selectedFunds.map((f) => f.rating != null ? '${f.rating} / 5 ★' : '—').toList(),
           ),
           const Divider(color: borderColor, height: 1),
           _buildMetricRow(
             label: 'Expense Ratio',
-            values: _selectedFunds.map((f) => '${f.expenseRatio.toStringAsFixed(2)}%').toList(),
-            winners: _selectedFunds.map((f) => f.expenseRatio == minExp && minExp != 999).toList(),
+            values: _selectedFunds.map((f) => f.expenseRatio != null ? '${f.expenseRatio!.toStringAsFixed(2)}%' : '—').toList(),
+            winners: _selectedFunds.map((f) => f.expenseRatio != null && f.expenseRatio == minExp && minExp != 999).toList(),
             winnerTag: 'Lowest',
           ),
           const Divider(color: borderColor, height: 1),
           _buildMetricRow(
             label: 'AUM (Fund Size)',
-            values: _selectedFunds.map((f) => '₹${f.aum.toStringAsFixed(0)} Cr').toList(),
+            values: _selectedFunds.map((f) => f.aum != null ? '₹${f.aum!.toStringAsFixed(0)} Cr' : '—').toList(),
           ),
           const Divider(color: borderColor, height: 1),
           _buildMetricRow(
@@ -492,17 +491,17 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
         children: [
           _buildMetricRow(
             label: 'Min Monthly SIP',
-            values: _selectedFunds.map((f) => '₹${f.minSipAmount.toStringAsFixed(0)}').toList(),
+            values: _selectedFunds.map((f) => f.minSipAmount != null ? '₹${f.minSipAmount!.toStringAsFixed(0)}' : '—').toList(),
           ),
           const Divider(color: borderColor, height: 1),
           _buildMetricRow(
             label: 'Min One-Time Lump Sum',
-            values: _selectedFunds.map((f) => '₹${f.minPurchaseAmount.toStringAsFixed(0)}').toList(),
+            values: _selectedFunds.map((f) => f.minPurchaseAmount != null ? '₹${f.minPurchaseAmount!.toStringAsFixed(0)}' : '—').toList(),
           ),
           const Divider(color: borderColor, height: 1),
           _buildMetricRow(
             label: 'Fund Manager',
-            values: _selectedFunds.map((f) => f.fundManager.isNotEmpty ? f.fundManager : 'Fund Team').toList(),
+            values: _selectedFunds.map((f) => (f.fundManager != null && f.fundManager!.isNotEmpty) ? f.fundManager! : 'Fund Team').toList(),
           ),
           const Divider(color: borderColor, height: 1),
           _buildMetricRow(
@@ -770,7 +769,7 @@ class _FundPickerSheetState extends State<_FundPickerSheet> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  '3Y: ${scheme.cagr3Y >= 0 ? '+' : ''}${scheme.cagr3Y.toStringAsFixed(1)}%',
+                                  scheme.cagr3Y != null ? '3Y: ${scheme.cagr3Y! >= 0 ? '+' : ''}${scheme.cagr3Y!.toStringAsFixed(1)}%' : '3Y: —',
                                   style: const TextStyle(color: mintGreen, fontSize: 11, fontWeight: FontWeight.bold),
                                 ),
                               ],

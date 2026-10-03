@@ -431,7 +431,7 @@ class _MfSearchViewState extends State<MfSearchView> {
                           style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w600),
                         ),
                       ),
-                      if (scheme.rating > 0)
+                      if (scheme.rating != null && scheme.rating! > 0)
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -457,7 +457,7 @@ class _MfSearchViewState extends State<MfSearchView> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '+${scheme.cagr3Y}%',
+                  scheme.cagr3Y != null ? '+${scheme.cagr3Y}%' : '—',
                   style: const TextStyle(
                     color: GrowwColors.mintTeal,
                     fontSize: 14,

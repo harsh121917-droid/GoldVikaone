@@ -185,7 +185,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
             const SizedBox(height: 12),
             Text('No Mutual Fund Holdings Yet', style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-            Text('Start investing with as little as ₹500/month', style: TextStyle(color: textSecondary, fontSize: 13)),
+            Text('Start your investment journey in top Regular mutual funds', style: TextStyle(color: textSecondary, fontSize: 13)),
           ],
         ),
       );

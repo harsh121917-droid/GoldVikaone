@@ -322,14 +322,14 @@ class _MfAllMutualFundsViewState extends State<MfAllMutualFundsView> {
   Widget _buildSchemeTile(MfSchemeModel s) {
     return Obx(() {
       final period = controller.allMfReturnPeriod.value;
-      double returnVal = s.cagr3Y;
+      double? returnVal = s.cagr3Y;
       if (period == '1Y') returnVal = s.cagr1Y;
       if (period == '5Y') returnVal = s.cagr5Y;
 
       final cleanName = _cleanSchemeName(s.schemeName);
-      final hasRet = returnVal != 0;
-      final retStr = hasRet ? '${returnVal >= 0 ? '+' : ''}${returnVal.toStringAsFixed(2)}%' : '--';
-      final retColor = returnVal < 0 ? const Color(0xFFEF4444) : GrowwColors.mintTeal;
+      final hasRet = returnVal != null && returnVal != 0;
+      final retStr = hasRet ? '${returnVal >= 0 ? '+' : ''}${returnVal.toStringAsFixed(2)}%' : '—';
+      final retColor = (returnVal ?? 0.0) < 0 ? const Color(0xFFEF4444) : GrowwColors.mintTeal;
 
       return InkWell(
         onTap: () {
@@ -369,10 +369,10 @@ class _MfAllMutualFundsViewState extends State<MfAllMutualFundsView> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (s.rating > 0) ...[
+                        if (s.rating != null && s.rating! > 0) ...[
                           const Text(' • ', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
                           Text(
-                            '${s.rating.toInt()}',
+                            '${s.rating}',
                             style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                           ),
                           const SizedBox(width: 2),

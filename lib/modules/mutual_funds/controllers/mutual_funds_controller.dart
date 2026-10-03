@@ -62,7 +62,7 @@ class MutualFundsController extends GetxController {
   final RxBool isPopularLoading = false.obs;
 
   final RxList<MfSchemeModel> schemes = <MfSchemeModel>[].obs;
-  final RxList<String> watchlistSchemeCodes = <String>['1001', '1003', '1004'].obs;
+  final RxList<String> watchlistSchemeCodes = <String>[].obs;
   final RxList<MfSchemeModel> recentlyViewed = <MfSchemeModel>[].obs;
 
   final Rx<MfPortfolioSummary?> portfolioSummary = Rx<MfPortfolioSummary?>(null);
@@ -125,7 +125,7 @@ class MutualFundsController extends GetxController {
   List<MfSchemeModel> get popularFunds {
     if (schemes.isEmpty) return [];
     final list = List<MfSchemeModel>.from(schemes);
-    list.sort((a, b) => b.cagr3Y.compareTo(a.cagr3Y));
+    list.sort((a, b) => (b.cagr3Y ?? 0.0).compareTo(a.cagr3Y ?? 0.0));
     return list.take(6).toList();
   }
 
@@ -228,165 +228,6 @@ class MutualFundsController extends GetxController {
   Future<void> loadMoreSchemes() async {
     if (isLoading.value || isLoadingMore.value || !hasMore.value) return;
     await fetchSchemes(page: currentPage.value + 1);
-  }
-
-  // ── Verified Default Schemes Matching Reference Groww Catalog ──
-  List<MfSchemeModel> _getDefaultSchemes() {
-    final raw = [
-      {
-        '_id': '1',
-        'schemeCode': '1001',
-        'schemeName': 'Bandhan Small Cap Fund',
-        'amcName': 'Bandhan Mutual Fund',
-        'amcCode': 'BANDHAN',
-        'category': 'Equity Small Cap',
-        'nav': 38.64,
-        'cagr1Y': 34.20,
-        'cagr3Y': 24.78,
-        'cagr5Y': 29.40,
-        'riskLevel': 'Very High',
-        'rating': 5,
-        'minSipAmount': 100.0,
-        'minPurchaseAmount': 1000.0,
-        'expenseRatio': 0.72,
-        'aum': 5420.0,
-        'fundManager': 'Manish Gunwani',
-      },
-      {
-        '_id': '2',
-        'schemeCode': '1002',
-        'schemeName': 'SBI Gold Direct Plan-Growth',
-        'amcName': 'SBI Mutual Fund',
-        'amcCode': 'SBI',
-        'category': 'Commodities Gold',
-        'nav': 24.15,
-        'cagr1Y': 28.50,
-        'cagr3Y': 35.89,
-        'cagr5Y': 21.30,
-        'riskLevel': 'Moderately High',
-        'rating': 4,
-        'minSipAmount': 500.0,
-        'minPurchaseAmount': 5000.0,
-        'expenseRatio': 0.45,
-        'aum': 8120.0,
-        'fundManager': 'Raviprakash Sharma',
-      },
-      {
-        '_id': '3',
-        'schemeCode': '1003',
-        'schemeName': 'Parag Parikh Flexi Cap Fund',
-        'amcName': 'PPFAS Mutual Fund',
-        'amcCode': 'PPFAS',
-        'category': 'Equity Flexi Cap',
-        'nav': 74.20,
-        'cagr1Y': 26.80,
-        'cagr3Y': 20.40,
-        'cagr5Y': 24.10,
-        'riskLevel': 'Very High',
-        'rating': 5,
-        'minSipAmount': 1000.0,
-        'minPurchaseAmount': 1000.0,
-        'expenseRatio': 0.65,
-        'aum': 62400.0,
-        'fundManager': 'Rajeev Thakkar',
-      },
-      {
-        '_id': '4',
-        'schemeCode': '1004',
-        'schemeName': 'HDFC Mid Cap Fund',
-        'amcName': 'HDFC Mutual Fund',
-        'amcCode': 'HDFC',
-        'category': 'Equity Mid Cap',
-        'nav': 182.50,
-        'cagr1Y': 22.40,
-        'cagr3Y': 17.22,
-        'cagr5Y': 23.50,
-        'riskLevel': 'Very High',
-        'rating': 5,
-        'minSipAmount': 100.0,
-        'minPurchaseAmount': 5000.0,
-        'expenseRatio': 0.85,
-        'aum': 71300.0,
-        'fundManager': 'Chirag Setalvad',
-      },
-      {
-        '_id': '5',
-        'schemeCode': '1005',
-        'schemeName': 'Motilal Oswal Midcap Fund',
-        'amcName': 'Motilal Oswal Mutual Fund',
-        'amcCode': 'MOTILAL',
-        'category': 'Equity Mid Cap',
-        'nav': 98.40,
-        'cagr1Y': 24.10,
-        'cagr3Y': 18.81,
-        'cagr5Y': 22.70,
-        'riskLevel': 'Very High',
-        'rating': 4,
-        'minSipAmount': 500.0,
-        'minPurchaseAmount': 5000.0,
-        'expenseRatio': 0.70,
-        'aum': 14200.0,
-        'fundManager': 'Niket Shah',
-      },
-      {
-        '_id': '6',
-        'schemeCode': '1006',
-        'schemeName': 'Nippon India Small Cap Fund',
-        'amcName': 'Nippon India Mutual Fund',
-        'amcCode': 'NIPPON',
-        'category': 'Equity Small Cap',
-        'nav': 148.90,
-        'cagr1Y': 21.00,
-        'cagr3Y': 15.41,
-        'cagr5Y': 27.80,
-        'riskLevel': 'Very High',
-        'rating': 4,
-        'minSipAmount': 100.0,
-        'minPurchaseAmount': 5000.0,
-        'expenseRatio': 0.75,
-        'aum': 56100.0,
-        'fundManager': 'Samir Rachh',
-      },
-      {
-        '_id': '7',
-        'schemeCode': '1007',
-        'schemeName': 'HDFC Silver ETF FoF Direct-Growth',
-        'amcName': 'HDFC Mutual Fund',
-        'amcCode': 'HDFC',
-        'category': 'Commodities Silver',
-        'nav': 16.80,
-        'cagr1Y': 42.10,
-        'cagr3Y': 45.95,
-        'cagr5Y': 30.50,
-        'riskLevel': 'Very High',
-        'rating': 4,
-        'minSipAmount': 100.0,
-        'minPurchaseAmount': 1000.0,
-        'expenseRatio': 0.35,
-        'aum': 3400.0,
-        'fundManager': 'Nirman Morakhia',
-      },
-      {
-        '_id': '8',
-        'schemeCode': '1008',
-        'schemeName': 'ICICI Prudential Bluechip Fund',
-        'amcName': 'ICICI Prudential Mutual Fund',
-        'amcCode': 'ICICI',
-        'category': 'Large Cap',
-        'nav': 112.40,
-        'cagr1Y': 19.80,
-        'cagr3Y': 16.45,
-        'cagr5Y': 18.20,
-        'riskLevel': 'Very High',
-        'rating': 5,
-        'minSipAmount': 100.0,
-        'minPurchaseAmount': 1000.0,
-        'expenseRatio': 0.90,
-        'aum': 52000.0,
-        'fundManager': 'Anish Tawakley',
-      },
-    ];
-    return raw.map((m) => MfSchemeModel.fromJson(m)).toList();
   }
 
   // ── Fetch Onboarding & SIP Readiness Status (Step 1: UCC, Step 2: Mandate) ──

@@ -137,7 +137,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     return null;
   }
 
-  double get _currentReturn {
+  double? get _currentReturn {
     // 1. Check if backend periodReturns has exact return for this period (official Groww stats)
     if (_detailData != null && _detailData!['periodReturns'] is Map) {
       final pr = _detailData!['periodReturns'] as Map<String, dynamic>;
@@ -151,8 +151,17 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
       }
     }
 
-    // 2. Direct CAGR from backend root data if available
+    // 2. Direct returns/CAGR from backend root data if available
     if (_detailData != null) {
+      if (_selectedPeriod == '1M' && _detailData!['return1M'] != null) {
+        return (_detailData!['return1M'] as num).toDouble();
+      }
+      if (_selectedPeriod == '3M' && _detailData!['return3M'] != null) {
+        return (_detailData!['return3M'] as num).toDouble();
+      }
+      if (_selectedPeriod == '6M' && _detailData!['return6M'] != null) {
+        return (_detailData!['return6M'] as num).toDouble();
+      }
       if (_selectedPeriod == '1Y' && _detailData!['cagr1Y'] != null) {
         return (_detailData!['cagr1Y'] as num).toDouble();
       }
@@ -178,13 +187,13 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     // 4. Fallback to widget.scheme CAGR rates
     switch (_selectedPeriod) {
       case '1Y':
-        if (widget.scheme.cagr1Y > 0) return widget.scheme.cagr1Y;
+        if ((widget.scheme.cagr1Y ?? 0) > 0) return widget.scheme.cagr1Y;
         break;
       case '3Y':
-        if (widget.scheme.cagr3Y > 0) return widget.scheme.cagr3Y;
+        if ((widget.scheme.cagr3Y ?? 0) > 0) return widget.scheme.cagr3Y;
         break;
       case '5Y':
-        if (widget.scheme.cagr5Y > 0) return widget.scheme.cagr5Y;
+        if ((widget.scheme.cagr5Y ?? 0) > 0) return widget.scheme.cagr5Y;
         break;
     }
 
@@ -214,26 +223,20 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
       }
     }
 
-    // 6. Hard fallback to scheme CAGR rates
+    // 6. Hard fallback to scheme CAGR rates without fabricating data
     switch (_selectedPeriod) {
-      case '1M':
-        return -0.98;
-      case '6M':
-        return 14.50;
       case '1Y':
         return widget.scheme.cagr1Y;
       case '3Y':
         return widget.scheme.cagr3Y;
       case '5Y':
         return widget.scheme.cagr5Y;
-      case 'All':
-        return widget.scheme.cagr5Y > 0 ? (widget.scheme.cagr5Y * 1.35) : 30.40;
       default:
-        return widget.scheme.cagr3Y;
+        return null;
     }
   }
 
-  bool get _isNegativeReturn => _currentReturn < 0;
+  bool get _isNegativeReturn => (_currentReturn ?? 0.0) < 0;
   Color get _periodColor => _isNegativeReturn ? const Color(0xFFEF4444) : const Color(0xFF00D09C);
 
   double get _day1Return {
@@ -248,7 +251,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
         return ((p2 - p1) / p1) * 100;
       }
     }
-    return 0.58;
+    return 0.0;
   }
 
   bool get _day1IsNegative => _day1Return < 0;
@@ -258,11 +261,12 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     switch (_selectedPeriod) {
       case '3Y':
       case '5Y':
-      case 'All':
-      case '1Y':
         return '$_selectedPeriod annualised';
       case '1M':
+      case '3M':
       case '6M':
+      case '1Y':
+      case 'All':
       default:
         return '$_selectedPeriod total';
     }
@@ -402,7 +406,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
             Row(
               children: [
                 Text(
-                  '${_currentReturn >= 0 ? "+" : ""}${_currentReturn.toStringAsFixed(2)}%',
+                  _currentReturn != null ? '${_currentReturn! >= 0 ? "+" : ""}${_currentReturn!.toStringAsFixed(2)}%' : '—',
                   style: const TextStyle(color: mintGreen, fontSize: 11, fontWeight: FontWeight.bold),
                 ),
                 Text(
@@ -489,7 +493,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                         textBaseline: TextBaseline.alphabetic,
                         children: [
                           Text(
-                            '${_currentReturn >= 0 ? '+' : ''}${_currentReturn.toStringAsFixed(2)}%',
+                            _currentReturn != null ? '${_currentReturn! >= 0 ? "+" : ""}${_currentReturn!.toStringAsFixed(2)}%' : '—',
                             style: TextStyle(
                               color: _periodColor,
                               fontSize: 28,
@@ -568,7 +572,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: ['1M', '6M', '1Y', '3Y', '5Y', 'All'].map((p) {
+                children: ['1M', '3M', '6M', '1Y', '3Y', '5Y', 'All'].map((p) {
                   final isSel = _selectedPeriod == p;
                   return GestureDetector(
                     onTap: () => setState(() {
@@ -606,19 +610,20 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                   Row(
                     children: [
                       Expanded(child: Builder(builder: (_) {
-                        final double liveNav = (_detailData?['nav'] as num?)?.toDouble() ?? widget.scheme.nav;
-                        return _buildMetricItem('NAV', '₹${liveNav.toStringAsFixed(2)}', textSecondary, textPrimary);
+                        final double? liveNav = (_detailData?['nav'] as num?)?.toDouble() ?? widget.scheme.nav;
+                        return _buildMetricItem('NAV', liveNav != null ? '₹${liveNav.toStringAsFixed(2)}' : '—', textSecondary, textPrimary);
                       })),
-                      Expanded(child: _buildMetricItem('Rating', '${widget.scheme.rating} ★', textSecondary, textPrimary)),
+                      Expanded(child: _buildMetricItem('Rating', widget.scheme.rating != null ? '${widget.scheme.rating} ★' : '—', textSecondary, textPrimary)),
                     ],
                   ),
                   const SizedBox(height: 18),
                   Row(
                     children: [
-                      Expanded(child: _buildMetricItem('Min. SIP amount', '₹${widget.scheme.minSipAmount.toInt()}', textSecondary, textPrimary)),
+                      Expanded(child: _buildMetricItem('Min. SIP amount', widget.scheme.minSipAmount != null ? '₹${widget.scheme.minSipAmount!.toInt()}' : '—', textSecondary, textPrimary)),
                       Expanded(
                         child: Builder(builder: (_) {
-                          final double aumVal = (_detailData?['aum'] as num?)?.toDouble() ?? widget.scheme.aum;
+                          final double? aumVal = (_detailData?['aum'] as num?)?.toDouble() ?? widget.scheme.aum;
+                          if (aumVal == null) return _buildMetricItem('Fund size', '—', textSecondary, textPrimary);
                           String aumStr;
                           if (aumVal >= 1000) {
                             final intVal = aumVal.round();
@@ -853,20 +858,20 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
   Widget _buildReturnsAndRankingsSection(Color mintGreen, Color textSecondary, Color textPrimary) {
     final comp = _detailData?['returnsComparison'] as Map<String, dynamic>?;
 
-    final y1Fund = comp?['1Y']?['fund']?.toString() ?? widget.scheme.cagr1Y.toStringAsFixed(1);
-    final y3Fund = comp?['3Y']?['fund']?.toString() ?? widget.scheme.cagr3Y.toStringAsFixed(1);
-    final y5Fund = comp?['5Y']?['fund']?.toString() ?? widget.scheme.cagr5Y.toStringAsFixed(1);
-    final allFund = comp?['All']?['fund']?.toString() ?? (widget.scheme.cagr3Y * 1.08).toStringAsFixed(1);
+    final y1Fund = comp?['1Y']?['fund'] != null ? '${comp!['1Y']['fund']}%' : (widget.scheme.cagr1Y != null ? '${widget.scheme.cagr1Y!.toStringAsFixed(1)}%' : '—');
+    final y3Fund = comp?['3Y']?['fund'] != null ? '${comp!['3Y']['fund']}%' : (widget.scheme.cagr3Y != null ? '${widget.scheme.cagr3Y!.toStringAsFixed(1)}%' : '—');
+    final y5Fund = comp?['5Y']?['fund'] != null ? '${comp!['5Y']['fund']}%' : (widget.scheme.cagr5Y != null ? '${widget.scheme.cagr5Y!.toStringAsFixed(1)}%' : '—');
+    final allFund = comp?['All']?['fund'] != null ? '${comp!['All']['fund']}%' : '—';
 
-    final y1Avg = comp?['1Y']?['categoryAvg']?.toString() ?? (widget.scheme.cagr1Y * 0.88).toStringAsFixed(1);
-    final y3Avg = comp?['3Y']?['categoryAvg']?.toString() ?? (widget.scheme.cagr3Y * 0.85).toStringAsFixed(1);
-    final y5Avg = comp?['5Y']?['categoryAvg']?.toString() ?? (widget.scheme.cagr5Y * 0.86).toStringAsFixed(1);
-    final allAvg = comp?['All']?['categoryAvg']?.toString() ?? (widget.scheme.cagr3Y * 0.82).toStringAsFixed(1);
+    final y1Avg = comp?['1Y']?['categoryAvg'] != null ? '${comp!['1Y']['categoryAvg']}%' : '—';
+    final y3Avg = comp?['3Y']?['categoryAvg'] != null ? '${comp!['3Y']['categoryAvg']}%' : '—';
+    final y5Avg = comp?['5Y']?['categoryAvg'] != null ? '${comp!['5Y']['categoryAvg']}%' : '—';
+    final allAvg = comp?['All']?['categoryAvg'] != null ? '${comp!['All']['categoryAvg']}%' : '—';
 
-    final y1Rank = comp?['1Y']?['rank']?.toString() ?? '2';
-    final y3Rank = comp?['3Y']?['rank']?.toString() ?? '1';
-    final y5Rank = comp?['5Y']?['rank']?.toString() ?? '2';
-    final allRank = comp?['All']?['rank']?.toString() ?? '1';
+    final y1Rank = comp?['1Y']?['rank'] != null ? '#${comp!['1Y']['rank']}' : '—';
+    final y3Rank = comp?['3Y']?['rank'] != null ? '#${comp!['3Y']['rank']}' : '—';
+    final y5Rank = comp?['5Y']?['rank'] != null ? '#${comp!['5Y']['rank']}' : '—';
+    final allRank = comp?['All']?['rank'] != null ? '#${comp!['All']['rank']}' : '—';
 
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
@@ -1107,20 +1112,49 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
   // ── SECTION 3: Return calculator (Screenshot 3) ──
   Widget _buildReturnCalculatorSection(Color mintGreen, Color textSecondary, Color textPrimary, Color surface, Color border) {
-    double rate = widget.scheme.cagr3Y;
+    double? rate;
     double years = 3;
     if (_calculatorPeriod == '6M') {
-      rate = 12.8;
+      rate = (_detailData?['return6M'] as num?)?.toDouble();
       years = 0.5;
     } else if (_calculatorPeriod == '1Y') {
-      rate = widget.scheme.cagr1Y;
+      rate = ((_detailData?['cagr1Y'] ?? widget.scheme.cagr1Y) as num?)?.toDouble();
       years = 1;
     } else if (_calculatorPeriod == '3Y') {
-      rate = widget.scheme.cagr3Y;
+      rate = ((_detailData?['cagr3Y'] ?? widget.scheme.cagr3Y) as num?)?.toDouble();
       years = 3;
     } else if (_calculatorPeriod == '5Y') {
-      rate = widget.scheme.cagr5Y;
+      rate = ((_detailData?['cagr5Y'] ?? widget.scheme.cagr5Y) as num?)?.toDouble();
       years = 5;
+    }
+
+    if (rate == null) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F141E),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                'Return Calculator',
+                style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Calculations are unavailable because this scheme does not have verified historical returns for $_calculatorPeriod.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: textSecondary, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     double totalInvested = _calculatorAmount;
@@ -1306,14 +1340,14 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     if (_detailData != null && _detailData!['similarFunds'] is List && (_detailData!['similarFunds'] as List).isNotEmpty) {
       similarFunds.add({
         'name': widget.scheme.schemeName,
-        'returns': '${widget.scheme.cagr3Y.toStringAsFixed(2)}%',
+        'returns': widget.scheme.cagr3Y != null ? '${widget.scheme.cagr3Y!.toStringAsFixed(2)}%' : '—',
         'isCurrent': true,
         'scheme': widget.scheme,
       });
       for (final sf in (_detailData!['similarFunds'] as List)) {
         similarFunds.add({
           'name': sf['schemeName']?.toString() ?? '',
-          'returns': '${((sf['cagr3Y'] as num?)?.toDouble() ?? 0).toStringAsFixed(2)}%',
+          'returns': (sf['cagr3Y'] != null) ? '${((sf['cagr3Y'] as num).toDouble()).toStringAsFixed(2)}%' : '—',
           'isCurrent': false,
           'schemeCode': sf['schemeCode']?.toString() ?? '',
           'raw': sf,
@@ -1321,11 +1355,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
       }
     } else {
       similarFunds = [
-        {'name': widget.scheme.schemeName, 'returns': '${widget.scheme.cagr3Y.toStringAsFixed(2)}%', 'isCurrent': true},
-        {'name': 'Bandhan Small Cap Fund', 'returns': '24.78%', 'isCurrent': false},
-        {'name': 'Nippon India Small Cap Fund', 'returns': '28.40%', 'isCurrent': false},
-        {'name': 'Quant Small Cap Fund', 'returns': '28.90%', 'isCurrent': false},
-        {'name': 'Tata Small Cap Fund', 'returns': '24.10%', 'isCurrent': false},
+        {'name': widget.scheme.schemeName, 'returns': widget.scheme.cagr3Y != null ? '${widget.scheme.cagr3Y!.toStringAsFixed(2)}%' : '—', 'isCurrent': true},
       ];
     }
 
@@ -1472,7 +1502,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildBulletItem(
-            title: 'Expense ratio: ${expenseRatioVal}%',
+            title: expenseRatioVal != null ? 'Expense ratio: ${expenseRatioVal}%' : 'Expense ratio: —',
             subtitle: 'Exclusive of GST & statutory charges',
             textPrimary: textPrimary,
             textSecondary: textSecondary,
@@ -1559,7 +1589,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     } else {
       managers = [
         {
-          'name': widget.scheme.fundManager.isNotEmpty ? widget.scheme.fundManager : 'Senior Portfolio Manager',
+          'name': (widget.scheme.fundManager != null && widget.scheme.fundManager!.isNotEmpty) ? widget.scheme.fundManager! : 'Portfolio Management Team',
           'tenure': 'Jan 2023 - Present',
           'edu': 'B.Tech from premier institute, PGDM / CFA Charterholder',
           'funds': '4 active equity funds',
@@ -1653,8 +1683,8 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
   // ── SECTION 7: Fund house & investment objective (Screenshot 3) ──
   Widget _buildFundHouseSection(Color mintGreen, Color textSecondary, Color textPrimary) {
     final fh = _detailData?['fundHouse'] as Map<String, dynamic>?;
-    final rankVal = fh?['rank'] ?? '#4 in India';
-    final totalAumVal = fh?['totalAum'] ?? '₹${(widget.scheme.aum * 12).toInt()} Crores';
+    final rankVal = fh?['rank']?.toString() ?? '—';
+    final totalAumVal = fh?['totalAum']?.toString() ?? (widget.scheme.aum != null ? '₹${widget.scheme.aum!.toInt()} Crores' : '—');
     final objectiveVal = fh?['objective'] ??
         'To achieve long-term capital growth and wealth creation by predominantly investing in a diversified portfolio of ${widget.scheme.subCategory.isNotEmpty ? widget.scheme.subCategory : widget.scheme.category} instruments.';
 
@@ -1838,7 +1868,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              '${f.category} • ${f.rating}★',
+                              f.rating != null ? '${f.category} • ${f.rating}★' : f.category,
                               style: TextStyle(color: textSecondary, fontSize: 11),
                             ),
                           ],
@@ -1846,7 +1876,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                       ],
                     ),
                     Text(
-                      '${f.cagr3Y.toStringAsFixed(2)}%',
+                      f.cagr3Y != null ? '${f.cagr3Y!.toStringAsFixed(2)}%' : '—',
                       style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -1900,9 +1930,22 @@ class _NavChartPainter extends CustomPainter {
     final path = Path();
     final fillPath = Path();
 
-    final List<double> normalizedPoints = (rawPoints != null && rawPoints!.length > 1)
-        ? _normalizePoints(rawPoints!)
-        : _getCurvePoints(period);
+    if (rawPoints == null || rawPoints!.length <= 1) {
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: 'NAV chart data unavailable for this timeframe',
+          style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      textPainter.paint(
+        canvas,
+        Offset((size.width - textPainter.width) / 2, (size.height - textPainter.height) / 2),
+      );
+      return;
+    }
+
+    final List<double> normalizedPoints = _normalizePoints(rawPoints!);
 
     final double stepX = size.width / (normalizedPoints.length - 1);
 
@@ -2099,46 +2142,6 @@ class _NavChartPainter extends CustomPainter {
     double diff = maxV - minV;
     if (diff <= 0) diff = 1.0;
     return points.map((p) => 0.12 + ((p - minV) / diff) * 0.76).toList();
-  }
-
-  List<double> _getCurvePoints(String period) {
-    final bool isRed = chartColor.toARGB32() == const Color(0xFFEF4444).toARGB32();
-    if (isRed) {
-      // Realistic sharp downward market trend
-      return [
-        0.72, 0.70, 0.74, 0.68, 0.65, 0.69, 0.62, 0.58, 0.61, 0.55, 0.52, 0.56,
-        0.48, 0.45, 0.49, 0.42, 0.38, 0.41, 0.35, 0.32
-      ];
-    }
-    // Realistic sharp upward market trends
-    switch (period) {
-      case '1M':
-        return [0.42, 0.45, 0.43, 0.48, 0.46, 0.52, 0.50, 0.55, 0.53, 0.58, 0.56, 0.62];
-      case '6M':
-        return [0.32, 0.35, 0.30, 0.38, 0.42, 0.39, 0.46, 0.44, 0.52, 0.49, 0.58, 0.65, 0.62, 0.72];
-      case '1Y':
-        return [0.22, 0.28, 0.25, 0.32, 0.30, 0.38, 0.44, 0.40, 0.50, 0.48, 0.58, 0.64, 0.60, 0.70, 0.78, 0.84];
-      case '3Y':
-        return [
-          0.12, 0.18, 0.15, 0.22, 0.20, 0.28, 0.25, 0.35, 0.32, 0.42, 0.38, 0.48,
-          0.44, 0.55, 0.50, 0.62, 0.58, 0.68, 0.64, 0.75, 0.72, 0.82, 0.78, 0.88,
-          0.85, 0.94
-        ];
-      case '5Y':
-        return [
-          0.08, 0.14, 0.12, 0.20, 0.18, 0.26, 0.24, 0.32, 0.30, 0.40, 0.38, 0.48,
-          0.45, 0.56, 0.52, 0.64, 0.60, 0.70, 0.68, 0.78, 0.75, 0.85, 0.82, 0.92,
-          0.90, 0.96
-        ];
-      case 'All':
-        return [
-          0.06, 0.12, 0.10, 0.18, 0.16, 0.24, 0.22, 0.32, 0.28, 0.38, 0.36, 0.46,
-          0.44, 0.54, 0.50, 0.62, 0.58, 0.68, 0.66, 0.76, 0.74, 0.84, 0.82, 0.92,
-          0.90, 0.98
-        ];
-      default:
-        return [0.20, 0.28, 0.35, 0.42, 0.40, 0.52, 0.60, 0.68, 0.75, 0.85, 0.92];
-    }
   }
 
   @override

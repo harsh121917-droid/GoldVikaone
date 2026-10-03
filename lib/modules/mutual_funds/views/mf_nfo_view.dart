@@ -18,136 +18,9 @@ class _MfNfoViewState extends State<MfNfoView> with SingleTickerProviderStateMix
   late TabController _tabController;
 
   // Curated live / active NFO records
-  final List<Map<String, dynamic>> _openNfos = [
-    {
-      'id': 'nfo_1',
-      'name': 'Invesco India Technology Fund',
-      'amc': 'Invesco Mutual Fund',
-      'amcCode': 'INVESCO_MF',
-      'category': 'Equity: Sectoral - Technology',
-      'type': 'Open Ended',
-      'openDate': 'Sep 18, 2026',
-      'closeDate': 'Oct 02, 2026',
-      'daysLeft': 5,
-      'issuePrice': 10.0,
-      'minSip': 500.0,
-      'minPurchase': 1000.0,
-      'risk': 'Very High',
-      'rating': 5,
-      'benchmark': 'BSE Teck TRI',
-      'description':
-          'Capital appreciation by investing predominantly in equity and equity-related instruments of technology and technology-enabled companies.',
-      'status': 'OPEN',
-    },
-    {
-      'id': 'nfo_2',
-      'name': 'Quant Healthcare & Pharma Fund',
-      'amc': 'Quant Mutual Fund',
-      'amcCode': 'QUANT_MF',
-      'category': 'Equity: Thematic - Healthcare',
-      'type': 'Open Ended',
-      'openDate': 'Sep 22, 2026',
-      'closeDate': 'Oct 06, 2026',
-      'daysLeft': 9,
-      'issuePrice': 10.0,
-      'minSip': 1000.0,
-      'minPurchase': 5000.0,
-      'risk': 'Very High',
-      'rating': 5,
-      'benchmark': 'Nifty Healthcare TRI',
-      'description':
-          'Generates long term capital appreciation by utilizing quant proprietary predictive analytics across pharma, biotech, and diagnostics.',
-      'status': 'OPEN',
-    },
-    {
-      'id': 'nfo_3',
-      'name': 'Tata India Innovation & AI Opportunities Fund',
-      'amc': 'Tata Mutual Fund',
-      'amcCode': 'TATA_MF',
-      'category': 'Equity: Thematic - Innovation',
-      'type': 'Open Ended',
-      'openDate': 'Sep 15, 2026',
-      'closeDate': 'Sep 29, 2026',
-      'daysLeft': 2,
-      'issuePrice': 10.0,
-      'minSip': 500.0,
-      'minPurchase': 1000.0,
-      'risk': 'Very High',
-      'rating': 4,
-      'benchmark': 'Nifty 500 TRI',
-      'description':
-          'Focuses on high-conviction companies innovating in artificial intelligence, digital infrastructure, robotics, and cloud ecosystems.',
-      'status': 'OPEN',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _upcomingNfos = [
-    {
-      'id': 'nfo_4',
-      'name': 'Mirae Asset Defense & Aerospace Fund',
-      'amc': 'Mirae Asset Mutual Fund',
-      'amcCode': 'MIRAE_ASSET',
-      'category': 'Equity: Thematic - Defense',
-      'type': 'Open Ended',
-      'openDate': 'Oct 05, 2026',
-      'closeDate': 'Oct 19, 2026',
-      'daysLeft': 8,
-      'issuePrice': 10.0,
-      'minSip': 500.0,
-      'minPurchase': 5000.0,
-      'risk': 'Very High',
-      'rating': 5,
-      'benchmark': 'Nifty India Defence Index TRI',
-      'description':
-          'Seeks to capture India\'s indigenization and defense capex boom with exposure to domestic defense manufacturers, drones, and avionics.',
-      'status': 'UPCOMING',
-    },
-    {
-      'id': 'nfo_5',
-      'name': 'Axis Multi-Asset Active Allocator FoF',
-      'amc': 'Axis Mutual Fund',
-      'amcCode': 'AXIS_MF',
-      'category': 'Hybrid: Multi Asset Allocation',
-      'type': 'Open Ended',
-      'openDate': 'Oct 12, 2026',
-      'closeDate': 'Oct 26, 2026',
-      'daysLeft': 15,
-      'issuePrice': 10.0,
-      'minSip': 500.0,
-      'minPurchase': 1000.0,
-      'risk': 'Moderate',
-      'rating': 4,
-      'benchmark': 'Crisil Multi Asset Index',
-      'description':
-          'Dynamic multi-asset allocation targeting domestic equity, international equity, debt, gold ETFs, and sovereign instruments.',
-      'status': 'UPCOMING',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _closedNfos = [
-    {
-      'id': 'nfo_6',
-      'name': 'Kotak Consumption & Retail Opportunities Fund',
-      'amc': 'Kotak Mahindra Mutual Fund',
-      'amcCode': 'KOTAK_MAHINDRA',
-      'category': 'Equity: Thematic - Consumption',
-      'type': 'Open Ended',
-      'openDate': 'Aug 25, 2026',
-      'closeDate': 'Sep 08, 2026',
-      'allotmentDate': 'Sep 12, 2026',
-      'listingNav': 10.14,
-      'returnSinceAllotment': 1.40,
-      'issuePrice': 10.0,
-      'minSip': 500.0,
-      'minPurchase': 1000.0,
-      'risk': 'High',
-      'rating': 5,
-      'benchmark': 'Nifty India Consumption TRI',
-      'description':
-          'Allotted on Sep 12, 2026. Now reopened for continuous daily purchase and SIP at prevailing live NAV.',
-      'status': 'CLOSED',
-    },
-  ];
+  final List<Map<String, dynamic>> _openNfos = const [];
+  final List<Map<String, dynamic>> _upcomingNfos = const [];
+  final List<Map<String, dynamic>> _closedNfos = const [];
 
   @override
   void initState() {
@@ -260,7 +133,7 @@ class _MfNfoViewState extends State<MfNfoView> with SingleTickerProviderStateMix
     final String name = n['name'] ?? '';
     final String amc = n['amc'] ?? '';
     final double issuePrice = (n['issuePrice'] ?? 10.0).toDouble();
-    final double minSip = (n['minSip'] ?? 500.0).toDouble();
+    final double? minSip = (n['minSip'] as num?)?.toDouble();
     final String risk = n['risk'] ?? 'High';
     final int? daysLeft = n['daysLeft'];
 
@@ -431,7 +304,7 @@ class _MfNfoViewState extends State<MfNfoView> with SingleTickerProviderStateMix
                     const Text('Min SIP', style: TextStyle(color: Colors.white54, fontSize: 11)),
                     const SizedBox(height: 4),
                     Text(
-                      '₹${minSip.toStringAsFixed(0)}',
+                      minSip != null ? '₹${minSip.toStringAsFixed(0)}' : '—',
                       style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -472,16 +345,16 @@ class _MfNfoViewState extends State<MfNfoView> with SingleTickerProviderStateMix
                       category: 'Equity',
                       subCategory: 'Sectoral',
                       nav: issuePrice,
-                      cagr1Y: 0.0,
-                      cagr3Y: 0.0,
-                      cagr5Y: 0.0,
-                      minPurchaseAmount: (n['minPurchase'] ?? 1000.0).toDouble(),
+                      cagr1Y: null,
+                      cagr3Y: null,
+                      cagr5Y: null,
+                      minPurchaseAmount: (n['minPurchase'] as num?)?.toDouble(),
                       minSipAmount: minSip,
-                      rating: 5,
+                      rating: null,
                       riskLevel: risk,
-                      fundManager: 'Fund Manager',
-                      aum: 0.0,
-                      expenseRatio: 0.75,
+                      fundManager: null,
+                      aum: null,
+                      expenseRatio: null,
                       isPopular: false,
                       isFeatured: true,
                     );

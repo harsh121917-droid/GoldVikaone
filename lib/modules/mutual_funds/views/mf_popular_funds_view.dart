@@ -176,7 +176,7 @@ class _MfPopularFundsViewState extends State<MfPopularFundsView> {
   }
 
   Widget _buildPopularItem(MfSchemeModel s, int rank) {
-    double returnVal = s.cagr3Y;
+    double? returnVal = s.cagr3Y;
     if (_selectedPeriod == '1Y') returnVal = s.cagr1Y;
     if (_selectedPeriod == '5Y') returnVal = s.cagr5Y;
 
@@ -239,7 +239,7 @@ class _MfPopularFundsViewState extends State<MfPopularFundsView> {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      if (s.rating > 0) ...[
+                      if (s.rating != null && s.rating! > 0) ...[
                         Row(
                           children: [
                             const Icon(Icons.star_rounded, color: Color(0xFFF5A623), size: 12),
@@ -253,7 +253,7 @@ class _MfPopularFundsViewState extends State<MfPopularFundsView> {
                         const SizedBox(width: 6),
                       ],
                       Text(
-                        'Min ₹${s.minSipAmount.toInt()}',
+                        s.minSipAmount != null ? 'Min ₹${s.minSipAmount!.toInt()}' : 'Min ₹—',
                         style: const TextStyle(color: GrowwColors.textTertiary, fontSize: 10.5),
                       ),
                     ],
@@ -267,7 +267,7 @@ class _MfPopularFundsViewState extends State<MfPopularFundsView> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '+${returnVal.toStringAsFixed(1)}%',
+                  returnVal != null ? '${returnVal >= 0 ? "+" : ""}${returnVal.toStringAsFixed(1)}%' : '—',
                   style: const TextStyle(
                     color: GrowwColors.mintTeal,
                     fontSize: 14,
