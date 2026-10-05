@@ -235,6 +235,48 @@ class _LanguageSettingsViewState extends State<LanguageSettingsView> {
                         cardColor: cardColor,
                         borderSideColor: borderSideColor,
                       ),
+                      const SizedBox(height: 12),
+
+                      // ── Language Card: Tamil ──
+                      _buildLanguageTile(
+                        code: 'ta',
+                        title: 'தமிழ்',
+                        subtitle: 'Tamil (தமிழ்நாடு)',
+                        badgeText: 'popular_badge'.tr,
+                        dark: dark,
+                        textPrimary: textPrimary,
+                        textSecondary: textSecondary,
+                        cardColor: cardColor,
+                        borderSideColor: borderSideColor,
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ── Language Card: Bengali ──
+                      _buildLanguageTile(
+                        code: 'bn',
+                        title: 'বাংলা',
+                        subtitle: 'Bengali (পশ্চিমবঙ্গ)',
+                        badgeText: 'popular_badge'.tr,
+                        dark: dark,
+                        textPrimary: textPrimary,
+                        textSecondary: textSecondary,
+                        cardColor: cardColor,
+                        borderSideColor: borderSideColor,
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ── Language Card: Punjabi ──
+                      _buildLanguageTile(
+                        code: 'pa',
+                        title: 'ਪੰਜਾਬੀ',
+                        subtitle: 'Punjabi (ਪੰਜਾਬ)',
+                        badgeText: 'popular_badge'.tr,
+                        dark: dark,
+                        textPrimary: textPrimary,
+                        textSecondary: textSecondary,
+                        cardColor: cardColor,
+                        borderSideColor: borderSideColor,
+                      ),
                       const SizedBox(height: 24),
 
                       // ── Live Preview Box ──
@@ -296,7 +338,13 @@ class _LanguageSettingsViewState extends State<LanguageSettingsView> {
                                                 ? 'ಚಿನ್ನದ ಬ್ಯಾಲೆನ್ಸ್'
                                                 : (_selectedCode == 'gu'
                                                     ? 'સોનાનું બેલેન્સ'
-                                                    : 'Gold Balance'))),
+                                                    : (_selectedCode == 'ta'
+                                                        ? 'தங்க இருப்பு'
+                                                        : (_selectedCode == 'bn'
+                                                            ? 'সোনার ব্যালেন্স'
+                                                            : (_selectedCode == 'pa'
+                                                                ? 'ਸੋਨੇ ਦਾ ਬਕਾਇਆ'
+                                                                : 'Gold Balance')))))),
                                     style: TextStyle(
                                       color: textSecondary,
                                       fontSize: 12,
@@ -335,7 +383,13 @@ class _LanguageSettingsViewState extends State<LanguageSettingsView> {
                                                 ? 'ಲೈವ್ ಮಾರುಕಟ್ಟೆ ದರ'
                                                 : (_selectedCode == 'gu'
                                                     ? 'લાઈવ બજાર ભાવ'
-                                                    : 'Live Market Rate'))),
+                                                    : (_selectedCode == 'ta'
+                                                        ? 'நேரடி சந்தை விலை'
+                                                        : (_selectedCode == 'bn'
+                                                            ? 'লাইভ মার্কেট রেট'
+                                                            : (_selectedCode == 'pa'
+                                                                ? 'ਲਾਈਵ ਮਾਰਕੀਟ ਰੇਟ'
+                                                                : 'Live Market Rate')))))),
                                     style: TextStyle(
                                       color: textSecondary,
                                       fontSize: 12,
@@ -382,7 +436,13 @@ class _LanguageSettingsViewState extends State<LanguageSettingsView> {
                                     ? 'ಭಾಷೆಯನ್ನು ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಲಾಗಿದೆ'
                                     : (_selectedCode == 'gu'
                                         ? 'ભાષા ગુજરાતીમાં બદલાઈ ગઈ'
-                                        : 'Language changed to English'))),
+                                        : (_selectedCode == 'ta'
+                                            ? 'மொழி தமிழுக்கு மாற்றப்பட்டது'
+                                            : (_selectedCode == 'bn'
+                                                ? 'ভাষা বাংলায় পরিবর্তন করা হয়েছে'
+                                                : (_selectedCode == 'pa'
+                                                    ? 'ਭਾਸ਼ਾ ਪੰਜਾਬੀ ਵਿੱਚ ਬਦਲ ਦਿੱਤੀ ਗਈ'
+                                                    : 'Language changed to English')))))),
                         backgroundColor: const Color(0xFF10B981),
                         colorText: Colors.white,
                         snackPosition: SnackPosition.BOTTOM,

@@ -29,6 +29,11 @@ class MfSchemeModel {
   final bool isFeatured;
   final bool isRecommended;
   final List<NavHistoryPoint> navHistory;
+  final String planType;
+  final String option;
+  final String? riskometer;
+  final String? investmentObjective;
+  final double? minAdditionalPurchaseAmount;
 
   MfSchemeModel({
     required this.id,
@@ -61,6 +66,11 @@ class MfSchemeModel {
     required this.isFeatured,
     this.isRecommended = false,
     this.navHistory = const [],
+    this.planType = 'REGULAR',
+    this.option = 'GROWTH',
+    this.riskometer,
+    this.investmentObjective,
+    this.minAdditionalPurchaseAmount,
   });
 
   factory MfSchemeModel.fromJson(Map<String, dynamic> json) {
@@ -98,6 +108,11 @@ class MfSchemeModel {
               ?.map((e) => NavHistoryPoint.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      planType: json['planType']?.toString() ?? 'REGULAR',
+      option: json['option']?.toString() ?? 'GROWTH',
+      riskometer: json['riskometer']?.toString(),
+      investmentObjective: json['investmentObjective']?.toString(),
+      minAdditionalPurchaseAmount: (json['minAdditionalPurchaseAmount'] as num?)?.toDouble(),
     );
   }
 }

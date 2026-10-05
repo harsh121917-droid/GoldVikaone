@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:get_storage/get_storage.dart';
 import 'package:dio/dio.dart';
 import '../views/mf_ucc_onboarding_view.dart';
@@ -5,8 +6,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
-import '../../../core/services/auth_service.dart';
+// Dedicated NSE MF II Gateway - Zero 3rd-party PG
+// AuthService not needed without Razorpay prefill
 import '../../../core/network/api_client.dart';
 import '../../../data/models/mf_scheme_model.dart';
 import '../../../data/models/mf_portfolio_model.dart';
@@ -17,10 +18,7 @@ class MutualFundsController extends GetxController {
   final RxBool isSubmittingOrder = false.obs;
   final RxBool isUccLoading = false.obs;
 
-  // ── Dedicated Razorpay Mutual Funds Gateway ──
-  late Razorpay _razorpay;
-  Map<String, dynamic>? _pendingCheckout;
-  Completer<bool>? _paymentCompleter;
+  // Dedicated NSE MF II Gateway (Zero 3rd-party PG)
 
   // ── Pagination & Search State ──
   final RxInt currentPage = 1.obs;
@@ -101,23 +99,18 @@ class MutualFundsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _initRazorpay();
+    // Razorpay initialization removed for MF
     fetchSchemes();
     checkUserUcc();
     fetchOnboardingStatus();
     fetchPortfolio();
   }
 
-  void _initRazorpay() {
-    _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handleRzpSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handleRzpError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleRzpExternal);
-  }
+  // _initRazorpay removed
 
   @override
   void onClose() {
-    _razorpay.clear();
+    // _razorpay.clear removed
     _debounceTimer?.cancel();
     super.onClose();
   }
@@ -279,16 +272,27 @@ class MutualFundsController extends GetxController {
 
         showMandateAuthBottomSheet(context, authUrl: authUrl, mandateId: mandateId, bankName: bank);
       } else {
+        final errMsg = extractErrorMessage(res.data, fallback: 'Could not initiate bank mandate with exchange.');
         Get.snackbar(
-          'Setup Issue',
-          res.data['message'] ?? 'Could not initiate bank mandate with exchange',
+          'Mandate Setup Issue',
+          errMsg,
           backgroundColor: Colors.redAccent,
           colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 5),
         );
       }
     } catch (e) {
       Get.back(); // close progress dialog if open
-      Get.snackbar('Error', 'Failed to connect to exchange: $e', backgroundColor: Colors.redAccent, colorText: Colors.white);
+      final errMsg = extractErrorMessage(e, fallback: 'Failed to connect to exchange for mandate setup. Please try again.');
+      Get.snackbar(
+        'Mandate Setup Issue',
+        errMsg,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 5),
+      );
     }
   }
 
@@ -415,9 +419,30 @@ class MutualFundsController extends GetxController {
                         backgroundColor: const Color(0xFF00D09C),
                         colorText: Colors.black,
                         snackPosition: SnackPosition.BOTTOM,
+                        duration: const Duration(seconds: 4),
+                      );
+                    } else {
+                      final msg = extractErrorMessage(vRes.data, fallback: 'Mandate authorization is still pending with your bank.');
+                      Get.snackbar(
+                        'Mandate Status',
+                        msg,
+                        backgroundColor: Colors.amber.shade800,
+                        colorText: Colors.white,
+                        snackPosition: SnackPosition.BOTTOM,
+                        duration: const Duration(seconds: 4),
                       );
                     }
-                  } catch (_) {}
+                  } catch (e) {
+                    final msg = extractErrorMessage(e, fallback: 'Mandate authorization is being processed by your bank. Please check back shortly.');
+                    Get.snackbar(
+                      'Mandate Status',
+                      msg,
+                      backgroundColor: Colors.amber.shade800,
+                      colorText: Colors.white,
+                      snackPosition: SnackPosition.BOTTOM,
+                      duration: const Duration(seconds: 4),
+                    );
+                  }
                 },
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Color(0xFF2E3E5C)),
@@ -547,12 +572,26 @@ class MutualFundsController extends GetxController {
       if (res.statusCode == 200 && res.data['success'] == true) {
         return res.data['data'] as Map<String, dynamic>? ?? res.data as Map<String, dynamic>;
       }
-      return null;
+      return {
+        'success': false,
+        'message': extractErrorMessage(res.data, fallback: 'PAN verification failed. Please enter a valid registered PAN.'),
+      };
     } catch (e) {
-      if (e is DioException && e.response?.data is Map) {
-        return e.response!.data as Map<String, dynamic>;
+      if (e is DioException) {
+        dynamic data = e.response?.data;
+        if (data is String) {
+          try {
+            data = jsonDecode(data);
+          } catch (_) {}
+        }
+        if (data is Map<String, dynamic>) {
+          return data;
+        }
       }
-      return null;
+      return {
+        'success': false,
+        'message': extractErrorMessage(e, fallback: 'Unable to verify PAN with exchange. Please try again.'),
+      };
     }
   }
 
@@ -602,29 +641,26 @@ class MutualFundsController extends GetxController {
           'message': res.data['message']?.toString() ?? 'UCC registered with NSE MFSS',
         };
       } else {
+        final errMsg = extractErrorMessage(res.data, fallback: 'Could not register UCC with NSE.');
         Get.snackbar(
           'Registration Failed',
-          res.data['message']?.toString() ?? 'Could not register UCC with NSE',
+          errMsg,
           backgroundColor: Colors.redAccent,
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 5),
         );
         return null;
       }
     } catch (e) {
-      String errMsg = 'Failed to connect to NSE gateway: $e';
-      if (e is DioException) {
-        final serverMsg = e.response?.data?['message'];
-        if (serverMsg != null) {
-          errMsg = serverMsg.toString();
-        }
-      }
+      final errMsg = extractErrorMessage(e, fallback: 'Failed to complete registration with NSE gateway. Please verify your details.');
       Get.snackbar(
         'Registration Failed',
         errMsg,
         backgroundColor: Colors.redAccent,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 5),
       );
       return null;
     } finally {
@@ -632,12 +668,13 @@ class MutualFundsController extends GetxController {
     }
   }
 
-  // ── Place Lumpsum Purchase Order via Razorpay MF Gateway ──
+  // ── Place Lumpsum Purchase Order via Official NSE MF II Gateway ──
   Future<bool> createPurchaseOrder({
     required String schemeCode,
     required double orderAmount,
     String? schemeName,
-    String paymentMode = 'RAZORPAY',
+    String? folioNo,
+    String paymentMode = 'NSE_PAYMENT_LINK',
   }) async {
     isSubmittingOrder.value = true;
     try {
@@ -645,104 +682,95 @@ class MutualFundsController extends GetxController {
       final res = await dio.post('/mutual-funds/orders/purchase', data: {
         'schemeCode': schemeCode,
         'orderAmount': orderAmount,
+        'folioNo': folioNo,
         'paymentMode': paymentMode,
       });
 
       if (res.statusCode == 200 && res.data['success'] == true) {
         final data = res.data['data'];
-        final rzpOrderId = data?['razorpayOrderId']?.toString();
-        final rzpKey = data?['key']?.toString();
-
         final paymentLink = data?['paymentLink']?.toString();
+        final orderId = data?['order']?['orderId']?.toString();
 
-        // If user chose NSE Official Gateway / payment link
-        if (paymentMode == 'NSE_GATEWAY' || paymentMode == 'NSE_PAYMENT_LINK') {
-          if (paymentLink != null && paymentLink.isNotEmpty) {
-            final uri = Uri.parse(paymentLink);
-            if (await canLaunchUrl(uri)) {
-              await launchUrl(uri, mode: LaunchMode.externalApplication);
-            }
-          }
-          Get.snackbar(
-            'NSE Official Payment Link',
-            'Payment link opened in browser. Please authorize transaction.',
-            backgroundColor: const Color(0xFF00D09C),
-            colorText: Colors.black,
-            snackPosition: SnackPosition.BOTTOM,
-            duration: const Duration(seconds: 5),
-          );
-          fetchPortfolio();
-          return true;
-        }
-
-        if (rzpOrderId != null && rzpOrderId.isNotEmpty && rzpKey != null && rzpKey.isNotEmpty) {
-          final user = Get.isRegistered<AuthService>() ? Get.find<AuthService>().currentUser : null;
-          final orderId = data['order']?['orderId'] ?? rzpOrderId;
-          _pendingCheckout = {
-            'type': 'PURCHASE',
-            'orderId': orderId,
-            'razorpayOrderId': rzpOrderId,
-            'schemeCode': schemeCode,
-            'schemeName': schemeName ?? 'Mutual Fund',
-            'amount': orderAmount,
-          };
-
-          _paymentCompleter = Completer<bool>();
-          final options = {
-            'key': rzpKey,
-            'amount': (orderAmount * 100).round(),
-            'name': 'Payvika Mutual Funds',
-            'description': 'Lumpsum - ${schemeName ?? schemeCode}',
-            'order_id': rzpOrderId,
-            'prefill': {
-              'name': user?.name ?? 'Investor',
-              'email': user?.email ?? '',
-              'contact': user?.phone ?? '',
-            },
-            'theme': {'color': '#00D09C'},
-          };
-
-          _razorpay.open(options);
-          return await _paymentCompleter!.future;
-        }
-
-        // Fallback: If no Razorpay keys configured
         if (paymentLink != null && paymentLink.isNotEmpty) {
           final uri = Uri.parse(paymentLink);
           if (await canLaunchUrl(uri)) {
             await launchUrl(uri, mode: LaunchMode.externalApplication);
           }
         }
+
         Get.snackbar(
-          'Order Placed',
-          'Order confirmed and allotted in your portfolio.',
+          'NSE Payment Gateway',
+          'Official NSE MFSS payment link opened. Please complete payment in your browser/UPI app.',
           backgroundColor: const Color(0xFF00D09C),
           colorText: Colors.black,
           snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 5),
         );
+
         fetchPortfolio();
+
+        if (orderId != null && orderId.isNotEmpty) {
+          Future.delayed(const Duration(seconds: 4), () => syncOrderStatus(orderId));
+        }
+
         return true;
       } else {
-        Get.snackbar(
-          'Order Failed',
-          res.data['message'] ?? 'Could not submit order',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        final code = (res.data is Map) ? res.data['code']?.toString() : null;
+        final errMsg = extractErrorMessage(res.data, fallback: 'This mutual fund is currently unavailable for purchase through NSE.');
+        if (code == 'NSE_UCC_NOT_READY') {
+          showUccRequiredDialog();
+        } else {
+          Get.snackbar(
+            'Order Failed',
+            errMsg,
+            backgroundColor: Colors.redAccent,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+            duration: const Duration(seconds: 5),
+          );
+        }
         return false;
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to submit order: $e', backgroundColor: Colors.red, colorText: Colors.white);
+      if (e is DioException && e.response?.data is Map) {
+        final data = e.response!.data as Map;
+        final code = data['code']?.toString();
+        if (code == 'NSE_UCC_NOT_READY') {
+          showUccRequiredDialog();
+          return false;
+        }
+      }
+      final msg = extractErrorMessage(e, fallback: 'Order could not be processed with NSE exchange. Please try again.');
+      Get.snackbar(
+        'Order Failed',
+        msg,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 5),
+      );
       return false;
     } finally {
-      if (_paymentCompleter == null || _paymentCompleter!.isCompleted) {
-        isSubmittingOrder.value = false;
-      }
+      isSubmittingOrder.value = false;
     }
   }
 
-  // ── Register SIP / XSIP with Razorpay 1st Installment ──
+  // ── Authoritative Status Check from NSE MFSS ──
+  Future<Map<String, dynamic>?> syncOrderStatus(String orderId) async {
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.get('/mutual-funds/orders/' + orderId + '/status');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        fetchPortfolio();
+        return res.data['data']?['order'];
+      }
+    } catch (e) {
+      debugPrint('[syncOrderStatus Error]: ' + e.toString());
+    }
+    return null;
+  }
+
+  // ── Register SIP / XSIP via Official NSE MFSS Mandate ──
   Future<bool> registerSipOrder({
     required String schemeCode,
     required double installmentAmount,
@@ -751,7 +779,7 @@ class MutualFundsController extends GetxController {
     DateTime? startDate,
     bool stepUpRequired = false,
     double stepUpAmount = 0,
-    String paymentMode = 'RAZORPAY',
+    String paymentMode = 'NSE_GATEWAY',
   }) async {
     isSubmittingOrder.value = true;
     try {
@@ -768,171 +796,72 @@ class MutualFundsController extends GetxController {
 
       if (res.statusCode == 200 && res.data['success'] == true) {
         final data = res.data['data'];
-        final rzpOrderId = data?['razorpayOrderId']?.toString();
-        final rzpKey = data?['key']?.toString();
-        final sipId = data?['sipId']?.toString() ?? data?['sip']?['_id']?.toString();
-
         final paymentLink = data?['paymentLink']?.toString();
 
-        // If user chose NSE Official Gateway / payment link
-        if (paymentMode == 'NSE_GATEWAY' || paymentMode == 'NSE_PAYMENT_LINK') {
-          if (paymentLink != null && paymentLink.isNotEmpty) {
-            final uri = Uri.parse(paymentLink);
-            if (await canLaunchUrl(uri)) {
-              await launchUrl(uri, mode: LaunchMode.externalApplication);
-            }
+        if (paymentLink != null && paymentLink.isNotEmpty) {
+          final uri = Uri.parse(paymentLink);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
           }
-          Get.snackbar(
-            'NSE Payment Link Opened',
-            'Official NSE XSIP mandate / payment link opened in browser.',
-            backgroundColor: const Color(0xFF00D09C),
-            colorText: Colors.black,
-            snackPosition: SnackPosition.BOTTOM,
-            duration: const Duration(seconds: 5),
-          );
-          fetchPortfolio();
-          return true;
-        }
-
-        // Razorpay for testing
-        if (paymentMode == 'RAZORPAY' && rzpOrderId != null && rzpOrderId.isNotEmpty && rzpKey != null && rzpKey.isNotEmpty) {
-          final user = Get.isRegistered<AuthService>() ? Get.find<AuthService>().currentUser : null;
-          _pendingCheckout = {
-            'type': 'SIP',
-            'sipId': sipId,
-            'razorpayOrderId': rzpOrderId,
-            'schemeCode': schemeCode,
-            'schemeName': schemeName ?? 'Mutual Fund SIP',
-            'amount': installmentAmount,
-          };
-
-          _paymentCompleter = Completer<bool>();
-          final options = {
-            'key': rzpKey,
-            'amount': (installmentAmount * 100).round(),
-            'name': 'Payvika Mutual Funds',
-            'description': '1st Installment - ${schemeName ?? schemeCode}',
-            'order_id': rzpOrderId,
-            'prefill': {
-              'name': user?.name ?? 'Investor',
-              'email': user?.email ?? '',
-              'contact': user?.phone ?? '',
-            },
-            'theme': {'color': '#00D09C'},
-          };
-
-          _razorpay.open(options);
-          return await _paymentCompleter!.future;
         }
 
         Get.snackbar(
-          'SIP Registered',
-          'Monthly SIP scheduled successfully on NSE MFSS',
+          'NSE SIP Mandate Opened',
+          'Official NSE XSIP mandate / payment authorization opened in browser.',
           backgroundColor: const Color(0xFF00D09C),
           colorText: Colors.black,
           snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 5),
         );
         fetchPortfolio();
         return true;
       } else {
-        Get.snackbar(
-          'SIP Registration Failed',
-          res.data['message'] ?? 'Could not register SIP with NSE',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        final code = (res.data is Map) ? res.data['code']?.toString() : null;
+        final msg = extractErrorMessage(res.data, fallback: 'Could not register SIP with NSE exchange.');
+        if (code == 'NSE_UCC_NOT_READY') {
+          showUccRequiredDialog();
+        } else if (code == 'NSE_MANDATE_NOT_READY') {
+          if (Get.context != null) {
+            showMandateRequiredDialog(Get.context!);
+          }
+        } else {
+          Get.snackbar(
+            'SIP Registration Failed',
+            msg,
+            backgroundColor: Colors.redAccent,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+            duration: const Duration(seconds: 5),
+          );
+        }
         return false;
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to register SIP: $e', backgroundColor: Colors.red, colorText: Colors.white);
+      if (e is DioException && e.response?.data is Map) {
+        final data = e.response!.data as Map;
+        final code = data['code']?.toString();
+        if (code == 'NSE_UCC_NOT_READY') {
+          showUccRequiredDialog();
+          return false;
+        } else if (code == 'NSE_MANDATE_NOT_READY' && Get.context != null) {
+          showMandateRequiredDialog(Get.context!);
+          return false;
+        }
+      }
+      final msg = extractErrorMessage(e, fallback: 'Failed to register SIP with exchange. Please try again.');
+      Get.snackbar(
+        'SIP Registration Failed',
+        msg,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 5),
+      );
       return false;
     } finally {
-      if (_paymentCompleter == null || _paymentCompleter!.isCompleted) {
-        isSubmittingOrder.value = false;
-      }
-    }
-  }
-
-  // ── Razorpay Callback Handlers ──
-  Future<void> _handleRzpSuccess(PaymentSuccessResponse response) async {
-    try {
-      final dio = ApiClient.instance;
-      final checkout = _pendingCheckout;
-      if (checkout == null) {
-        _paymentCompleter?.complete(true);
-        return;
-      }
-
-      if (checkout['type'] == 'PURCHASE') {
-        final res = await dio.post('/mutual-funds/orders/verify', data: {
-          'orderId': checkout['orderId'],
-          'razorpayOrderId': response.orderId ?? checkout['razorpayOrderId'] ?? '',
-          'razorpayPaymentId': response.paymentId ?? '',
-          'razorpaySignature': response.signature ?? '',
-        });
-
-        if (res.statusCode == 200 && res.data['success'] == true) {
-          Get.snackbar(
-            '🎉 Investment Successful!',
-            '₹${checkout['amount']} invested in ${checkout['schemeName']} via Razorpay MF.',
-            backgroundColor: const Color(0xFF00D09C),
-            colorText: Colors.black,
-            snackPosition: SnackPosition.BOTTOM,
-            duration: const Duration(seconds: 4),
-          );
-          fetchPortfolio();
-          _paymentCompleter?.complete(true);
-        } else {
-          Get.snackbar('Verification Failed', res.data['message'] ?? 'Could not verify investment payment', backgroundColor: Colors.red, colorText: Colors.white);
-          _paymentCompleter?.complete(false);
-        }
-      } else if (checkout['type'] == 'SIP') {
-        final res = await dio.post('/mutual-funds/sip/verify', data: {
-          'sipId': checkout['sipId'],
-          'razorpayOrderId': response.orderId ?? checkout['razorpayOrderId'] ?? '',
-          'razorpayPaymentId': response.paymentId ?? '',
-          'razorpaySignature': response.signature ?? '',
-        });
-
-        if (res.statusCode == 200 && res.data['success'] == true) {
-          Get.snackbar(
-            '🎉 SIP Activated Successfully!',
-            '1st installment paid via Razorpay MF and monthly schedule is active.',
-            backgroundColor: const Color(0xFF00D09C),
-            colorText: Colors.black,
-            snackPosition: SnackPosition.BOTTOM,
-            duration: const Duration(seconds: 4),
-          );
-          fetchPortfolio();
-          _paymentCompleter?.complete(true);
-        } else {
-          Get.snackbar('Verification Failed', res.data['message'] ?? 'Could not verify SIP payment', backgroundColor: Colors.red, colorText: Colors.white);
-          _paymentCompleter?.complete(false);
-        }
-      }
-    } catch (e) {
-      Get.snackbar('Error', 'Payment verification error: $e', backgroundColor: Colors.red, colorText: Colors.white);
-      _paymentCompleter?.complete(false);
-    } finally {
       isSubmittingOrder.value = false;
-      _pendingCheckout = null;
     }
   }
-
-  void _handleRzpError(PaymentFailureResponse response) {
-    isSubmittingOrder.value = false;
-    _pendingCheckout = null;
-    Get.snackbar(
-      'Payment Cancelled',
-      response.message ?? 'Mutual fund payment was not completed.',
-      backgroundColor: Colors.redAccent,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-    );
-    _paymentCompleter?.complete(false);
-  }
-
-  void _handleRzpExternal(ExternalWalletResponse response) {}
 
   // ── Fetch Portfolio ──
   Future<void> fetchPortfolio() async {
@@ -997,21 +926,39 @@ class MutualFundsController extends GetxController {
 
 
   // ── Place Redemption Order (Sell Units Back to AMC) ──
-  Future<Map<String, dynamic>> redeemUnits({
+  Future<Map<String, dynamic>> redeemHolding({
     required String schemeCode,
-    required double units,
+    String redeemMode = 'UNITS', // 'UNITS' or 'AMOUNT'
+    double? units,
+    double? amount,
     bool allUnits = false,
+    String? folioNo,
+    String? idempotencyKey,
   }) async {
     isSubmittingOrder.value = true;
     try {
       final dio = ApiClient.instance;
+      final payload = <String, dynamic>{
+        'schemeCode': schemeCode,
+        'redeemMode': redeemMode,
+        'allUnits': allUnits,
+      };
+      if (redeemMode == 'AMOUNT' && amount != null) {
+        payload['amount'] = amount;
+        payload['orderAmount'] = amount;
+      } else if (units != null) {
+        payload['units'] = units;
+      }
+      if (folioNo != null && folioNo.isNotEmpty) {
+        payload['folioNo'] = folioNo;
+      }
+      if (idempotencyKey != null && idempotencyKey.isNotEmpty) {
+        payload['idempotencyKey'] = idempotencyKey;
+      }
+
       final res = await dio.post(
         '/mutual-funds/orders/redeem',
-        data: {
-          'schemeCode': schemeCode,
-          'units': units,
-          'allUnits': allUnits,
-        },
+        data: payload,
       );
 
       if (res.statusCode == 200 && res.data['success'] == true) {
@@ -1022,20 +969,48 @@ class MutualFundsController extends GetxController {
           'data': res.data['data'],
         };
       } else {
+        final errMsg = extractErrorMessage(res.data, fallback: 'Redemption failed. Please try again.');
         return {
           'success': false,
-          'message': res.data['message'] ?? 'Redemption failed. Please try again.',
+          'message': errMsg,
         };
       }
     } catch (e) {
-      debugPrint('[MutualFundsController] redeemUnits error: ' + e.toString());
+      debugPrint('[MutualFundsController] redeemHolding error: ' + e.toString());
+      final errMsg = extractErrorMessage(e, fallback: 'Redemption failed. Please try again later.');
       return {
         'success': false,
-        'message': e.toString(),
+        'message': errMsg,
       };
     } finally {
       isSubmittingOrder.value = false;
     }
+  }
+
+  // Backwards-compatible alias for existing callers
+  Future<Map<String, dynamic>> redeemUnits({
+    required String schemeCode,
+    required double units,
+    bool allUnits = false,
+  }) => redeemHolding(
+        schemeCode: schemeCode,
+        redeemMode: 'UNITS',
+        units: units,
+        allUnits: allUnits,
+      );
+
+  // Helper to fetch scheme model for Add Investment
+  Future<MfSchemeModel?> getSchemeByCode(String code) async {
+    final existing = schemes.firstWhereOrNull((s) => s.schemeCode == code);
+    if (existing != null) return existing;
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.get('/mutual-funds/schemes/$code');
+      if (res.statusCode == 200 && res.data['success'] == true && res.data['data'] != null) {
+        return MfSchemeModel.fromJson(res.data['data']);
+      }
+    } catch (_) {}
+    return null;
   }
 
   // ── Reset Test Account (Sandbox Helper) ──
@@ -1058,24 +1033,19 @@ class MutualFundsController extends GetxController {
       }
     } catch (e) {
       debugPrint('[MutualFundsController] resetTestAccount error: $e');
+      final msg = extractErrorMessage(e, fallback: 'Failed to reset test account.');
+      Get.snackbar(
+        'Reset Failed',
+        msg,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 
-  String extractErrorMessage(dynamic e) {
-    if (e is DioException) {
-      final resData = e.response?.data;
-      if (resData is Map && resData['message'] != null) {
-        return resData['message'].toString();
-      }
-      if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
-        return 'Connection timeout. Please check your internet connection.';
-      }
-      if (e.type == DioExceptionType.connectionError) {
-        return 'Network connection error. Please check your internet connection.';
-      }
-    }
-    final raw = e.toString();
-    return raw.replaceAll(RegExp(r'DioException.*?:s*'), '').replaceAll(RegExp(r'Exception:s*'), '');
+  String extractErrorMessage(dynamic e, {String fallback = 'An unexpected error occurred. Please try again.'}) {
+    return ApiClient.formatError(e, fallback: fallback);
   }
 
   void showUccRequiredDialog() {

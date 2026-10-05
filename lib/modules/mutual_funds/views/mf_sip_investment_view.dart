@@ -23,7 +23,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
   late bool _isSip;
   String _amountStr = '1000';
   int _selectedDay = 25; // Default 25th of every month as shown in screenshot
-  String _paymentMethod = 'RAZORPAY';
+  String _paymentMethod = 'NSE_GATEWAY';
 
   final List<int> _allowedDates = const [1, 5, 10, 15, 20, 25, 28];
 
@@ -199,24 +199,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                 Navigator.pop(context);
               },
             ),
-            const Divider(color: Color(0xFF1E2638)),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: mintGreen.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.science_outlined, color: mintGreen, size: 22),
-              ),
-              title: const Text('Razorpay MF Gateway (Sandbox Testing)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-              subtitle: Text('Instant UPI / QR / NetBanking (Test Sandbox)', style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.w500)),
-              trailing: _paymentMethod == 'RAZORPAY' ? Icon(Icons.check_circle_rounded, color: mintGreen) : null,
-              onTap: () {
-                setState(() => _paymentMethod = 'RAZORPAY');
-                Navigator.pop(context);
-              },
-            ),
+
             const Divider(color: Color(0xFF1E2638)),
             ListTile(
               leading: const Icon(Icons.autorenew_rounded, color: Color(0xFF94A3B8)),
@@ -293,6 +276,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
         paymentMode: _paymentMethod,
       );
       if (success) {
+        if (!mounted) return;
         Navigator.pop(context);
       }
     } else {
@@ -303,6 +287,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
         paymentMode: _paymentMethod,
       );
       if (success) {
+        if (!mounted) return;
         Navigator.pop(context);
       }
     }
@@ -489,7 +474,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                       Row(
                         children: [
                           Text(
-                            _paymentMethod == 'RAZORPAY' ? 'Razorpay MF Gateway' : 'Bank Mandate',
+                            _paymentMethod == 'NSE_GATEWAY' ? 'Official NSE Gateway' : 'Bank Mandate',
                             style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 6),
@@ -505,7 +490,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _paymentMethod == 'RAZORPAY' ? 'UPI, NetBanking & Cards supported' : 'Monthly Auto-Debit via e-NACH',
+                        _paymentMethod == 'NSE_GATEWAY' ? 'UPI & NetBanking supported via NSE' : 'Monthly Auto-Debit via e-NACH',
                         style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
                       ),
                     ],
@@ -593,23 +578,25 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                   Expanded(
                     child: SizedBox(
                       height: 48,
-                      child: ElevatedButton(
-                        onPressed: (isValidAmount && !controller.isSubmittingOrder.value) ? _submitOrder : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isValidAmount ? mintGreen : const Color(0xFF1A2A24),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: controller.isSubmittingOrder.value
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                            : Text(
-                                _isSip ? 'Start SIP' : 'Invest Now',
-                                style: TextStyle(
-                                  color: isValidAmount ? Colors.black : const Color(0xFF3B564C),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
+                      child: Obx(
+                        () => ElevatedButton(
+                          onPressed: (isValidAmount && !controller.isSubmittingOrder.value) ? _submitOrder : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isValidAmount ? mintGreen : const Color(0xFF1A2A24),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: controller.isSubmittingOrder.value
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                              : Text(
+                                  _isSip ? 'Start SIP' : 'Invest Now',
+                                  style: TextStyle(
+                                    color: isValidAmount ? Colors.black : const Color(0xFF3B564C),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
+                        ),
                       ),
                     ),
                   ),

@@ -43,6 +43,10 @@ class MfHolding {
   final String? category;
   final String? subCategory;
   final double totalUnits;
+  final double availableUnits;
+  final double pendingRedemptionUnits;
+  final String? folioNo;
+  final bool isRedeemable;
   final double investedAmount;
   final double? averageNav;
   final double currentNav;
@@ -59,6 +63,10 @@ class MfHolding {
     this.category,
     this.subCategory,
     required this.totalUnits,
+    this.availableUnits = 0.0,
+    this.pendingRedemptionUnits = 0.0,
+    this.folioNo,
+    this.isRedeemable = true,
     required this.investedAmount,
     this.averageNav,
     required this.currentNav,
@@ -70,13 +78,21 @@ class MfHolding {
   });
 
   factory MfHolding.fromJson(Map<String, dynamic> json) {
+    final tUnits = (json['totalUnits'] as num?)?.toDouble() ?? 0.0;
+    final pRedUnits = (json['pendingRedemptionUnits'] as num?)?.toDouble() ?? 0.0;
+    final aUnits = (json['availableUnits'] as num?)?.toDouble() ?? (tUnits - pRedUnits);
+
     return MfHolding(
       schemeCode: json['schemeCode']?.toString() ?? '',
       schemeName: json['schemeName']?.toString() ?? '',
       amcName: json['amcName']?.toString(),
       category: json['category']?.toString(),
       subCategory: json['subCategory']?.toString(),
-      totalUnits: (json['totalUnits'] as num?)?.toDouble() ?? 0.0,
+      totalUnits: tUnits,
+      availableUnits: aUnits > 0 ? aUnits : (tUnits > 0 ? tUnits : 0.0),
+      pendingRedemptionUnits: pRedUnits,
+      folioNo: json['folioNo']?.toString(),
+      isRedeemable: json['isRedeemable'] == true || (tUnits > 0 && aUnits > 0.0001),
       investedAmount: (json['investedAmount'] as num?)?.toDouble() ?? 0.0,
       averageNav: (json['averageNav'] as num?)?.toDouble(),
       currentNav: (json['currentNav'] as num?)?.toDouble() ?? 0.0,

@@ -36,7 +36,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
   int _selectedDay = 10; // Default 10th of every month
   bool _stepUp = false;
   double _stepUpAmount = 500;
-  String _paymentMode = 'RAZORPAY';
+  String _paymentMode = 'NSE_GATEWAY';
 
   final List<int> _allowedDates = const [1, 5, 10, 15, 20, 25];
 
@@ -283,7 +283,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
             const SizedBox(height: 8),
             Row(
               children: [
-                _buildPayModeChip('RAZORPAY', Icons.science_outlined),
+                // Razorpay removed - pure NSE MF II
                 const SizedBox(width: 8),
                 _buildPayModeChip('NSE_GATEWAY', Icons.account_balance_wallet_rounded),
                 const SizedBox(width: 8),

@@ -15,6 +15,9 @@ class LocalizationService extends GetxService {
   static const Locale hindiLocale = Locale('hi', 'IN');
   static const Locale kannadaLocale = Locale('kn', 'IN');
   static const Locale gujaratiLocale = Locale('gu', 'IN');
+  static const Locale tamilLocale = Locale('ta', 'IN');
+  static const Locale bengaliLocale = Locale('bn', 'IN');
+  static const Locale punjabiLocale = Locale('pa', 'IN');
 
   static const List<Locale> supportedLocales = [
     englishLocale,
@@ -22,6 +25,9 @@ class LocalizationService extends GetxService {
     hindiLocale,
     kannadaLocale,
     gujaratiLocale,
+    tamilLocale,
+    bengaliLocale,
+    punjabiLocale,
   ];
 
   static const Locale defaultLocale = englishLocale;
@@ -35,6 +41,9 @@ class LocalizationService extends GetxService {
   bool get isHindi => currentLangCode.value == 'hi';
   bool get isKannada => currentLangCode.value == 'kn';
   bool get isGujarati => currentLangCode.value == 'gu';
+  bool get isTamil => currentLangCode.value == 'ta';
+  bool get isBengali => currentLangCode.value == 'bn';
+  bool get isPunjabi => currentLangCode.value == 'pa';
 
   static Locale get initialLocale {
     final box = GetStorage();
@@ -50,6 +59,15 @@ class LocalizationService extends GetxService {
     }
     if (savedLang == 'gu') {
       return gujaratiLocale;
+    }
+    if (savedLang == 'ta') {
+      return tamilLocale;
+    }
+    if (savedLang == 'bn') {
+      return bengaliLocale;
+    }
+    if (savedLang == 'pa') {
+      return punjabiLocale;
     }
     return englishLocale;
   }
@@ -70,6 +88,15 @@ class LocalizationService extends GetxService {
     } else if (savedLang == 'gu') {
       _currentLocale.value = gujaratiLocale;
       currentLangCode.value = 'gu';
+    } else if (savedLang == 'ta') {
+      _currentLocale.value = tamilLocale;
+      currentLangCode.value = 'ta';
+    } else if (savedLang == 'bn') {
+      _currentLocale.value = bengaliLocale;
+      currentLangCode.value = 'bn';
+    } else if (savedLang == 'pa') {
+      _currentLocale.value = punjabiLocale;
+      currentLangCode.value = 'pa';
     } else {
       _currentLocale.value = englishLocale;
       currentLangCode.value = 'en';
@@ -83,7 +110,15 @@ class LocalizationService extends GetxService {
             ? hindiLocale
             : (langCode == 'kn'
                 ? kannadaLocale
-                : (langCode == 'gu' ? gujaratiLocale : englishLocale)));
+                : (langCode == 'gu'
+                    ? gujaratiLocale
+                    : (langCode == 'ta'
+                        ? tamilLocale
+                        : (langCode == 'bn'
+                            ? bengaliLocale
+                            : (langCode == 'pa'
+                                ? punjabiLocale
+                                : englishLocale))))));
     currentLangCode.value = langCode;
     _currentLocale.value = newLocale;
 
@@ -241,6 +276,45 @@ class LocalizationService extends GetxService {
                     onTap: () {
                       HapticFeedback.selectionClick();
                       changeLocale('gu');
+                      Get.back();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _languageOption(
+                    title: 'தமிழ்',
+                    subtitle: 'Tamil',
+                    nativeScript: 'த',
+                    isSelected: activeLang == 'ta',
+                    dark: dark,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      changeLocale('ta');
+                      Get.back();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _languageOption(
+                    title: 'বাংলা',
+                    subtitle: 'Bengali',
+                    nativeScript: 'বা',
+                    isSelected: activeLang == 'bn',
+                    dark: dark,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      changeLocale('bn');
+                      Get.back();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _languageOption(
+                    title: 'ਪੰਜਾਬੀ',
+                    subtitle: 'Punjabi',
+                    nativeScript: 'ਪੰ',
+                    isSelected: activeLang == 'pa',
+                    dark: dark,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      changeLocale('pa');
                       Get.back();
                     },
                   ),

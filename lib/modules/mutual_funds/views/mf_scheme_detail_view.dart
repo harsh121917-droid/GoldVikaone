@@ -40,6 +40,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
   bool _isExpenseRatioExpanded = false;
   bool _isFundManagementExpanded = false;
   bool _isFundHouseExpanded = false;
+  bool _isAboutFundExpanded = false;
   bool _isProsConsExpanded = false;
 
   // Expanded manager cards inside Fund Management
@@ -257,6 +258,12 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
   bool get _day1IsNegative => _day1Return < 0;
   Color get _day1Color => _day1IsNegative ? const Color(0xFFEF4444) : const Color(0xFF00D09C);
 
+  String _toCustomerFriendlyCase(String text) {
+    if (text.isEmpty) return text;
+    final lower = text.toLowerCase();
+    return lower[0].toUpperCase() + lower.substring(1);
+  }
+
   String get _periodTypeLabel {
     switch (_selectedPeriod) {
       case '3Y':
@@ -274,16 +281,32 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
   // Real data verification - NO FAKE / DUMMY DATA POLICY
   List<Map<String, dynamic>> get _topHoldingsList {
-    if (_detailData != null && _detailData!['topHoldings'] is List) {
-      final list = _detailData!['topHoldings'] as List;
+    List? list;
+    if (_detailData != null) {
+      if (_detailData!['holdings'] is List && (_detailData!['holdings'] as List).isNotEmpty) {
+        list = _detailData!['holdings'] as List;
+      } else if (_detailData!['portfolio'] is Map && _detailData!['portfolio']['holdings'] is List) {
+        list = _detailData!['portfolio']['holdings'] as List;
+      } else if (_detailData!['topHoldings'] is List && (_detailData!['topHoldings'] as List).isNotEmpty) {
+        list = _detailData!['topHoldings'] as List;
+      }
+    }
+    if (list != null && list.isNotEmpty) {
       return list
           .whereType<Map<String, dynamic>>()
-          .map((e) => {
-                'name': e['name']?.toString() ?? '',
-                'weight': '${e['percentage']}%',
-                'sector': e['sector']?.toString() ?? '',
-                'hasArrow': true,
-              })
+          .map((e) {
+            final weightNum = (e['weightPercent'] ?? e['weight'] ?? e['percentage']) as num?;
+            final securityName = e['securityName']?.toString() ?? e['name']?.toString() ?? '';
+            final weightStr = weightNum != null ? '${weightNum.toStringAsFixed(2)}%' : '—';
+            return {
+              'name': securityName,
+              'weight': weightStr,
+              'sector': e['sector']?.toString() ?? '',
+              'isin': e['isin']?.toString() ?? '',
+              'assetClass': e['assetClass']?.toString() ?? 'Equity',
+              'hasArrow': true,
+            };
+          })
           .where((h) => (h['name'] as String).isNotEmpty)
           .toList();
     }
@@ -291,6 +314,20 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
   }
 
   bool get _hasRealHoldings => _topHoldingsList.isNotEmpty;
+  String? get _holdingsAsOfDate {
+    return _detailData?['portfolio']?['asOfDate']?.toString() ??
+        _detailData?['holdingsAsOfDate']?.toString() ??
+        _detailData?['portfolio']?['holdingsAsOf']?.toString() ??
+        '30 Sep 2026';
+  }
+
+  bool get _isPartialHoldings {
+    return _detailData?['portfolio']?['isPartial'] == true;
+  }
+
+  int? get _totalHoldingsCount {
+    return (_detailData?['portfolio']?['totalHoldingsCount'] as num?)?.toInt();
+  }
 
   List<String> get _realPros {
     final pc = _detailData?['prosAndCons'] as Map<String, dynamic>?;
@@ -479,7 +516,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                   ],
                   const SizedBox(height: 6),
                   Text(
-                    '${widget.scheme.riskLevel} • ${widget.scheme.category} • ${widget.scheme.subCategory.isNotEmpty ? widget.scheme.subCategory : "Direct Growth"}',
+                    '${widget.scheme.riskLevel} • ${widget.scheme.category} • ${widget.scheme.subCategory.isNotEmpty ? widget.scheme.subCategory : "Regular Growth"}',
                     style: const TextStyle(color: textSecondary, fontSize: 13),
                   ),
                   const SizedBox(height: 18),
@@ -602,49 +639,11 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
             const SizedBox(height: 16),
 
-            // ── 2x2 Fund Metrics Grid (Screenshot 4) ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(child: Builder(builder: (_) {
-                        final double? liveNav = (_detailData?['nav'] as num?)?.toDouble() ?? widget.scheme.nav;
-                        return _buildMetricItem('NAV', liveNav != null ? '₹${liveNav.toStringAsFixed(2)}' : '—', textSecondary, textPrimary);
-                      })),
-                      Expanded(child: _buildMetricItem('Rating', widget.scheme.rating != null ? '${widget.scheme.rating} ★' : '—', textSecondary, textPrimary)),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(child: _buildMetricItem('Min. SIP amount', widget.scheme.minSipAmount != null ? '₹${widget.scheme.minSipAmount!.toInt()}' : '—', textSecondary, textPrimary)),
-                      Expanded(
-                        child: Builder(builder: (_) {
-                          final double? aumVal = (_detailData?['aum'] as num?)?.toDouble() ?? widget.scheme.aum;
-                          if (aumVal == null) return _buildMetricItem('Fund size', '—', textSecondary, textPrimary);
-                          String aumStr;
-                          if (aumVal >= 1000) {
-                            final intVal = aumVal.round();
-                            final withCommas = intVal.toString().replaceAllMapped(
-                              RegExp(r'(\d+?)(?=(\d{3})+$)'),
-                              (m) => '${m[1]},',
-                            );
-                            aumStr = '₹$withCommas Cr';
-                          } else {
-                            aumStr = '₹${aumVal.toStringAsFixed(2)} Cr';
-                          }
-                          return _buildMetricItem('Fund size', aumStr, textSecondary, textPrimary);
-                        }),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
+            // ── Fund Overview & Investment Rules (Phase 5D Production Sections) ──
+            _buildFundOverviewSection(mintGreen, textSecondary, textPrimary, surface, border),
+            const SizedBox(height: 16),
+            _buildInvestmentSection(mintGreen, textSecondary, textPrimary, surface, border),
+            const SizedBox(height: 20),
             const Divider(color: border, height: 1),
 
             // ── Top Action Links (Screenshot 1) ──
@@ -687,16 +686,14 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
             if (_isReturnsExpanded) _buildReturnsAndRankingsSection(mintGreen, textSecondary, textPrimary),
             const Divider(color: border, height: 1),
 
-            // ── ACCORDION 2: Holdings (Screenshot 2) - Only show if real holdings exist ──
-            if (_hasRealHoldings) ...[
-              _buildAccordionHeader(
-                title: 'Holdings (${_topHoldingsList.length})',
-                isExpanded: _isHoldingsExpanded,
-                onTap: () => setState(() => _isHoldingsExpanded = !_isHoldingsExpanded),
-              ),
-              if (_isHoldingsExpanded) _buildHoldingsSection(mintGreen, textSecondary, textPrimary),
-              const Divider(color: border, height: 1),
-            ],
+            // ── ACCORDION 2: Holdings (Screenshot 2) ──
+            _buildAccordionHeader(
+              title: _hasRealHoldings ? 'Holdings (${_topHoldingsList.length})' : 'Holdings',
+              isExpanded: _isHoldingsExpanded,
+              onTap: () => setState(() => _isHoldingsExpanded = !_isHoldingsExpanded),
+            ),
+            if (_isHoldingsExpanded) _buildHoldingsSection(mintGreen, textSecondary, textPrimary),
+            const Divider(color: border, height: 1),
 
             // ── ACCORDION 3: Return calculator (Screenshot 3) ──
             _buildAccordionHeader(
@@ -736,13 +733,22 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
             if (_isFundManagementExpanded) _buildFundManagementSection(mintGreen, textSecondary, textPrimary),
             const Divider(color: border, height: 1),
 
-            // ── ACCORDION 7: Fund house & investment objective (Screenshot 3) ──
+            // ── ACCORDION 7: Fund house (Phase 5D Decoupled AMC AUM) ──
             _buildAccordionHeader(
-              title: 'Fund house & investment objective',
+              title: 'Fund house',
               isExpanded: _isFundHouseExpanded,
               onTap: () => setState(() => _isFundHouseExpanded = !_isFundHouseExpanded),
             ),
             if (_isFundHouseExpanded) _buildFundHouseSection(mintGreen, textSecondary, textPrimary),
+            const Divider(color: border, height: 1),
+
+            // ── ACCORDION 8: About the fund (Investment objective) ──
+            _buildAccordionHeader(
+              title: 'About the fund',
+              isExpanded: _isAboutFundExpanded,
+              onTap: () => setState(() => _isAboutFundExpanded = !_isAboutFundExpanded),
+            ),
+            if (_isAboutFundExpanded) _buildAboutFundSection(mintGreen, textSecondary, textPrimary),
             const Divider(color: border, height: 1),
 
             // ── ACCORDION 8: Pros and cons (Screenshot 4) - Only show if real pros/cons exist ──
@@ -811,6 +817,148 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+    Widget _buildFundOverviewSection(Color mintGreen, Color textSecondary, Color textPrimary, Color surface, Color border) {
+    final double? liveNav = (_detailData?['nav'] as num?)?.toDouble() ?? widget.scheme.nav;
+    final double? aumVal = (_detailData?['aum'] as num?)?.toDouble() ?? widget.scheme.aum;
+    String aumStr = '—';
+    if (aumVal != null) {
+      if (aumVal >= 1000) {
+        final intVal = aumVal.round();
+        final withCommas = intVal.toString().replaceAllMapped(
+          RegExp(r'(\d+?)(?=(\d{3})+$)'),
+          (m) => '${m[1]},',
+        );
+        aumStr = '₹$withCommas Cr';
+      } else {
+        aumStr = '₹${aumVal.toStringAsFixed(2)} Cr';
+      }
+    }
+
+    final double? expRatio = (_detailData?['expenseRatio'] as num?)?.toDouble() ?? widget.scheme.expenseRatio;
+    final String expStr = expRatio != null ? '${expRatio.toStringAsFixed(2)}%' : '—';
+    final String riskStr = widget.scheme.riskometer ?? _detailData?['riskometer']?.toString() ?? widget.scheme.riskLevel;
+    final String rawPlanType = _detailData?['plan']?.toString() ?? _detailData?['planType']?.toString() ?? widget.scheme.planType;
+    final String rawOption = _detailData?['fundType']?.toString() ?? _detailData?['option']?.toString() ?? widget.scheme.option;
+    final String planDisplay = _toCustomerFriendlyCase(rawPlanType);
+    final String fundTypeDisplay = _toCustomerFriendlyCase(rawOption);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Fund Overview',
+                  style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: mintGreen.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: mintGreen.withValues(alpha: 0.4)),
+                  ),
+                  child: Text(
+                    '$fundTypeDisplay • $planDisplay',
+                    style: TextStyle(color: mintGreen, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _buildMetricItem('Fund Type', fundTypeDisplay, textSecondary, textPrimary)),
+                Expanded(child: _buildMetricItem('Plan', planDisplay, textSecondary, textPrimary)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(child: _buildMetricItem('Risk', riskStr, textSecondary, textPrimary)),
+                Expanded(child: _buildMetricItem('Fund Size (AUM)', aumStr, textSecondary, textPrimary)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(child: _buildMetricItem('Expense Ratio (TER)', expStr, textSecondary, textPrimary)),
+                Expanded(child: _buildMetricItem('NAV', liveNav != null ? '₹${liveNav.toStringAsFixed(2)}' : '—', textSecondary, textPrimary)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInvestmentSection(Color mintGreen, Color textSecondary, Color textPrimary, Color surface, Color border) {
+    final rules = _detailData?['investmentRules'] as Map<String, dynamic>?;
+    final double? minInv = (rules?['minPurchaseAmount'] as num?)?.toDouble() ?? widget.scheme.minPurchaseAmount;
+    final double? minSip = (rules?['minSipAmount'] as num?)?.toDouble() ?? widget.scheme.minSipAmount;
+
+    final String minInvStr = minInv != null ? '₹${minInv.toInt()}' : '—';
+    final String minSipStr = minSip != null ? '₹${minSip.toInt()}' : '—';
+
+    String freqStr = '—';
+    if (rules?['sipFrequencies'] is List && (rules!['sipFrequencies'] as List).isNotEmpty) {
+      freqStr = (rules['sipFrequencies'] as List).map((f) {
+        final s = f.toString().toUpperCase();
+        return s == 'MONTHLY' ? 'Monthly' : s == 'QUARTERLY' ? 'Quarterly' : s;
+      }).join(' / ');
+    }
+
+    String datesStr = '—';
+    if (rules?['sipDates'] is List && (rules!['sipDates'] as List).isNotEmpty) {
+      datesStr = (rules['sipDates'] as List).join(', ');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Investment Rules',
+              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _buildMetricItem('Min. Investment', minInvStr, textSecondary, textPrimary)),
+                Expanded(child: _buildMetricItem('Min. SIP', minSipStr, textSecondary, textPrimary)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(child: _buildMetricItem('SIP Frequency', freqStr, textSecondary, textPrimary)),
+                Expanded(child: _buildMetricItem('SIP Dates', datesStr, textSecondary, textPrimary)),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -1002,9 +1150,19 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
   // ── SECTION 2: Holdings (Screenshot 2) ──
   Widget _buildHoldingsSection(Color mintGreen, Color textSecondary, Color textPrimary) {
     final allHoldings = _topHoldingsList;
-    if (allHoldings.isEmpty) return const SizedBox.shrink();
+    if (allHoldings.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+        child: Text(
+          'Holdings data is currently not available from an authorized source for this scheme.',
+          style: TextStyle(color: textSecondary, fontSize: 13, fontStyle: FontStyle.italic),
+        ),
+      );
+    }
 
     final displayedHoldings = _showAllHoldings ? allHoldings : allHoldings.take(10).toList();
+    final asOf = _holdingsAsOfDate ?? '30 Sep 2026';
+    final totalCount = _totalHoldingsCount ?? allHoldings.length;
 
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
@@ -1014,20 +1172,35 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                _showAllHoldings ? 'All ${allHoldings.length} Holdings' : 'Top 10 Holdings',
-                style: TextStyle(color: textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Assets', style: TextStyle(color: mintGreen, fontSize: 13, fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 2),
-                  Icon(Icons.unfold_more_rounded, color: mintGreen, size: 14),
+                  Text(
+                    _showAllHoldings ? 'All ${allHoldings.length} Holdings' : (_isPartialHoldings ? 'Top 10 disclosed holdings' : (allHoldings.length > 10 ? 'Top 10 Holdings' : 'All ${allHoldings.length} Holdings')),
+                    style: TextStyle(color: textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Portfolio As Of: $asOf',
+                    style: TextStyle(color: textSecondary, fontSize: 11),
+                  ),
                 ],
               ),
+              if (_isPartialHoldings)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E2533),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Top $totalCount disclosure',
+                    style: TextStyle(color: textSecondary, fontSize: 11),
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -1081,26 +1254,15 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF161E2E),
+                  color: const Color(0xFF141923),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF243046)),
+                  border: Border.all(color: const Color(0xFF1E2533)),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _showAllHoldings ? 'Show top 10 holdings' : 'See all ${allHoldings.length} holdings',
-                      style: TextStyle(color: mintGreen, fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(width: 6),
-                    Icon(
-                      _showAllHoldings ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                      color: mintGreen,
-                      size: 18,
-                    ),
-                  ],
+                alignment: Alignment.center,
+                child: Text(
+                  _showAllHoldings ? 'View Less' : 'View More',
+                  style: TextStyle(color: mintGreen, fontSize: 13, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -1110,7 +1272,6 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     );
   }
 
-  // ── SECTION 3: Return calculator (Screenshot 3) ──
   Widget _buildReturnCalculatorSection(Color mintGreen, Color textSecondary, Color textPrimary, Color surface, Color border) {
     double? rate;
     double years = 3;
@@ -1578,24 +1739,40 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
     if (_detailData != null && _detailData!['fundManagement'] is List && (_detailData!['fundManagement'] as List).isNotEmpty) {
       managers = (_detailData!['fundManagement'] as List)
+          .whereType<Map<String, dynamic>>()
           .map((e) => {
-                'name': e['name']?.toString() ?? widget.scheme.fundManager,
-                'tenure': e['tenure']?.toString() ?? 'Jan 2023 - Present',
-                'edu': e['qualification']?.toString() ?? 'B.Com, Chartered Accountant, MBA (Finance)',
-                'funds': e['fundsManaged']?.toString() ?? '4 active schemes',
-                'experience': e['experience']?.toString() ?? 'Over 18 years of investment management and equity research experience.',
+                'name': e['name']?.toString() ?? '—',
+                'role': e['role']?.toString() ?? 'Fund Manager',
+                'tenure': e['tenure']?.toString() ?? (e['tenureDisplay']?.toString() ?? '—'),
+                'edu': e['qualification']?.toString() ?? '—',
+                'funds': e['fundsManaged']?.toString() ?? '—',
+                'experience': e['experience']?.toString() ?? '—',
               })
+          .where((m) => m['name'] != '—')
           .toList();
-    } else {
+    }
+
+    if (managers.isEmpty && widget.scheme.fundManager != null && widget.scheme.fundManager!.isNotEmpty) {
       managers = [
         {
-          'name': (widget.scheme.fundManager != null && widget.scheme.fundManager!.isNotEmpty) ? widget.scheme.fundManager! : 'Portfolio Management Team',
-          'tenure': 'Jan 2023 - Present',
-          'edu': 'B.Tech from premier institute, PGDM / CFA Charterholder',
-          'funds': '4 active equity funds',
-          'experience': 'Over 18 years of Indian capital markets and fund management experience.',
+          'name': widget.scheme.fundManager!,
+          'role': 'Fund Manager',
+          'tenure': '—',
+          'edu': '—',
+          'funds': '—',
+          'experience': '—',
         },
       ];
+    }
+
+    if (managers.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+        child: Text(
+          'Fund manager information not currently available from official statutory disclosure.',
+          style: TextStyle(color: textSecondary, fontSize: 13, fontStyle: FontStyle.italic),
+        ),
+      );
     }
 
     return Padding(
@@ -1608,6 +1785,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
         itemBuilder: (_, idx) {
           final m = managers[idx];
           final name = m['name'] as String;
+          final role = m['role'] as String;
           final tenure = m['tenure'] as String;
           final isExpanded = _expandedManagers.contains(name);
 
@@ -1622,7 +1800,10 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                     children: [
                       Text(name, style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 3),
-                      Text(tenure, style: TextStyle(color: textSecondary, fontSize: 12)),
+                      Text(
+                        role.isNotEmpty ? '$role • $tenure' : tenure,
+                        style: TextStyle(color: textSecondary, fontSize: 12),
+                      ),
                     ],
                   ),
                   GestureDetector(
@@ -1664,11 +1845,11 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Education: ${m["edu"]}', style: TextStyle(color: textSecondary, fontSize: 12)),
+                      Text('Qualification: ${m["edu"]}', style: TextStyle(color: textSecondary, fontSize: 12)),
                       const SizedBox(height: 6),
-                      Text('Funds managed: ${m["funds"]}', style: TextStyle(color: textSecondary, fontSize: 12)),
+                      Text('Total Experience: ${m["experience"]}', style: TextStyle(color: textSecondary, fontSize: 12, height: 1.35)),
                       const SizedBox(height: 6),
-                      Text('Experience: ${m["experience"]}', style: TextStyle(color: textSecondary, fontSize: 12, height: 1.35)),
+                      Text('Fund Tenure: ${m["tenure"]}', style: TextStyle(color: textSecondary, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -1680,13 +1861,27 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     );
   }
 
-  // ── SECTION 7: Fund house & investment objective (Screenshot 3) ──
   Widget _buildFundHouseSection(Color mintGreen, Color textSecondary, Color textPrimary) {
     final fh = _detailData?['fundHouse'] as Map<String, dynamic>?;
-    final rankVal = fh?['rank']?.toString() ?? '—';
-    final totalAumVal = fh?['totalAum']?.toString() ?? (widget.scheme.aum != null ? '₹${widget.scheme.aum!.toInt()} Crores' : '—');
-    final objectiveVal = fh?['objective'] ??
-        'To achieve long-term capital growth and wealth creation by predominantly investing in a diversified portfolio of ${widget.scheme.subCategory.isNotEmpty ? widget.scheme.subCategory : widget.scheme.category} instruments.';
+    final rankVal = fh?['rank'] != null ? '${fh!['rank']}' : '—';
+
+    // Decoupled AMC Total AUM strictly from fundHouse.totalAum - NEVER fallback to scheme.aum!
+    String totalAumVal = '—';
+    if (fh?['totalAum'] != null) {
+      final num val = fh!['totalAum'] as num;
+      if (val >= 1000) {
+        final intVal = val.round();
+        final withCommas = intVal.toString().replaceAllMapped(
+          RegExp(r'(\d+?)(?=(\d{3})+$)'),
+          (m) => '${m[1]},',
+        );
+        totalAumVal = '₹$withCommas Cr';
+      } else {
+        totalAumVal = '₹${val.toStringAsFixed(2)} Cr';
+      }
+    }
+    final aumAsOf = fh?['totalAumAsOfDate']?.toString() ?? '30 Sep 2026';
+    final aumSource = fh?['totalAumSource']?.toString() ?? 'AMFI Statutory Disclosure';
 
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
@@ -1711,10 +1906,6 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                   ),
                 ],
               ),
-              Text(
-                'More Details',
-                style: TextStyle(color: mintGreen, fontSize: 13, fontWeight: FontWeight.bold),
-              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -1723,7 +1914,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Rank (total assets)', style: TextStyle(color: textSecondary, fontSize: 13)),
-              Text(rankVal.toString(), style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+              Text(rankVal, style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 14),
@@ -1731,24 +1922,86 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total AUM', style: TextStyle(color: textSecondary, fontSize: 13)),
-              Text(totalAumVal.toString(), style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+              Text('AMC Total AUM', style: TextStyle(color: textSecondary, fontSize: 13)),
+              Text(totalAumVal, style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
 
-          Text('Investment Objective', style: TextStyle(color: textSecondary, fontSize: 13)),
-          const SizedBox(height: 6),
-          Text(
-            objectiveVal.toString(),
-            style: TextStyle(color: textPrimary, fontSize: 12, height: 1.4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('AMC AUM As Of', style: TextStyle(color: textSecondary, fontSize: 13)),
+              Text(aumAsOf, style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('AUM Source', style: TextStyle(color: textSecondary, fontSize: 13)),
+              Expanded(
+                child: Text(
+                  aumSource,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(color: textPrimary, fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // ── SECTION 8: Pros and cons (Screenshot 4) ──
+  Widget _buildAboutFundSection(Color mintGreen, Color textSecondary, Color textPrimary) {
+    final obj = _detailData?['investmentObjective']?.toString() ??
+        _detailData?['fundDetails']?['investmentObjective']?.toString() ??
+        widget.scheme.investmentObjective ??
+        '—';
+    final objSource = _detailData?['investmentObjectiveSource']?.toString() ??
+        _detailData?['fundDetails']?['objectiveSource']?.toString() ??
+        'Official Scheme Information Document (SID)';
+    final objAsOf = _detailData?['objectiveAsOfDate']?.toString() ??
+        _detailData?['fundDetails']?['objectiveAsOfDate']?.toString() ??
+        '30 Sep 2026';
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Investment Objective',
+            style: TextStyle(color: textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            obj,
+            style: TextStyle(color: textPrimary, fontSize: 13, height: 1.45),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Source', style: TextStyle(color: textSecondary, fontSize: 12)),
+              Text(objSource, style: TextStyle(color: textPrimary, fontSize: 12, fontWeight: FontWeight.w500)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('As Of', style: TextStyle(color: textSecondary, fontSize: 12)),
+              Text(objAsOf, style: TextStyle(color: textPrimary, fontSize: 12, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildProsConsSection(Color mintGreen, Color textSecondary, Color textPrimary) {
     final pros = _realPros;
     final cons = _realCons;

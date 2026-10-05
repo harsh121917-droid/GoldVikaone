@@ -929,7 +929,13 @@ class ProfileView extends StatelessWidget {
                                       ? 'हिन्दी'
                                       : (LocalizationService.to.isKannada
                                           ? 'ಕನ್ನಡ'
-                                          : (LocalizationService.to.isGujarati ? 'ગુજરાતી' : 'English'))),
+                                          : (LocalizationService.to.isGujarati
+                                              ? 'ગુજરાતી'
+                                              : (LocalizationService.to.isTamil
+                                                  ? 'தமிழ்'
+                                                  : (LocalizationService.to.isBengali
+                                                      ? 'বাংলা'
+                                                      : (LocalizationService.to.isPunjabi ? 'ਪੰਜਾਬੀ' : 'English')))))),
                               style: const TextStyle(
                                 color: _gold,
                                 fontSize: 11,
