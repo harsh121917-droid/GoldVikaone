@@ -56,6 +56,15 @@ class _MyGoldViewState extends State<MyGoldView> {
   static const _periods = ['1D', '1W', '1M', '1Y', '3Y', '5Y'];
 
   @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<GoldController>()) {
+      GoldController.to.loadBalance();
+      GoldController.to.loadTransactions();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Obx(() {
       LocalizationService.to.currentLangCode.value;

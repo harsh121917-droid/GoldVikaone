@@ -143,25 +143,65 @@ class _BuyGoldViewState extends State<BuyGoldView> {
     if (_pendingDirectBuy == null) return;
     setState(() => _isBuyingLocal = true);
     try {
-      final ok = await _goldRepo.verifyBuy(
-        orderId: response.orderId ?? response.data?['razorpay_order_id'] ?? _pendingDirectBuy!.order['id'] ?? '',
-        paymentId: response.paymentId ?? response.data?['razorpay_payment_id'] ?? '',
-        signature: response.signature ?? response.data?['razorpay_signature'] ?? '',
+      final orderId = response.orderId ??
+          response.data?['razorpay_order_id'] ??
+          _pendingDirectBuy!.order['id'] ??
+          '';
+      final paymentId = response.paymentId ??
+          response.data?['razorpay_payment_id'] ??
+          '';
+      final signature = response.signature ??
+          response.data?['razorpay_signature'] ??
+          '';
+
+      bool ok = await _goldRepo.verifyBuy(
+        orderId: orderId,
+        paymentId: paymentId,
+        signature: signature,
         transactionId: _pendingDirectBuy!.transactionId,
       );
+
+      // In case of slight UPI confirmation delay at bank, retry automatically up to 3 times
+      if (!ok) {
+        for (int i = 0; i < 3; i++) {
+          await Future.delayed(const Duration(seconds: 2));
+          try {
+            ok = await _goldRepo.verifyBuy(
+              orderId: orderId,
+              paymentId: paymentId,
+              signature: signature,
+              transactionId: _pendingDirectBuy!.transactionId,
+            );
+            if (ok) break;
+          } catch (_) {}
+        }
+      }
+
       if (ok) {
         if (_redeemedPoints > 0) {
           _pointsCtrl.redeemPoints(_redeemedPoints, 'Gold Purchase');
         }
         if (Get.isRegistered<GoldController>()) {
-          GoldController.to.loadBalance();
-          GoldController.to.loadTransactions();
+          await GoldController.to.loadBalance();
+          await GoldController.to.loadTransactions();
+        }
+        if (Get.isRegistered<WalletController>()) {
+          WalletController.to.loadAll();
         }
         _showSuccessDialog(_grams, _payableTotal);
+      } else {
+        Get.snackbar(
+          'Payment Processing',
+          'Your UPI payment is confirming. Gold will reflect in your account momentarily.',
+          backgroundColor: const Color(0xFFD4A017),
+          colorText: Colors.black,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 4),
+        );
       }
     } catch (e) {
       Get.snackbar(
-        'Verification Error',
+        'Verification Status',
         e.toString().replaceAll('Exception: ', ''),
         backgroundColor: _danger,
         colorText: Colors.white,
@@ -172,7 +212,32 @@ class _BuyGoldViewState extends State<BuyGoldView> {
     }
   }
 
-  void _handleRzpError(PaymentFailureResponse response) {
+  void _handleRzpError(PaymentFailureResponse response) async {
+    // Check if the order was actually captured on gateway before showing cancelled
+    if (_pendingDirectBuy != null) {
+      try {
+        final orderId = _pendingDirectBuy!.order['id'] ?? '';
+        final ok = await _goldRepo.verifyBuy(
+          orderId: orderId,
+          paymentId: '',
+          signature: '',
+          transactionId: _pendingDirectBuy!.transactionId,
+        );
+        if (ok) {
+          if (mounted) setState(() => _isBuyingLocal = false);
+          if (Get.isRegistered<GoldController>()) {
+            await GoldController.to.loadBalance();
+            await GoldController.to.loadTransactions();
+          }
+          if (Get.isRegistered<WalletController>()) {
+            WalletController.to.loadAll();
+          }
+          _showSuccessDialog(_grams, _payableTotal);
+          return;
+        }
+      } catch (_) {}
+    }
+
     if (mounted) setState(() => _isBuyingLocal = false);
     Get.snackbar(
       'Payment Cancelled',

@@ -266,6 +266,12 @@ class GoldRepository {
     return res.data['success'] == true;
   }
 
+  // 3c. Proactively sync pending UPI transactions
+  Future<Map<String, dynamic>> syncPending() async {
+    final res = await _dio.post('$_base/sync-pending');
+    return res.data as Map<String, dynamic>;
+  }
+
   // 4. Sell
   Future<Map<String, dynamic>> sellGold({
     required double grams,
@@ -282,10 +288,15 @@ class GoldRepository {
   Future<List<GoldTxnModel>> getTransactions({
     int page = 1,
     String? type,
+    String? status,
   }) async {
     final res = await _dio.get(
       '$_base/transactions',
-      queryParameters: {'page': page, if (type != null) 'type': type},
+      queryParameters: {
+        'page': page,
+        if (type != null) 'type': type,
+        if (status != null) 'status': status,
+      },
     );
     return (res.data['data'] as List)
         .map((e) => GoldTxnModel.fromJson(e))

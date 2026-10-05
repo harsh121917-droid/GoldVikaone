@@ -42,6 +42,7 @@ class GoldController extends GetxController {
       loadTransactions(),
       loadPriceHistory('1m'),
       loadCoins(),
+      syncPendingTransactions(),
     ]);
     isLoading.value = false;
   }
@@ -211,6 +212,14 @@ class GoldController extends GetxController {
     } finally {
       isSelling.value = false;
     }
+  }
+
+  // ── 4b. Sync Pending Transactions ───────────────────────────────────────
+  Future<void> syncPendingTransactions() async {
+    try {
+      await _repo.syncPending();
+      await Future.wait([loadBalance(), loadTransactions()]);
+    } catch (_) {}
   }
 
   // ── 5. Transactions ───────────────────────────────────────────────────────
