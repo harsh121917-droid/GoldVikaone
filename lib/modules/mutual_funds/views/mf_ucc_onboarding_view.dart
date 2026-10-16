@@ -101,8 +101,24 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
       final res = await controller.verifyPan(cleanPan);
       if (res != null && (res['isValid'] == true || res['success'] == true)) {
         final data = res['data'] is Map ? res['data'] as Map<String, dynamic> : res;
-        final name = (data['registeredName'] ?? '').toString().trim().toUpperCase();
+        final name = (data['registeredName'] ?? data['name'] ?? '').toString().trim().toUpperCase();
         final isFresh = data['isFreshInvestor'] == true || data['nseKycStatus'] == 'NEW';
+        final isAlreadyRegistered = data['alreadyRegistered'] == true || data['hasUcc'] == true;
+        final existingClientCode = (data['clientCode'] ?? '').toString();
+
+        if (isAlreadyRegistered && existingClientCode.isNotEmpty) {
+          setState(() {
+            _isPanVerified = true;
+            _registeredName = name;
+            _nameController.text = name;
+            _isVerifyingPan = false;
+            _panErrorText = null;
+          });
+          controller.hasUcc.value = true;
+          controller.fetchOnboardingStatus();
+          _showNseSuccessSheet(existingClientCode, null);
+          return;
+        }
 
         setState(() {
           _isPanVerified = true;
