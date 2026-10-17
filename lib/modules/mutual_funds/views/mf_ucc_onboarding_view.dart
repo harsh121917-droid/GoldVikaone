@@ -25,7 +25,7 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
   final MutualFundsController controller = Get.find<MutualFundsController>();
 
   final TextEditingController _panController = TextEditingController();
-  final TextEditingController _dobController = TextEditingController(text: '15/08/1995');
+  late final TextEditingController _dobController;
   final TextEditingController _nomineeNameController = TextEditingController();
 
   // PAN Verification State
@@ -60,6 +60,31 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
   @override
   void initState() {
     super.initState();
+    // Resolve initial DOB: persistent controller selection -> userUcc -> uccPrefill -> default
+    String initialDob = controller.selectedDob.value.trim();
+    if (initialDob.isEmpty && controller.userUcc.value?.dob != null && controller.userUcc.value!.dob.trim().isNotEmpty) {
+      initialDob = controller.userUcc.value!.dob.trim();
+    }
+    if (initialDob.isEmpty && controller.uccPrefill['dob'] != null && controller.uccPrefill['dob'].toString().trim().isNotEmpty) {
+      initialDob = controller.uccPrefill['dob'].toString().trim();
+    }
+    if (initialDob.isEmpty) {
+      initialDob = '15/08/1995';
+    }
+    _dobController = TextEditingController(text: initialDob);
+    _dobController.addListener(() {
+      final text = _dobController.text.trim();
+      if (text.isNotEmpty) {
+        controller.selectedDob.value = text;
+      }
+    });
+
+    if (controller.selectedGender.value.isNotEmpty) {
+      _gender = controller.selectedGender.value;
+    } else if (controller.userUcc.value?.gender != null && controller.userUcc.value!.gender.isNotEmpty) {
+      _gender = controller.userUcc.value!.gender;
+    }
+
     // Prefill if controller already has prefill data from user profile
     final prefillPan = controller.uccPrefill['pan']?.toString() ?? '';
     const dummyPans = ['ABCDE1234F', 'AAAAA0000A', 'XXXXX0000X', 'TYJPS0689R', 'PHOTO_SUBMITTED'];
@@ -152,12 +177,48 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
 
   Future<void> _selectDateOfBirth() async {
     final now = DateTime.now();
-    final initialDate = DateTime(1995, 8, 15);
+    final firstDate = DateTime(1940);
+    final lastDate = DateTime(now.year - 18, now.month, now.day); // Must be 18+
+
+    DateTime initialDate = DateTime(1995, 8, 15);
+    final currentText = _dobController.text.trim();
+    if (currentText.isNotEmpty) {
+      if (currentText.contains('/')) {
+        final parts = currentText.split('/');
+        if (parts.length == 3) {
+          final d = int.tryParse(parts[0]);
+          final m = int.tryParse(parts[1]);
+          final y = int.tryParse(parts[2]);
+          if (d != null && m != null && y != null && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+            initialDate = DateTime(y, m, d);
+          }
+        }
+      } else if (currentText.contains('-')) {
+        final parts = currentText.split('-');
+        if (parts.length == 3) {
+          if (parts[0].length == 4) {
+            final y = int.tryParse(parts[0]);
+            final m = int.tryParse(parts[1]);
+            final d = int.tryParse(parts[2]);
+            if (y != null && m != null && d != null) initialDate = DateTime(y, m, d);
+          } else {
+            final d = int.tryParse(parts[0]);
+            final m = int.tryParse(parts[1]);
+            final y = int.tryParse(parts[2]);
+            if (y != null && m != null && d != null) initialDate = DateTime(y, m, d);
+          }
+        }
+      }
+    }
+
+    if (initialDate.isBefore(firstDate)) initialDate = firstDate;
+    if (initialDate.isAfter(lastDate)) initialDate = lastDate;
+
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
-      firstDate: DateTime(1940),
-      lastDate: DateTime(now.year - 18, now.month, now.day), // Must be 18+
+      firstDate: firstDate,
+      lastDate: lastDate,
       builder: (context, child) {
         return Theme(
           data: ThemeData.dark().copyWith(
@@ -177,9 +238,11 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
     if (picked != null) {
       final day = picked.day.toString().padLeft(2, '0');
       final month = picked.month.toString().padLeft(2, '0');
+      final formatted = '$day/$month/${picked.year}';
       setState(() {
-        _dobController.text = '$day/$month/${picked.year}';
+        _dobController.text = formatted;
       });
+      controller.selectedDob.value = formatted;
     }
   }
 

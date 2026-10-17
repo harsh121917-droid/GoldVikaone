@@ -227,6 +227,9 @@ class MfUccModel {
   final String accountNo;
   final String ifsc;
   final String bankName;
+  final String dob;
+  final String fullName;
+  final String gender;
 
   MfUccModel({
     required this.clientCode,
@@ -235,6 +238,9 @@ class MfUccModel {
     required this.accountNo,
     required this.ifsc,
     required this.bankName,
+    this.dob = '',
+    this.fullName = '',
+    this.gender = 'M',
   });
 
   factory MfUccModel.fromJson(Map<String, dynamic> json) {
@@ -246,6 +252,9 @@ class MfUccModel {
       accountNo: primaryBank['accountNo']?.toString() ?? '',
       ifsc: primaryBank['ifsc']?.toString() ?? '',
       bankName: primaryBank['bankName']?.toString() ?? '',
+      dob: json['dob']?.toString() ?? '',
+      fullName: json['fullName']?.toString() ?? '',
+      gender: json['gender']?.toString() ?? 'M',
     );
   }
 }

@@ -1,4 +1,5 @@
 import '../core/network/api_client.dart';
+import '../routes/app_routes.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -12,7 +13,7 @@ import 'package:path_provider/path_provider.dart';
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   if (kDebugMode) {
-    print('🔥 FCM Background Notification: ${message.notification?.title}');
+    print('🔥 [VikaOne] FCM Background Notification: ${message.notification?.title}');
   }
 }
 
@@ -26,7 +27,7 @@ class NotificationService {
       await Firebase.initializeApp();
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-      // Request permission
+      // Request push notification permissions
       await _messaging.requestPermission(
         alert: true,
         badge: true,
@@ -48,10 +49,10 @@ class NotificationService {
       // Subscribe to all users topic
       await _messaging.subscribeToTopic('all_users');
 
-      // Get device FCM token
+      // Get device FCM token & sync to backend
       String? token = await _messaging.getToken();
       if (token != null) {
-        if (kDebugMode) print('🔥 FCM Token: $token');
+        if (kDebugMode) print('🔥 [VikaOne] FCM Token: $token');
         await syncFcmTokenToBackend(token);
       }
 
@@ -62,13 +63,26 @@ class NotificationService {
         _showForegroundNotification(message);
       });
 
-      // Notification click listener (background / terminated)
+      // Notification click listener (background -> opened)
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         String? deepLink = message.data['deepLink'];
-        if (deepLink != null) _handleNotificationClick(deepLink);
+        if (deepLink != null && deepLink.isNotEmpty) {
+          _handleNotificationClick(deepLink);
+        }
       });
+
+      // Terminated / Cold-start notification click handler
+      RemoteMessage? initialMessage = await _messaging.getInitialMessage();
+      if (initialMessage != null) {
+        String? deepLink = initialMessage.data['deepLink'];
+        if (deepLink != null && deepLink.isNotEmpty) {
+          Future.delayed(const Duration(milliseconds: 600), () {
+            _handleNotificationClick(deepLink);
+          });
+        }
+      }
     } catch (e) {
-      if (kDebugMode) print('❌ NotificationService Init Error: $e');
+      if (kDebugMode) print('❌ [VikaOne] NotificationService Init Error: $e');
     }
   }
 
@@ -102,6 +116,7 @@ class NotificationService {
           androidDetails = AndroidNotificationDetails(
             'high_importance_channel',
             'High Importance Notifications',
+            channelDescription: 'Notifications for VikaOne DigiGold rates, scheme reminders, and offers',
             importance: Importance.max,
             priority: Priority.high,
             icon: '@mipmap/ic_launcher',
@@ -119,6 +134,7 @@ class NotificationService {
           androidDetails = const AndroidNotificationDetails(
             'high_importance_channel',
             'High Importance Notifications',
+            channelDescription: 'Notifications for VikaOne DigiGold rates, scheme reminders, and offers',
             importance: Importance.max,
             priority: Priority.high,
             icon: '@mipmap/ic_launcher',
@@ -128,6 +144,7 @@ class NotificationService {
         androidDetails = const AndroidNotificationDetails(
           'high_importance_channel',
           'High Importance Notifications',
+          channelDescription: 'Notifications for VikaOne DigiGold rates, scheme reminders, and offers',
           importance: Importance.max,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
@@ -144,26 +161,89 @@ class NotificationService {
     }
   }
 
+  /// Parses deep link and safely routes within VikaOne app
   static void _handleNotificationClick(String deepLink) {
-    switch (deepLink) {
+    if (kDebugMode) print('🔗 [VikaOne] Handling Notification Deep Link: $deepLink');
+
+    // Clean scheme and host if passed as URI e.g. vikaone://schemes or https://vikaone.com/buy-gold
+    String link = deepLink.trim().toLowerCase();
+    link = link.replaceAll('vikaone://', '');
+    link = link.replaceAll('payvika://', '');
+    link = link.replaceAll('https://vikaone.com/', '');
+    link = link.replaceAll('http://vikaone.com/', '');
+    if (link.startsWith('/')) link = link.substring(1);
+
+    switch (link) {
       case 'buy_gold':
-        Get.toNamed('/buy-gold');
+      case 'buygold':
+      case 'gold':
+      case 'digi-gold/buy':
+      case 'buy':
+        Get.toNamed(AppRoutes.buyGold);
         break;
+
       case 'schemes':
-        Get.toNamed('/schemes');
+      case 'scheme':
+      case 'gold_scheme':
+      case 'digi-gold/schemes':
+        Get.toNamed(AppRoutes.goldSchemes);
         break;
+
+      case 'sip':
+      case 'savings':
+      case 'digi-gold/savings':
+        Get.toNamed(AppRoutes.digiGoldSavings);
+        break;
+
       case 'wallet':
-        Get.toNamed('/wallet');
+      case 'passbook':
+        Get.toNamed(AppRoutes.wallet);
         break;
+
       case 'rewards':
-        Get.toNamed('/rewards');
+      case 'reward':
+      case 'referral':
+      case 'referrals':
+      case 'profile/rewards':
+        Get.toNamed(AppRoutes.rewards);
         break;
-      case 'jewellery':
-        Get.toNamed('/jewellery');
+
+      case 'kyc':
+        Get.toNamed(AppRoutes.kyc);
         break;
+
+      case 'orders':
+      case 'my-orders':
+        Get.toNamed(AppRoutes.orders);
+        break;
+
+      case 'transactions':
+      case 'history':
+        Get.toNamed(AppRoutes.transactions);
+        break;
+
+      case 'silver':
+      case 'buy_silver':
+      case 'silver/buy':
+        Get.toNamed(AppRoutes.buySilver);
+        break;
+
+      case 'mutual_funds':
+      case 'mutualfunds':
+      case 'mf':
+      case 'portfolio':
+        Get.toNamed(AppRoutes.mutualFunds);
+        break;
+
+      case 'notifications':
+      case 'alerts':
+        Get.toNamed(AppRoutes.notifications);
+        break;
+
       case 'home':
+      case 'dashboard':
       default:
-        Get.offAllNamed('/dashboard');
+        Get.offAllNamed(AppRoutes.home);
         break;
     }
   }
@@ -176,11 +256,14 @@ class NotificationService {
 
       await ApiClient.instance.post(
         '/notifications/fcm-token',
-        data: {'fcmToken': fcmToken},
+        data: {
+          'fcmToken': fcmToken,
+          'app': 'digigold',
+        },
       );
-      if (kDebugMode) print('✅ FCM token synced to backend successfully');
+      if (kDebugMode) print('✅ [VikaOne] FCM token synced to backend successfully (digigold)');
     } catch (e) {
-      if (kDebugMode) print('⚠️ FCM token sync error: $e');
+      if (kDebugMode) print('⚠️ [VikaOne] FCM token sync error: $e');
     }
   }
 

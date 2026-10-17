@@ -712,9 +712,15 @@ class _DobField extends StatelessWidget {
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
+            DateTime initial = DateTime(2000, 1, 1);
+            if (controller.dobCtrl.text.isNotEmpty) {
+              try {
+                initial = DateTime.parse(controller.dobCtrl.text);
+              } catch (_) {}
+            }
             final picked = await showDatePicker(
               context: context,
-              initialDate: DateTime(2000, 1, 1),
+              initialDate: initial,
               firstDate: DateTime(1940),
               lastDate: DateTime.now(),
             );

@@ -69,6 +69,9 @@ class MutualFundsController extends GetxController {
   final Rx<MfUccModel?> userUcc = Rx<MfUccModel?>(null);
   final RxBool hasUcc = false.obs;
   final RxMap<String, dynamic> uccPrefill = <String, dynamic>{}.obs;
+  final RxString selectedDob = ''.obs;
+  final RxString selectedGender = 'M'.obs;
+  final RxString selectedOccupation = '01'.obs;
 
   // ── Onboarding & SIP Readiness (Step 1: UCC, Step 2: Mandate) ──
   final RxInt onboardingStep = 1.obs; // 1: Needs UCC, 2: Needs Mandate, 3: SIP Ready
@@ -261,7 +264,7 @@ class MutualFundsController extends GetxController {
         barrierDismissible: false,
       );
 
-      final res = await dio.post('/mutual-funds/mandates/setup', data: {'amount': 50000});
+      final res = await dio.post('/mutual-funds/mandates/setup', data: {'amount': 50000, 'forceNew': true});
       Get.back(); // close progress dialog
 
       if (res.statusCode == 200 && res.data['success'] == true) {
@@ -284,6 +287,21 @@ class MutualFundsController extends GetxController {
       }
     } catch (e) {
       Get.back(); // close progress dialog if open
+
+      dynamic resData;
+      if (e is DioException) {
+        resData = e.response?.data;
+      }
+      final code = (resData is Map) ? resData['code']?.toString() : null;
+      final d = (resData is Map && resData['data'] is Map) ? resData['data'] as Map : null;
+      final clActLink = d?['clActLink']?.toString();
+      final clientCode = d?['clientCode']?.toString();
+
+      if (code == 'NSE_CLIENT_ACTIVATION_PENDING') {
+        showClientActivationBottomSheet(context, clActLink: clActLink, clientCode: clientCode);
+        return;
+      }
+
       final errMsg = extractErrorMessage(e, fallback: 'Failed to connect to exchange for mandate setup. Please try again.');
       Get.snackbar(
         'Mandate Setup Issue',
@@ -294,6 +312,132 @@ class MutualFundsController extends GetxController {
         duration: const Duration(seconds: 5),
       );
     }
+  }
+
+  // ── Show Client Activation Bottom Sheet (When UCC is Pending NSE OTP) ──
+  void showClientActivationBottomSheet(BuildContext context, {String? clActLink, String? clientCode}) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+        decoration: const BoxDecoration(
+          color: Color(0xFF131722),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: Color(0xFFEAB308), width: 1.5)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAB308).withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.verified_user_outlined, color: Color(0xFFEAB308), size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'NSE Account Activation Required',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Client Code: ${clientCode ?? ''} • 1-Time Verification',
+                        style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A2234),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF222F48)),
+              ),
+              child: const Text(
+                'NSE MFSS has dispatched an official one-time activation OTP to your registered mobile and email. Please verify this OTP to activate your investor account on the exchange before setting up Bank AutoPay.',
+                style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 13, height: 1.45),
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (clActLink != null && clActLink.isNotEmpty) ...[
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    try {
+                      final uri = Uri.parse(clActLink);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    } catch (e) {
+                      debugPrint('Error launching url: $e');
+                    }
+                  },
+                  icon: const Icon(Icons.open_in_browser_rounded, size: 18, color: Colors.black),
+                  label: const Text('Verify OTP on NSE Official Portal', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEAB308),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () {
+                  Get.back();
+                  initiateMandateSetup(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00D09C),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: const Text('I Have Verified OTP → Continue AutoPay Setup', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton(
+                onPressed: () async {
+                  try {
+                    final dio = ApiClient.instance;
+                    final rRes = await dio.post('/mutual-funds/ucc/resend-act');
+                    if (rRes.statusCode == 200 && rRes.data['success'] == true) {
+                      Get.snackbar(
+                        'OTP Re-sent',
+                        'NSE has re-dispatched the activation SMS/Email OTP to your phone.',
+                        backgroundColor: const Color(0xFF00D09C),
+                        colorText: Colors.black,
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+                    }
+                  } catch (_) {}
+                },
+                child: const Text('Resend OTP SMS to Mobile', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
   }
 
   // ── Show Mandate Authorization Bottom Sheet ──
@@ -668,6 +812,27 @@ class MutualFundsController extends GetxController {
     }
   }
 
+  Future<void> openNsePaymentGateway(String paymentUrl, {required String title, required String message}) async {
+    final uri = Uri.parse(paymentUrl);
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+
+    Get.snackbar(
+      title,
+      message,
+      backgroundColor: const Color(0xFF00D09C),
+      colorText: Colors.black,
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 6),
+    );
+  }
+
   // ── Place Lumpsum Purchase Order via Official NSE MF II Gateway ──
   Future<bool> createPurchaseOrder({
     required String schemeCode,
@@ -692,20 +857,12 @@ class MutualFundsController extends GetxController {
         final orderId = data?['order']?['orderId']?.toString();
 
         if (paymentLink != null && paymentLink.isNotEmpty) {
-          final uri = Uri.parse(paymentLink);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
+          await openNsePaymentGateway(
+            paymentLink,
+            title: 'NSE Exchange Payment (UPI / NetBanking)',
+            message: 'Official NSE gateway opened. Select UPI (GPay/PhonePe/Paytm) or NetBanking to pay directly to NSE Clearing Ltd.',
+          );
         }
-
-        Get.snackbar(
-          'NSE Payment Gateway',
-          'Official NSE MFSS payment link opened. Please complete payment in your browser/UPI app.',
-          backgroundColor: const Color(0xFF00D09C),
-          colorText: Colors.black,
-          snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 5),
-        );
 
         fetchPortfolio();
 
@@ -780,11 +937,12 @@ class MutualFundsController extends GetxController {
     bool stepUpRequired = false,
     double stepUpAmount = 0,
     String paymentMode = 'NSE_GATEWAY',
+    bool? firstOrderToday,
   }) async {
     isSubmittingOrder.value = true;
     try {
       final dio = ApiClient.instance;
-      final res = await dio.post('/mutual-funds/sip/register', data: {
+      final payload = {
         'schemeCode': schemeCode,
         'installmentAmount': installmentAmount,
         'frequency': frequency,
@@ -792,27 +950,32 @@ class MutualFundsController extends GetxController {
         'stepUpRequired': stepUpRequired,
         'stepUpAmount': stepUpAmount,
         'paymentMode': paymentMode,
-      });
+      };
+      if (firstOrderToday != null) {
+        payload['firstOrderToday'] = firstOrderToday;
+      }
+      final res = await dio.post('/mutual-funds/sip/register', data: payload);
 
       if (res.statusCode == 200 && res.data['success'] == true) {
         final data = res.data['data'];
         final paymentLink = data?['paymentLink']?.toString();
 
         if (paymentLink != null && paymentLink.isNotEmpty) {
-          final uri = Uri.parse(paymentLink);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
+          await openNsePaymentGateway(
+            paymentLink,
+            title: 'SIP Registered • AutoPay Active',
+            message: 'SIP registered on NSE MFSS with your Bank AutoPay Mandate! 1st installment payment opened. Subsequent monthly SIPs will auto-debit.',
+          );
+        } else {
+          Get.snackbar(
+            'SIP Registered Successfully! 🎉',
+            'Your monthly SIP is active on NSE MFSS with Bank AutoPay. Monthly installments will auto-debit automatically.',
+            backgroundColor: const Color(0xFF00D09C),
+            colorText: Colors.black,
+            snackPosition: SnackPosition.BOTTOM,
+            duration: const Duration(seconds: 5),
+          );
         }
-
-        Get.snackbar(
-          'NSE SIP Mandate Opened',
-          'Official NSE XSIP mandate / payment authorization opened in browser.',
-          backgroundColor: const Color(0xFF00D09C),
-          colorText: Colors.black,
-          snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 5),
-        );
         fetchPortfolio();
         return true;
       } else {
