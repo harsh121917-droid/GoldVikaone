@@ -132,105 +132,15 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
       final dio = ApiClient.instance;
       List<MfSchemeModel> fetched = [];
 
-      switch (widget.collectionId) {
-        case 'high_return':
-          final res = await dio.get('/mutual-funds/schemes', queryParameters: {
-            'sort': 'returns3y',
-            'limit': 40,
-          });
-          if (res.statusCode == 200 && res.data['success'] == true) {
-            fetched = (res.data['data'] as List<dynamic>?)
-                    ?.map((e) => MfSchemeModel.fromJson(e as Map<String, dynamic>))
-                    .toList() ??
-                [];
-          }
-          break;
-
-        case 'sip_100':
-          final res = await dio.get('/mutual-funds/schemes', queryParameters: {
-            'sort': 'popularity',
-            'limit': 40,
-          });
-          if (res.statusCode == 200 && res.data['success'] == true) {
-            fetched = (res.data['data'] as List<dynamic>?)
-                    ?.map((e) => MfSchemeModel.fromJson(e as Map<String, dynamic>))
-                    .toList() ??
-                [];
-          }
-          break;
-
-        case 'gold_silver':
-          final results = await Future.wait([
-            dio.get('/mutual-funds/schemes', queryParameters: {'search': 'Gold', 'limit': 30}),
-            dio.get('/mutual-funds/schemes', queryParameters: {'search': 'Silver', 'limit': 30}),
-          ]);
-          final List<MfSchemeModel> combined = [];
-          for (final res in results) {
-            if (res.statusCode == 200 && res.data['success'] == true) {
-              final list = (res.data['data'] as List<dynamic>?)
-                      ?.map((e) => MfSchemeModel.fromJson(e as Map<String, dynamic>))
-                      .toList() ??
-                  [];
-              combined.addAll(list);
-            }
-          }
-          final seenCodes = <String>{};
-          for (final s in combined) {
-            if (seenCodes.add(s.schemeCode)) {
-              fetched.add(s);
-            }
-          }
-          break;
-
-        case 'large_cap':
-          final res = await dio.get('/mutual-funds/schemes', queryParameters: {
-            'subCategory': 'Large Cap',
-            'limit': 50,
-          });
-          if (res.statusCode == 200 && res.data['success'] == true) {
-            fetched = (res.data['data'] as List<dynamic>?)
-                    ?.map((e) => MfSchemeModel.fromJson(e as Map<String, dynamic>))
-                    .toList() ??
-                [];
-          }
-          break;
-
-        case 'mid_cap':
-          final res = await dio.get('/mutual-funds/schemes', queryParameters: {
-            'subCategory': 'Mid Cap',
-            'limit': 50,
-          });
-          if (res.statusCode == 200 && res.data['success'] == true) {
-            fetched = (res.data['data'] as List<dynamic>?)
-                    ?.map((e) => MfSchemeModel.fromJson(e as Map<String, dynamic>))
-                    .toList() ??
-                [];
-          }
-          break;
-
-        case 'small_cap':
-          final res = await dio.get('/mutual-funds/schemes', queryParameters: {
-            'subCategory': 'Small Cap',
-            'limit': 50,
-          });
-          if (res.statusCode == 200 && res.data['success'] == true) {
-            fetched = (res.data['data'] as List<dynamic>?)
-                    ?.map((e) => MfSchemeModel.fromJson(e as Map<String, dynamic>))
-                    .toList() ??
-                [];
-          }
-          break;
-
-        default:
-          final res = await dio.get('/mutual-funds/schemes', queryParameters: {
-            'limit': 50,
-          });
-          if (res.statusCode == 200 && res.data['success'] == true) {
-            fetched = (res.data['data'] as List<dynamic>?)
-                    ?.map((e) => MfSchemeModel.fromJson(e as Map<String, dynamic>))
-                    .toList() ??
-                [];
-          }
+      final res = await dio.get('/mutual-funds/schemes', queryParameters: {
+        'collection': widget.collectionId,
+        'limit': 50,
+      });
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        fetched = (res.data['data'] as List<dynamic>?)
+                ?.map((e) => MfSchemeModel.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [];
       }
 
       if (mounted) {
@@ -298,15 +208,17 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
       return curated;
     }
 
-    // For other collections, deduplicate duplicate variations for each AMC
-    final Map<String, MfSchemeModel> amcMap = {};
+    // For other collections:
+    // Deduplicate any repeated schemeCode/isin, preserving the server's curated ranking
+    final seen = <String>{};
+    final List<MfSchemeModel> curated = [];
     for (final s in rawList) {
-      final key = s.amcName.trim().toLowerCase();
-      if (!amcMap.containsKey(key) || (s.cagr3Y ?? 0.0) > (amcMap[key]!.cagr3Y ?? 0.0)) {
-        amcMap[key] = s;
+      final key = s.schemeCode.isNotEmpty ? s.schemeCode : s.schemeName;
+      if (seen.add(key)) {
+        curated.add(s);
       }
     }
-    return amcMap.values.toList();
+    return curated;
   }
 
   void _applyLocalFallback() {
@@ -318,25 +230,39 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
     List<MfSchemeModel> local = [];
     switch (widget.collectionId) {
       case 'high_return':
-        local = List<MfSchemeModel>.from(pool)..sort((a, b) => (b.cagr3Y ?? 0.0).compareTo(a.cagr3Y ?? 0.0));
+        local = List<MfSchemeModel>.from(pool)
+          ..sort((a, b) {
+            final aVal = (a.cagr3Y ?? 0) != 0 ? a.cagr3Y! : (a.cagr1Y ?? 0.0);
+            final bVal = (b.cagr3Y ?? 0) != 0 ? b.cagr3Y! : (b.cagr1Y ?? 0.0);
+            return bVal.compareTo(aVal);
+          });
         break;
       case 'sip_100':
-        local = List<MfSchemeModel>.from(pool)..sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
+        local = pool.where((s) => s.minSipAmount != null && s.minSipAmount! <= 100).toList()
+          ..sort((a, b) => (b.cagr3Y ?? 0.0).compareTo(a.cagr3Y ?? 0.0));
         break;
       case 'gold_silver':
         local = pool.where((s) {
           final t = '${s.schemeName} ${s.category} ${s.subCategory}'.toLowerCase();
           return t.contains('gold') || t.contains('silver') || t.contains('commodity');
-        }).toList();
+        }).toList()
+          ..sort((a, b) {
+            final aVal = (a.cagr1Y ?? 0) != 0 ? a.cagr1Y! : (a.cagr3Y ?? 0.0);
+            final bVal = (b.cagr1Y ?? 0) != 0 ? b.cagr1Y! : (b.cagr3Y ?? 0.0);
+            return bVal.compareTo(aVal);
+          });
         break;
       case 'large_cap':
-        local = pool.where((s) => s.subCategory.toLowerCase().contains('large')).toList();
+        local = pool.where((s) => s.subCategory.toLowerCase().contains('large')).toList()
+          ..sort((a, b) => (b.cagr3Y ?? 0.0).compareTo(a.cagr3Y ?? 0.0));
         break;
       case 'mid_cap':
-        local = pool.where((s) => s.subCategory.toLowerCase().contains('mid')).toList();
+        local = pool.where((s) => s.subCategory.toLowerCase().contains('mid')).toList()
+          ..sort((a, b) => (b.cagr3Y ?? 0.0).compareTo(a.cagr3Y ?? 0.0));
         break;
       case 'small_cap':
-        local = pool.where((s) => s.subCategory.toLowerCase().contains('small')).toList();
+        local = pool.where((s) => s.subCategory.toLowerCase().contains('small')).toList()
+          ..sort((a, b) => (b.cagr3Y ?? 0.0).compareTo(a.cagr3Y ?? 0.0));
         break;
       default:
         local = pool;
@@ -353,13 +279,13 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
     final q = _searchQuery.trim().toLowerCase();
     if (q.isNotEmpty) {
       final tokens = q
-          .replaceAll(RegExp(r'[^a-zA-Z0-9s]'), ' ')
-          .split(RegExp(r's+'))
+          .replaceAll(RegExp(r'[^a-zA-Z0-9\s]'), ' ')
+          .split(RegExp(r'\s+'))
           .where((t) => t.isNotEmpty)
           .toList();
       list = list.where((s) {
         final text = '${s.schemeName} ${s.amcName} ${s.subCategory} ${s.category}'
-            .replaceAll(RegExp(r'[^a-zA-Z0-9s]'), ' ')
+            .replaceAll(RegExp(r'[^a-zA-Z0-9\s]'), ' ')
             .toLowerCase();
         return tokens.every((t) => text.contains(t));
       }).toList();
@@ -377,7 +303,15 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
     } else {
       // 3Y Returns: Maintain Groww flagship priority order for small cap
       if (widget.collectionId != 'small_cap') {
-        list.sort((a, b) => (b.cagr3Y ?? 0.0).compareTo(a.cagr3Y ?? 0.0));
+        if (widget.collectionId == 'gold_silver') {
+          list.sort((a, b) {
+            final aVal = (a.cagr3Y ?? 0) > 0 ? a.cagr3Y! : (a.cagr1Y ?? 0.0);
+            final bVal = (b.cagr3Y ?? 0) > 0 ? b.cagr3Y! : (b.cagr1Y ?? 0.0);
+            return bVal.compareTo(aVal);
+          });
+        } else {
+          list.sort((a, b) => (b.cagr3Y ?? 0.0).compareTo(a.cagr3Y ?? 0.0));
+        }
       }
     }
 
@@ -386,16 +320,16 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
 
   String _cleanSchemeName(String name) {
     var s = name
-        .replaceAll(RegExp(r's*-s*Regulars+Plans*-s*Growth(s+Option)?', caseSensitive: false), '')
-        .replaceAll(RegExp(r's*-s*Regulars+Plans*-s*Regulars+Growth', caseSensitive: false), '')
-        .replaceAll(RegExp(r's*-s*Regulars+Plans*-s*GROWTHs*OPTION', caseSensitive: false), '')
-        .replaceAll(RegExp(r's*-s*Regulars+Plans*-s*GROWTH', caseSensitive: false), '')
-        .replaceAll(RegExp(r's*-s*Regulars+Plan', caseSensitive: false), '')
-        .replaceAll(RegExp(r's*-s*Directs+Plans*-s*Growth(s+Option)?', caseSensitive: false), '')
-        .replaceAll(RegExp(r's*-s*Directs+Plan', caseSensitive: false), '')
-        .replaceAll(RegExp(r's*-s*Growths+Option', caseSensitive: false), '')
-        .replaceAll(RegExp(r's*-s*Growth', caseSensitive: false), '')
-        .replaceAll(RegExp(r's*(Erstwhile[^)]*)', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan\s*-\s*Growth(\s+Option)?', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan\s*-\s*Regular\s+Growth', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan\s*-\s*GROWTH\s*OPTION', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan\s*-\s*GROWTH', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Direct\s+Plan\s*-\s*Growth(\s+Option)?', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Direct\s+Plan', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Growth\s+Option', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Growth', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*\(Erstwhile[^)]*\)', caseSensitive: false), '')
         .trim();
 
     // Standardize casing for clean presentation
@@ -465,7 +399,7 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
                       ),
                     ),
                   );
-                }).toList(),
+                }),
               ],
             ),
           ),
@@ -555,7 +489,7 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
                           width: 56,
                           height: 56,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (context, error, stackTrace) => Container(
                             width: 56,
                             height: 56,
                             decoration: BoxDecoration(
@@ -713,10 +647,18 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
 
   Widget _buildGrowwFundRow(MfSchemeModel scheme) {
     double? returnVal = scheme.cagr3Y;
+    String periodLabel = '3Y';
     if (_returnPeriod == '1Y') {
       returnVal = scheme.cagr1Y;
+      periodLabel = '1Y';
     } else if (_returnPeriod == '5Y') {
       returnVal = (scheme.cagr5Y ?? 0) > 0 ? scheme.cagr5Y : scheme.cagr3Y;
+      periodLabel = (scheme.cagr5Y ?? 0) > 0 ? '5Y' : '3Y';
+    } else {
+      if ((returnVal == null || returnVal == 0) && (scheme.cagr1Y != null && scheme.cagr1Y! > 0)) {
+        returnVal = scheme.cagr1Y;
+        periodLabel = '1Y';
+      }
     }
 
     final String cleanName = _cleanSchemeName(scheme.schemeName);
@@ -799,13 +741,30 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
               ),
             ),
             const SizedBox(width: 12),
-            Text(
-              returnStr,
-              style: TextStyle(
-                color: returnColor,
-                fontSize: 14.5,
-                fontWeight: FontWeight.bold,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  returnStr,
+                  style: TextStyle(
+                    color: returnColor,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (hasReturn) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    periodLabel,
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),
