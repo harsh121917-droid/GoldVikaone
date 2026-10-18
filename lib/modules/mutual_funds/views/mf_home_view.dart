@@ -12,6 +12,8 @@ import 'widgets/mf_groww_widgets.dart';
 import 'mf_nfo_view.dart';
 import 'mf_sip_calculator_view.dart';
 import 'mf_compare_funds_view.dart';
+import 'mf_profile_view.dart';
+import '../../../data/models/mf_cart_model.dart';
 
 class MfHomeView extends StatefulWidget {
   const MfHomeView({Key? key}) : super(key: key);
@@ -101,16 +103,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                             ),
                             GestureDetector(
                               onTap: () {
-                                if (controller.hasUcc.value) {
-                                  Get.snackbar(
-                                    'NSE Verified',
-                                    'UCC: ${controller.userUcc.value?.clientCode ?? "Active"}',
-                                    backgroundColor: GrowwColors.cardElevated,
-                                    colorText: GrowwColors.textPrimary,
-                                  );
-                                } else {
-                                  Get.to(() => const MfUccOnboardingView());
-                                }
+                                Get.to(() => const MfProfileView());
                               },
                               child: Stack(
                                 children: [
@@ -1854,12 +1847,330 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
   }
 
   void _showCartModal() {
-    Get.snackbar(
-      'Mutual Funds Cart',
-      'No pending orders in cart.',
-      backgroundColor: GrowwColors.cardElevated,
-      colorText: GrowwColors.textPrimary,
-      snackPosition: SnackPosition.BOTTOM,
+    controller.fetchCart();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
+          decoration: const BoxDecoration(
+            color: GrowwColors.card,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Obx(() {
+            final cart = controller.cartData.value;
+            final items = cart.items;
+            final count = cart.count;
+            final total = cart.totalAmount;
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Modal Handle
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 10, bottom: 6),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: GrowwColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+
+                // Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 12, 12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.shopping_cart_outlined, color: GrowwColors.mintTeal, size: 22),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Mutual Funds Cart',
+                        style: TextStyle(
+                          color: GrowwColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: GrowwColors.cardElevated,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: GrowwColors.border),
+                        ),
+                        child: Text(
+                          '$count',
+                          style: const TextStyle(
+                            color: GrowwColors.mintTeal,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      if (items.isNotEmpty)
+                        TextButton(
+                          onPressed: () => controller.clearCart(),
+                          child: const Text(
+                            'Clear',
+                            style: TextStyle(color: GrowwColors.negativeRed, fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, color: GrowwColors.textSecondary),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: GrowwColors.border),
+
+                // Content
+                if (controller.isCartLoading.value && items.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(
+                      child: CircularProgressIndicator(color: GrowwColors.mintTeal),
+                    ),
+                  )
+                else if (items.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              color: GrowwColors.cardElevated,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: GrowwColors.border),
+                            ),
+                            child: const Icon(
+                              Icons.shopping_cart_outlined,
+                              color: GrowwColors.textTertiary,
+                              size: 32,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Your Cart is Empty',
+                            style: TextStyle(
+                              color: GrowwColors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Add SIP or One-time orders from any fund page to invest in multiple funds together.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13),
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: GrowwColors.mintTeal,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('Explore Funds', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else ...[
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        final isSip = item.investmentType.toUpperCase() == 'SIP';
+
+                        return Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: GrowwColors.cardElevated,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: GrowwColors.border),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: GrowwColors.card,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: GrowwColors.border),
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    isSip ? Icons.repeat_rounded : Icons.flash_on_rounded,
+                                    color: GrowwColors.mintTeal,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.schemeName,
+                                      style: const TextStyle(
+                                        color: GrowwColors.textPrimary,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isSip
+                                                ? GrowwColors.mintTeal.withOpacity(0.12)
+                                                : Colors.blue.withOpacity(0.12),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            isSip ? 'SIP • Day ${item.sipDay}' : 'One-time',
+                                            style: TextStyle(
+                                              color: isSip ? GrowwColors.mintTeal : Colors.blue,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        if (item.category.isNotEmpty) ...[
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            '• ${item.category}',
+                                            style: const TextStyle(color: GrowwColors.textTertiary, fontSize: 11),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '₹${item.amount.toInt()}',
+                                    style: const TextStyle(
+                                      color: GrowwColors.textPrimary,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: const Icon(Icons.delete_outline_rounded, color: GrowwColors.negativeRed, size: 20),
+                                    onPressed: () => controller.removeFromCart(item.id),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // Bottom Checkout Bar
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      color: GrowwColors.cardElevated,
+                      border: Border(top: BorderSide(color: GrowwColors.border)),
+                    ),
+                    child: SafeArea(
+                      child: Row(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'Total Investment',
+                                style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '₹${total.toInt()}',
+                                style: const TextStyle(
+                                  color: GrowwColors.textPrimary,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: SizedBox(
+                              height: 48,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  Get.snackbar(
+                                    'Ready to Invest',
+                                    'Checkout for ${items.length} items totaling ₹${total.toInt()} initiated.',
+                                    backgroundColor: GrowwColors.cardElevated,
+                                    colorText: GrowwColors.mintTeal,
+                                    snackPosition: SnackPosition.BOTTOM,
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: GrowwColors.mintTeal,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                child: const Text(
+                                  'Proceed to Invest',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            );
+          }),
+        );
+      },
     );
   }
 }

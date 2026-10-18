@@ -854,8 +854,24 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                     child: SizedBox(
                       height: 48,
                       child: OutlinedButton(
-                        onPressed: () {
-                          Get.snackbar('Added to Cart', '${widget.scheme.schemeName} saved to cart.', backgroundColor: const Color(0xFF1E2535), colorText: Colors.white);
+                        onPressed: () async {
+                          final amt = _amount;
+                          if (amt <= 0) {
+                            Get.snackbar(
+                              'Enter Amount',
+                              'Please enter an amount before adding to cart.',
+                              backgroundColor: const Color(0xFF1E2535),
+                              colorText: Colors.white,
+                              snackPosition: SnackPosition.BOTTOM,
+                            );
+                            return;
+                          }
+                          await controller.addToCart(
+                            scheme: widget.scheme,
+                            amount: amt,
+                            investmentType: _isSip ? 'SIP' : 'LUMPSUM',
+                            sipDay: _selectedDay,
+                          );
                         },
                         style: OutlinedButton.styleFrom(
                           backgroundColor: const Color(0xFF121622),

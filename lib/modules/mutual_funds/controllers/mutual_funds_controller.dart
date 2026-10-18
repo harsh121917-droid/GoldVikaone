@@ -11,6 +11,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/network/api_client.dart';
 import '../../../data/models/mf_scheme_model.dart';
 import '../../../data/models/mf_portfolio_model.dart';
+import '../../../data/models/mf_cart_model.dart';
+import '../../../data/models/mf_profile_model.dart';
 
 class MutualFundsController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -78,6 +80,16 @@ class MutualFundsController extends GetxController {
   final RxMap<String, dynamic> onboardingData = <String, dynamic>{}.obs;
   final RxBool isOnboardingLoading = false.obs;
 
+  // ── Mutual Funds Cart State ──
+  final Rx<MfCartData> cartData = MfCartData.empty().obs;
+  final RxBool isCartLoading = false.obs;
+  int get cartCount => cartData.value.count;
+  double get cartTotal => cartData.value.totalAmount;
+
+  // ── Mutual Funds Profile & Account State ──
+  final Rx<MfProfileData?> mfProfile = Rx<MfProfileData?>(null);
+  final RxBool isProfileLoading = false.obs;
+
   final List<String> categories = const [
     'All',
     'Equity',
@@ -107,6 +119,9 @@ class MutualFundsController extends GetxController {
     checkUserUcc();
     fetchOnboardingStatus();
     fetchPortfolio();
+    fetchRecentlyViewed();
+    fetchCart();
+    fetchMfProfile();
   }
 
   // _initRazorpay removed
@@ -141,10 +156,169 @@ class MutualFundsController extends GetxController {
     }
   }
 
+  // ── Recently Viewed Schemes (API synced & persistent) ──
   void recordRecentlyViewed(MfSchemeModel scheme) {
     recentlyViewed.removeWhere((s) => s.schemeCode == scheme.schemeCode);
     recentlyViewed.insert(0, scheme);
-    if (recentlyViewed.length > 6) recentlyViewed.removeLast();
+    if (recentlyViewed.length > 10) recentlyViewed.removeLast();
+
+    // Async record to backend
+    try {
+      ApiClient.instance.post('/mutual-funds/recently-viewed', data: {
+        'schemeCode': scheme.schemeCode,
+      }).catchError((e) {
+        debugPrint('[recordRecentlyViewed API error]: $e');
+      });
+    } catch (_) {}
+  }
+
+  Future<void> fetchRecentlyViewed() async {
+    try {
+      final res = await ApiClient.instance.get('/mutual-funds/recently-viewed');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final list = res.data['data'] as List<dynamic>? ?? [];
+        final parsed = list.map((e) => MfSchemeModel.fromJson(e as Map<String, dynamic>)).toList();
+        if (parsed.isNotEmpty) {
+          recentlyViewed.assignAll(parsed);
+        }
+      }
+    } catch (e) {
+      debugPrint('[MutualFundsController] fetchRecentlyViewed error: $e');
+    }
+  }
+
+  // ── Mutual Funds Cart Operations ──
+  Future<void> fetchCart() async {
+    try {
+      isCartLoading.value = true;
+      final res = await ApiClient.instance.get('/mutual-funds/cart');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        cartData.value = MfCartData.fromJson(res.data['data'] as Map<String, dynamic>);
+      }
+    } catch (e) {
+      debugPrint('[MutualFundsController] fetchCart error: $e');
+    } finally {
+      isCartLoading.value = false;
+    }
+  }
+
+  Future<bool> addToCart({
+    required MfSchemeModel scheme,
+    required double amount,
+    String investmentType = 'SIP',
+    String frequency = 'MONTHLY',
+    int sipDay = 5,
+    String folioNo = '',
+  }) async {
+    try {
+      final res = await ApiClient.instance.post('/mutual-funds/cart/add', data: {
+        'schemeCode': scheme.schemeCode,
+        'schemeName': scheme.schemeName,
+        'amcName': scheme.fundHouse,
+        'category': scheme.category,
+        'investmentType': investmentType,
+        'amount': amount,
+        'frequency': frequency,
+        'sipDay': sipDay,
+        'folioNo': folioNo,
+      });
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        await fetchCart();
+        Get.snackbar(
+          'Added to Cart',
+          '${scheme.schemeName} added to your Mutual Funds cart.',
+          backgroundColor: const Color(0xFF1E2535),
+          colorText: const Color(0xFF00D09C),
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 3),
+        );
+        return true;
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Cart Error',
+        ApiClient.formatError(e),
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+    return false;
+  }
+
+  Future<void> removeFromCart(String itemId) async {
+    try {
+      final res = await ApiClient.instance.delete('/mutual-funds/cart/$itemId');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        await fetchCart();
+      }
+    } catch (e) {
+      debugPrint('[removeFromCart error]: $e');
+    }
+  }
+
+  Future<void> clearCart() async {
+    try {
+      final res = await ApiClient.instance.delete('/mutual-funds/cart');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        cartData.value = MfCartData.empty();
+      }
+    } catch (e) {
+      debugPrint('[clearCart error]: $e');
+    }
+  }
+
+  // ── Mutual Funds Profile, Bank & Orders ──
+  Future<void> fetchMfProfile() async {
+    try {
+      isProfileLoading.value = true;
+      final res = await ApiClient.instance.get('/mutual-funds/profile');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        mfProfile.value = MfProfileData.fromJson(res.data['data'] as Map<String, dynamic>);
+      }
+    } catch (e) {
+      debugPrint('[MutualFundsController] fetchMfProfile error: $e');
+    } finally {
+      isProfileLoading.value = false;
+    }
+  }
+
+  Future<bool> addBank({
+    required String accountNumber,
+    required String ifsc,
+    String bankName = 'Bank Account',
+    String accountType = 'savings',
+    String accountHolder = '',
+  }) async {
+    try {
+      final res = await ApiClient.instance.post('/mutual-funds/profile/bank', data: {
+        'accountNumber': accountNumber.trim(),
+        'ifsc': ifsc.trim().toUpperCase(),
+        'bankName': bankName.trim(),
+        'accountType': accountType,
+        'accountHolder': accountHolder.trim(),
+      });
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        Get.snackbar(
+          'Bank Added',
+          'Bank account added successfully.',
+          backgroundColor: const Color(0xFF1E2535),
+          colorText: const Color(0xFF00D09C),
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        await fetchMfProfile();
+        return true;
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Bank Linking Failed',
+        ApiClient.formatError(e),
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+    return false;
   }
 
   // ── Fetch Schemes with Server Pagination & Live Search ──
@@ -213,9 +387,6 @@ class MutualFundsController extends GetxController {
     } catch (e) {
       debugPrint('[MutualFundsController] fetchSchemes error: $e');
     } finally {
-      if (recentlyViewed.isEmpty && schemes.isNotEmpty) {
-        recentlyViewed.assignAll(schemes.take(3));
-      }
       isLoading.value = false;
       isLoadingMore.value = false;
     }
