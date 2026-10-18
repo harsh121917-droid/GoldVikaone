@@ -833,41 +833,387 @@ class MutualFundsController extends GetxController {
     );
   }
 
+  // ── Groww-Style In-App UPI Collect Modal with Live Exchange Status Polling ──
+  Future<bool> showUpiApprovalModal({
+    required String orderId,
+    required double orderAmount,
+    required String vpa,
+    required String schemeName,
+    String? paymentLink,
+    String? nseTrxnOrderId,
+  }) async {
+    final context = Get.context;
+    if (context == null) return false;
+
+    Timer? pollTimer;
+    Timer? countdownTimer;
+    int secondsLeft = 300; // 5 minute countdown
+    String status = 'PENDING'; // PENDING, SUCCESS, FAILED
+    String statusMessage = 'Collect request sent by NSE Clearing Limited';
+
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            countdownTimer ??= Timer.periodic(const Duration(seconds: 1), (t) {
+              if (secondsLeft > 0 && status == 'PENDING') {
+                setState(() => secondsLeft--);
+              } else if (secondsLeft <= 0 && status == 'PENDING') {
+                t.cancel();
+                pollTimer?.cancel();
+                setState(() {
+                  status = 'FAILED';
+                  statusMessage = 'Payment request timed out. Please try again.';
+                });
+              }
+            });
+
+            pollTimer ??= Timer.periodic(const Duration(seconds: 3), (t) async {
+              if (status != 'PENDING') {
+                t.cancel();
+                return;
+              }
+              final orderData = await syncOrderStatus(orderId);
+              final pStatus = orderData?['paymentStatus']?.toString().toUpperCase();
+              final oStatus = orderData?['orderStatus']?.toString().toUpperCase();
+
+              if (pStatus == 'SUCCESS' || oStatus == 'PAYMENT_SUCCESS') {
+                t.cancel();
+                countdownTimer?.cancel();
+                if (ctx.mounted) {
+                  setState(() {
+                    status = 'SUCCESS';
+                    statusMessage = 'Payment confirmed by NSE Clearing Limited! 🎉';
+                  });
+                }
+                fetchPortfolio();
+                await Future.delayed(const Duration(milliseconds: 1800));
+                if (Navigator.canPop(sheetContext)) {
+                  Navigator.pop(sheetContext, true);
+                }
+              } else if (pStatus == 'FAILED' || oStatus == 'REJECTED' || oStatus == 'FAILED') {
+                t.cancel();
+                countdownTimer?.cancel();
+                if (ctx.mounted) {
+                  setState(() {
+                    status = 'FAILED';
+                    statusMessage = orderData?['remarks']?.toString() ?? 'Payment was declined or failed.';
+                  });
+                }
+              }
+            });
+
+            final minutes = (secondsLeft ~/ 60).toString().padLeft(2, '0');
+            final seconds = (secondsLeft % 60).toString().padLeft(2, '0');
+
+            const bg = Color(0xFF10141E);
+            const cardBg = Color(0xFF181F2E);
+            const mintGreen = Color(0xFF00D09C);
+
+            return Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  if (status == 'SUCCESS') ...[
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: mintGreen.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.check_circle_rounded, color: mintGreen, size: 48),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Payment Confirmed! 🎉',
+                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '₹${orderAmount.toInt()} received by NSE Clearing Limited.',
+                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Units will be allotted as per official exchange NAV cutoff.',
+                      style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 24),
+                  ] else if (status == 'FAILED') ...[
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.cancel_rounded, color: Colors.redAccent, size: 48),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Payment Not Completed',
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      statusMessage,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(sheetContext, false),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E2638),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Close', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ] else ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: mintGreen.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.shield_rounded, color: mintGreen, size: 14),
+                              SizedBox(width: 4),
+                              Text('NSE CLEARING LIMITED', style: TextStyle(color: mintGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Approve Payment in UPI App',
+                      style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '₹${orderAmount.toInt()}',
+                      style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF222B3D)),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Collect sent to', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                              Text(vpa, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const Divider(color: Color(0xFF222B3D), height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Time remaining', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                              Row(
+                                children: [
+                                  const Icon(Icons.timer_outlined, color: Colors.orangeAccent, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text('$minutes:$seconds', style: const TextStyle(color: Colors.orangeAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline_rounded, color: Color(0xFF94A3B8), size: 16),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Tap "Pay via UPI App" to open Google Pay/PhonePe, or approve the notification in your UPI app. If no request appears, tap "Pay via NSE Gateway" to complete payment.',
+                            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 48,
+                            child: OutlinedButton(
+                              onPressed: () {
+                                countdownTimer?.cancel();
+                                pollTimer?.cancel();
+                                Navigator.pop(sheetContext, false);
+                              },
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFF222B3D)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: const Text('Cancel', style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: SizedBox(
+                            height: 48,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final cleanAmount = orderAmount.toStringAsFixed(2);
+                                final encodedPn = Uri.encodeComponent('NSE Clearing Limited');
+                                final encodedTn = Uri.encodeComponent('MF Order $orderId');
+                                final upiUri = Uri.parse(
+                                  'upi://pay?pa=nseclearing.nseinvest.cc@validhdfc&pn=$encodedPn&am=$cleanAmount&cu=INR&tn=$encodedTn&tr=${nseTrxnOrderId ?? orderId}',
+                                );
+                                try {
+                                  final launched = await launchUrl(upiUri, mode: LaunchMode.externalApplication);
+                                  if (!launched) {
+                                    await launchUrl(Uri.parse('upi://pay'), mode: LaunchMode.externalApplication);
+                                  }
+                                } catch (_) {
+                                  try {
+                                    await launchUrl(Uri.parse('upi://pay'), mode: LaunchMode.externalApplication);
+                                  } catch (_) {}
+                                }
+                              },
+                              icon: const Icon(Icons.flash_on_rounded, color: Colors.black, size: 16),
+                              label: const Text('Pay via UPI App', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: mintGreen,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (paymentLink != null && paymentLink.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            openNsePaymentGateway(
+                              paymentLink,
+                              title: 'NSE Clearing Gateway',
+                              message: 'Official NSE portal opened. Select UPI or NetBanking to complete payment.',
+                            );
+                          },
+                          icon: const Icon(Icons.language_rounded, size: 16, color: mintGreen),
+                          label: const Text(
+                            'Didn\'t get request? Pay via NSE Gateway',
+                            style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF222B3D)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    countdownTimer?.cancel();
+    pollTimer?.cancel();
+    return result ?? false;
+  }
+
   // ── Place Lumpsum Purchase Order via Official NSE MF II Gateway ──
   Future<bool> createPurchaseOrder({
     required String schemeCode,
     required double orderAmount,
     String? schemeName,
     String? folioNo,
-    String paymentMode = 'NSE_PAYMENT_LINK',
+    String paymentMode = 'UPI',
+    String? vpa,
   }) async {
     isSubmittingOrder.value = true;
     try {
       final dio = ApiClient.instance;
-      final res = await dio.post('/mutual-funds/orders/purchase', data: {
+      final payload = {
         'schemeCode': schemeCode,
         'orderAmount': orderAmount,
         'folioNo': folioNo,
         'paymentMode': paymentMode,
-      });
+      };
+      if (vpa != null && vpa.isNotEmpty) {
+        payload['vpa'] = vpa.trim();
+      }
+      final res = await dio.post('/mutual-funds/orders/purchase', data: payload);
 
       if (res.statusCode == 200 && res.data['success'] == true) {
         final data = res.data['data'];
         final paymentLink = data?['paymentLink']?.toString();
-        final orderId = data?['order']?['orderId']?.toString();
+        final orderId = (data?['orderId'] ?? data?['order']?['orderId'])?.toString();
+        final serverPaymentMode = data?['paymentMode']?.toString() ?? paymentMode;
 
-        if (paymentLink != null && paymentLink.isNotEmpty) {
+        fetchPortfolio();
+
+        if (serverPaymentMode == 'UPI' && orderId != null && orderId.isNotEmpty) {
+          await showUpiApprovalModal(
+            orderId: orderId,
+            orderAmount: orderAmount,
+            vpa: vpa ?? data?['vpa']?.toString() ?? 'your UPI app',
+            schemeName: schemeName ?? 'Mutual Fund',
+            paymentLink: paymentLink,
+            nseTrxnOrderId: (data?['nsePaymentRefNo'] ?? data?['nseTrxnOrderId'] ?? data?['order']?['nseTrxnOrderId'] ?? data?['order']?['nsePaymentRefNo'])?.toString(),
+          );
+        } else if (paymentLink != null && paymentLink.isNotEmpty) {
           await openNsePaymentGateway(
             paymentLink,
             title: 'NSE Exchange Payment (UPI / NetBanking)',
             message: 'Official NSE gateway opened. Select UPI (GPay/PhonePe/Paytm) or NetBanking to pay directly to NSE Clearing Ltd.',
           );
-        }
-
-        fetchPortfolio();
-
-        if (orderId != null && orderId.isNotEmpty) {
-          Future.delayed(const Duration(seconds: 4), () => syncOrderStatus(orderId));
+          if (orderId != null && orderId.isNotEmpty) {
+            Future.delayed(const Duration(seconds: 4), () => syncOrderStatus(orderId));
+          }
         }
 
         return true;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import '../../../data/models/mf_scheme_model.dart';
 import '../controllers/mutual_funds_controller.dart';
 
@@ -23,7 +24,8 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
   late bool _isSip;
   String _amountStr = '1000';
   int _selectedDay = 25; // Default 25th of every month as shown in screenshot
-  String _paymentMethod = 'NSE_GATEWAY';
+  String _paymentMethod = 'UPI';
+  String _vpa = '';
 
   final List<int> _allowedDates = const [1, 5, 10, 15, 20, 25, 28];
 
@@ -31,7 +33,10 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
   void initState() {
     super.initState();
     _isSip = widget.isSip;
-    _paymentMethod = _isSip ? 'MANDATE' : 'NSE_GATEWAY';
+    try {
+      _vpa = GetStorage().read('mf_saved_vpa')?.toString() ?? '';
+    } catch (_) {}
+    _paymentMethod = _isSip ? 'MANDATE' : 'UPI';
     final minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
     _amountStr = minAmount != null ? minAmount.toInt().toString() : '';
     controller.checkUserUcc();
@@ -161,6 +166,154 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     );
   }
 
+  void _openVpaInputDialog({bool thenSubmit = false}) {
+    const bg = Color(0xFF10141E);
+    const surface = Color(0xFF181F2E);
+    const mintGreen = Color(0xFF00D09C);
+
+    final TextEditingController vpaCtrl = TextEditingController(text: _vpa);
+    final List<String> commonSuffixes = ['@okaxis', '@okhdfcbank', '@ybl', '@paytm', '@ibl'];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: mintGreen.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.flash_on_rounded, color: mintGreen, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Enter UPI ID', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 2),
+                          Text('Google Pay / PhonePe / Paytm / BHIM', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'A collect request will be sent to this UPI ID by NSE Clearing Limited.',
+                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: vpaCtrl,
+                  autofocus: true,
+                  style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. 9997143005@okaxis or name@upi',
+                    hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
+                    filled: true,
+                    fillColor: surface,
+                    prefixIcon: const Icon(Icons.alternate_email_rounded, color: mintGreen, size: 20),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF222B3D))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF222B3D))),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: mintGreen, width: 1.5)),
+                  ),
+                  onChanged: (_) => setSheetState(() {}),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: commonSuffixes.map((suffix) {
+                    return GestureDetector(
+                      onTap: () {
+                        final current = vpaCtrl.text.trim();
+                        final prefix = current.contains('@') ? current.split('@')[0] : current;
+                        vpaCtrl.text = '$prefix$suffix';
+                        vpaCtrl.selection = TextSelection.fromPosition(TextPosition(offset: vpaCtrl.text.length));
+                        setSheetState(() {});
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E2535),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF2D384E)),
+                        ),
+                        child: Text(suffix, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w500)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: vpaCtrl.text.trim().contains('@') && vpaCtrl.text.trim().length >= 4
+                        ? () {
+                            final val = vpaCtrl.text.trim();
+                            setState(() {
+                              _vpa = val;
+                              _paymentMethod = 'UPI';
+                            });
+                            try {
+                              GetStorage().write('mf_saved_vpa', val);
+                            } catch (_) {}
+                            Navigator.pop(sheetCtx);
+                            if (thenSubmit) {
+                              _submitOrder();
+                            }
+                          }
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: mintGreen,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      thenSubmit ? 'Confirm & Send Request' : 'Save UPI ID',
+                      style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _openBankSelector(Color surface, Color textPrimary, Color mintGreen) {
     final ucc = controller.userUcc.value;
     final bName = (ucc != null && ucc.bankName.isNotEmpty) ? ucc.bankName : 'Verified Bank';
@@ -200,7 +353,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: mintGreen.withOpacity(0.15),
+                    color: mintGreen.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(Icons.autorenew_rounded, color: mintGreen, size: 22),
@@ -220,16 +373,53 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withOpacity(0.15),
+                  color: mintGreen.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.flash_on_rounded, color: mintGreen, size: 22),
+              ),
+              title: const Text('Google Pay / PhonePe / Paytm (UPI)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              subtitle: Text(
+                _vpa.isNotEmpty ? 'Collect request to $_vpa' : 'Direct collect request to your UPI app',
+                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_vpa.isNotEmpty)
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _openVpaInputDialog();
+                      },
+                      child: Text('Edit', style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  if (_paymentMethod == 'UPI') Icon(Icons.check_circle_rounded, color: mintGreen),
+                ],
+              ),
+              onTap: () {
+                if (_vpa.isEmpty) {
+                  Navigator.pop(context);
+                  _openVpaInputDialog();
+                } else {
+                  setState(() => _paymentMethod = 'UPI');
+                  Navigator.pop(context);
+                }
+              },
+            ),
+            const Divider(color: Color(0xFF1E2638)),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF3B82F6), size: 22),
               ),
-              title: Text(
-                _isSip ? 'Pay 1st Installment via UPI / NetBanking' : 'UPI & NetBanking (NSE Clearing Limited)',
-                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-              subtitle: const Text('Direct payment to NSE Clearing Limited via GPay, PhonePe, Paytm, or NetBanking', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 12, fontWeight: FontWeight.w500)),
+              title: const Text('NetBanking & NEFT (NSE Gateway)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              subtitle: const Text('Official NSE Clearing Limited web portal', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 12, fontWeight: FontWeight.w500)),
               trailing: _paymentMethod == 'NSE_GATEWAY' ? Icon(Icons.check_circle_rounded, color: mintGreen) : null,
               onTap: () {
                 setState(() => _paymentMethod = 'NSE_GATEWAY');
@@ -273,6 +463,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
           onSwitchToLumpSum: () {
             setState(() {
               _isSip = false;
+              _paymentMethod = 'UPI';
               final minAmt = widget.scheme.minPurchaseAmount;
               if (minAmt != null && _amount < minAmt) {
                 _amountStr = minAmt.toInt().toString();
@@ -306,11 +497,16 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
         Navigator.pop(context);
       }
     } else {
+      if (_paymentMethod == 'UPI' && _vpa.isEmpty) {
+        _openVpaInputDialog(thenSubmit: true);
+        return;
+      }
       final success = await controller.createPurchaseOrder(
         schemeCode: widget.scheme.schemeCode,
         schemeName: widget.scheme.schemeName,
         orderAmount: _amount,
         paymentMode: _paymentMethod,
+        vpa: _paymentMethod == 'UPI' ? _vpa : '',
       );
       if (success) {
         if (!mounted) return;
@@ -347,7 +543,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
               onPressed: () {
                 setState(() {
                   _isSip = !_isSip;
-                  _paymentMethod = _isSip ? 'MANDATE' : 'NSE_GATEWAY';
+                  _paymentMethod = _isSip ? 'MANDATE' : 'UPI';
                   final minAmt = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
                   if (minAmt != null && _amount < minAmt) {
                     _amountStr = minAmt.toInt().toString();
@@ -364,7 +560,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                 style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.bold),
               ),
               style: TextButton.styleFrom(
-                backgroundColor: mintGreen.withOpacity(0.12),
+                backgroundColor: mintGreen.withValues(alpha: 0.12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               ),
@@ -484,6 +680,32 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                   ? (ucc.accountNo.length > 4 ? ucc.accountNo.substring(ucc.accountNo.length - 4) : ucc.accountNo)
                   : '••••';
 
+              IconData icon;
+              Color iconColor;
+              String title;
+              String badgeText;
+              String subtitle;
+
+              if (_paymentMethod == 'MANDATE') {
+                icon = Icons.autorenew_rounded;
+                iconColor = mintGreen;
+                title = 'Bank AutoPay ($bName)';
+                badgeText = 'AUTO-DEBIT';
+                subtitle = '••••$accNo • Auto-debits on ${_selectedDay}th of month';
+              } else if (_paymentMethod == 'UPI') {
+                icon = Icons.flash_on_rounded;
+                iconColor = mintGreen;
+                title = 'Google Pay / PhonePe (UPI)';
+                badgeText = 'INSTANT';
+                subtitle = _vpa.isNotEmpty ? 'Collect request to $_vpa' : 'Tap to enter UPI ID / VPA';
+              } else {
+                icon = Icons.account_balance_rounded;
+                iconColor = const Color(0xFF3B82F6);
+                title = 'Official NSE Gateway';
+                badgeText = 'NETBANKING';
+                subtitle = 'Direct payment to NSE Clearing Limited';
+              }
+
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: const BoxDecoration(
@@ -499,57 +721,81 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
-                        _paymentMethod == 'MANDATE' ? Icons.autorenew_rounded : Icons.account_balance_rounded,
-                        color: _paymentMethod == 'MANDATE' ? mintGreen : Colors.white,
+                        icon,
+                        color: iconColor,
                         size: 20,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                _paymentMethod == 'MANDATE' ? 'Bank AutoPay ($bName)' : 'Official NSE Gateway',
-                                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: mintGreen.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(4),
+                      child: GestureDetector(
+                        onTap: () {
+                          if (_paymentMethod == 'UPI' && _vpa.isEmpty) {
+                            _openVpaInputDialog();
+                          } else {
+                            _openBankSelector(surface, textPrimary, mintGreen);
+                          }
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    title,
+                                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                                child: Text(
-                                  _paymentMethod == 'MANDATE' ? 'AUTO-DEBIT' : 'UPI & NETBANKING',
-                                  style: const TextStyle(color: mintGreen, fontSize: 9, fontWeight: FontWeight.bold),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: mintGreen.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    badgeText,
+                                    style: TextStyle(
+                                      color: _paymentMethod == 'NSE_GATEWAY' ? const Color(0xFF3B82F6) : mintGreen,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _paymentMethod == 'MANDATE'
-                                ? '••••$accNo • Auto-debits on ${_selectedDay}th of month'
-                                : 'Direct payment to NSE Clearing Limited',
-                            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
-                          ),
-                        ],
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: () => _openBankSelector(surface, textPrimary, mintGreen),
-                      child: const Row(
+                      onTap: () {
+                        if (_paymentMethod == 'UPI' && _vpa.isEmpty) {
+                          _openVpaInputDialog();
+                        } else {
+                          _openBankSelector(surface, textPrimary, mintGreen);
+                        }
+                      },
+                      child: Row(
                         children: [
                           Text(
-                            'Select bank',
-                            style: TextStyle(color: mintGreen, fontSize: 13, fontWeight: FontWeight.bold),
+                            _paymentMethod == 'UPI' && _vpa.isEmpty ? 'Enter UPI ID' : 'Change',
+                            style: const TextStyle(color: mintGreen, fontSize: 13, fontWeight: FontWeight.bold),
                           ),
-                          SizedBox(width: 2),
-                          Icon(Icons.chevron_right_rounded, color: mintGreen, size: 18),
+                          const SizedBox(width: 2),
+                          const Icon(Icons.chevron_right_rounded, color: mintGreen, size: 18),
                         ],
                       ),
                     ),
