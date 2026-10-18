@@ -163,13 +163,15 @@ class MutualFundsController extends GetxController {
     if (recentlyViewed.length > 10) recentlyViewed.removeLast();
 
     // Async record to backend
-    try {
-      ApiClient.instance.post('/mutual-funds/recently-viewed', data: {
-        'schemeCode': scheme.schemeCode,
-      }).catchError((e) {
+    unawaited(() async {
+      try {
+        await ApiClient.instance.post('/mutual-funds/recently-viewed', data: {
+          'schemeCode': scheme.schemeCode,
+        });
+      } catch (e) {
         debugPrint('[recordRecentlyViewed API error]: $e');
-      });
-    } catch (_) {}
+      }
+    }());
   }
 
   Future<void> fetchRecentlyViewed() async {
@@ -214,7 +216,7 @@ class MutualFundsController extends GetxController {
       final res = await ApiClient.instance.post('/mutual-funds/cart/add', data: {
         'schemeCode': scheme.schemeCode,
         'schemeName': scheme.schemeName,
-        'amcName': scheme.fundHouse,
+        'amcName': scheme.amcName,
         'category': scheme.category,
         'investmentType': investmentType,
         'amount': amount,
