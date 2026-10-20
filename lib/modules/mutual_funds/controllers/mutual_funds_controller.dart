@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:get_storage/get_storage.dart';
 import 'package:dio/dio.dart';
 import '../views/mf_ucc_onboarding_view.dart';
+import '../views/mf_cart_view.dart';
+import '../views/mf_ucc_auth_webview.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -86,6 +88,12 @@ class MutualFundsController extends GetxController {
   int get cartCount => cartData.value.count;
   double get cartTotal => cartData.value.totalAmount;
 
+  // ── Mutual Funds NFO State ──
+  final RxList<Map<String, dynamic>> openNfos = <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> upcomingNfos = <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> closedNfos = <Map<String, dynamic>>[].obs;
+  final RxBool isNfoLoading = false.obs;
+
   // ── Mutual Funds Profile & Account State ──
   final Rx<MfProfileData?> mfProfile = Rx<MfProfileData?>(null);
   final RxBool isProfileLoading = false.obs;
@@ -122,6 +130,7 @@ class MutualFundsController extends GetxController {
     fetchRecentlyViewed();
     fetchCart();
     fetchMfProfile();
+    fetchNfos();
   }
 
   // _initRazorpay removed
@@ -145,7 +154,16 @@ class MutualFundsController extends GetxController {
   }
 
   List<MfSchemeModel> get filteredSchemes {
-    return schemes;
+    var list = List<MfSchemeModel>.from(schemes);
+    final period = selectedReturnPeriod.value;
+    if (period == '1Y') {
+      list.sort((a, b) => (b.cagr1Y ?? -9999.0).compareTo(a.cagr1Y ?? -9999.0));
+    } else if (period == '5Y') {
+      list.sort((a, b) => (b.cagr5Y ?? -9999.0).compareTo(a.cagr5Y ?? -9999.0));
+    } else {
+      list.sort((a, b) => (b.cagr3Y ?? -9999.0).compareTo(a.cagr3Y ?? -9999.0));
+    }
+    return list;
   }
 
   void toggleWatchlist(String schemeCode) {
@@ -232,7 +250,11 @@ class MutualFundsController extends GetxController {
           backgroundColor: const Color(0xFF1E2535),
           colorText: const Color(0xFF00D09C),
           snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 4),
+          mainButton: TextButton(
+            onPressed: () => Get.to(() => const MfCartView()),
+            child: const Text('View Cart', style: TextStyle(color: Color(0xFF00D09C), fontWeight: FontWeight.bold)),
+          ),
         );
         return true;
       }
@@ -267,6 +289,28 @@ class MutualFundsController extends GetxController {
       }
     } catch (e) {
       debugPrint('[clearCart error]: $e');
+    }
+  }
+
+  // ── Mutual Funds NFO Operations ──
+  Future<void> fetchNfos() async {
+    try {
+      isNfoLoading.value = true;
+      final res = await ApiClient.instance.get('/mutual-funds/nfos');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final data = res.data['data'] as Map<String, dynamic>;
+        final rawOpen = data['open'] as List<dynamic>? ?? [];
+        final rawUpcoming = data['upcoming'] as List<dynamic>? ?? [];
+        final rawClosed = data['closed'] as List<dynamic>? ?? [];
+
+        openNfos.assignAll(rawOpen.map((e) => Map<String, dynamic>.from(e as Map)).toList());
+        upcomingNfos.assignAll(rawUpcoming.map((e) => Map<String, dynamic>.from(e as Map)).toList());
+        closedNfos.assignAll(rawClosed.map((e) => Map<String, dynamic>.from(e as Map)).toList());
+      }
+    } catch (e) {
+      debugPrint('[MutualFundsController] fetchNfos error: $e');
+    } finally {
+      isNfoLoading.value = false;
     }
   }
 
@@ -351,15 +395,19 @@ class MutualFundsController extends GetxController {
       if (cat != 'All') queryParams['category'] = cat;
       if (q.trim().isNotEmpty) queryParams['search'] = q.trim();
 
-      if (selectedSort.value == '3Y Returns') {
+      final effectiveSort = selectedSort.value.isNotEmpty
+          ? selectedSort.value
+          : '${selectedReturnPeriod.value} Returns';
+
+      if (effectiveSort == '3Y Returns' || effectiveSort == '3Y' || effectiveSort == '3Y Re') {
         queryParams['sort'] = 'returns3y';
-      } else if (selectedSort.value == '1Y Returns') {
+      } else if (effectiveSort == '1Y Returns' || effectiveSort == '1Y') {
         queryParams['sort'] = 'returns1y';
-      } else if (selectedSort.value == '5Y Returns') {
+      } else if (effectiveSort == '5Y Returns' || effectiveSort == '5Y') {
         queryParams['sort'] = 'returns5y';
-      } else if (selectedSort.value == 'Rating') {
+      } else if (effectiveSort == 'Rating') {
         queryParams['sort'] = 'rating';
-      } else if (selectedSort.value == 'NAV') {
+      } else if (effectiveSort == 'NAV') {
         queryParams['sort'] = 'nav';
       }
 
@@ -611,6 +659,16 @@ class MutualFundsController extends GetxController {
       ),
       isScrollControlled: true,
     );
+  }
+
+  // ── Open In-App NSE UCC 2FA Client Authorization WebView ──
+  Future<dynamic> openUccAuthWebView(BuildContext context, {String? authUrl, String? clientCode}) async {
+    final code = clientCode ?? userUcc.value?.clientCode ?? onboardingData['clientCode']?.toString();
+    var url = authUrl ?? onboardingData['authUrl']?.toString();
+    if (url == null || url.trim().isEmpty || url.contains('nsenmf.com')) {
+      url = 'https://www.nseinvest.com/mf/';
+    }
+    return await Get.to(() => MfUccAuthWebView(initialUrl: url, clientCode: code));
   }
 
   // ── Show Mandate Authorization Bottom Sheet ──
@@ -1478,21 +1536,24 @@ class MutualFundsController extends GetxController {
       if (res.statusCode == 200 && res.data['success'] == true) {
         final data = res.data['data'];
         final paymentLink = data?['paymentLink']?.toString();
+        final userMsg = res.data['userMessage']?.toString() ??
+            res.data['message']?.toString() ??
+            'SIP registered on NSE MFSS with your Bank AutoPay Mandate.';
 
         if (paymentLink != null && paymentLink.isNotEmpty) {
           await openNsePaymentGateway(
             paymentLink,
             title: 'SIP Registered • AutoPay Active',
-            message: 'SIP registered on NSE MFSS with your Bank AutoPay Mandate! 1st installment payment opened. Subsequent monthly SIPs will auto-debit.',
+            message: userMsg,
           );
         } else {
           Get.snackbar(
             'SIP Registered Successfully! 🎉',
-            'Your monthly SIP is active on NSE MFSS with Bank AutoPay. Monthly installments will auto-debit automatically.',
+            userMsg,
             backgroundColor: const Color(0xFF00D09C),
             colorText: Colors.black,
             snackPosition: SnackPosition.BOTTOM,
-            duration: const Duration(seconds: 5),
+            duration: const Duration(seconds: 6),
           );
         }
         fetchPortfolio();
@@ -2034,15 +2095,16 @@ class MutualFundsController extends GetxController {
       };
 
       // Map sort
-      if (allMfSort.value == 'Popularity') {
+      final sortVal = allMfSort.value.isNotEmpty ? allMfSort.value : '${allMfReturnPeriod.value} Returns';
+      if (sortVal == 'Popularity') {
         queryParams['sort'] = 'popularity';
-      } else if (allMfSort.value == '1Y Returns') {
+      } else if (sortVal == '1Y Returns' || sortVal == '1Y') {
         queryParams['sort'] = 'returns1y';
-      } else if (allMfSort.value == '3Y Returns' || allMfSort.value == '3Y Re') {
+      } else if (sortVal == '3Y Returns' || sortVal == '3Y Re' || sortVal == '3Y') {
         queryParams['sort'] = 'returns3y';
-      } else if (allMfSort.value == '5Y Returns' || allMfSort.value == '5Y') {
+      } else if (sortVal == '5Y Returns' || sortVal == '5Y') {
         queryParams['sort'] = 'returns5y';
-      } else if (allMfSort.value == 'Rating') {
+      } else if (sortVal == 'Rating') {
         queryParams['sort'] = 'rating';
       }
 

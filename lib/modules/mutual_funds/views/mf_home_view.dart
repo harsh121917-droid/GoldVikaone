@@ -13,7 +13,8 @@ import 'mf_nfo_view.dart';
 import 'mf_sip_calculator_view.dart';
 import 'mf_compare_funds_view.dart';
 import 'mf_profile_view.dart';
-import '../../../data/models/mf_cart_model.dart';
+import 'widgets/mf_skeleton_widgets.dart';
+import 'mf_cart_view.dart';
 
 class MfHomeView extends StatefulWidget {
   const MfHomeView({Key? key}) : super(key: key);
@@ -101,6 +102,47 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                                 Get.to(() => const MfSearchView());
                               },
                             ),
+                            Obx(() {
+                              final count = controller.cartCount;
+                              return Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.shopping_cart_outlined,
+                                      color: GrowwColors.textPrimary,
+                                      size: 24,
+                                    ),
+                                    onPressed: () {
+                                      Get.to(() => const MfCartView());
+                                    },
+                                  ),
+                                  if (count > 0)
+                                    Positioned(
+                                      right: 6,
+                                      top: 6,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: GrowwColors.mintTeal,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                        child: Text(
+                                          '$count',
+                                          style: const TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            }),
+                            const SizedBox(width: 4),
                             GestureDetector(
                               onTap: () {
                                 Get.to(() => const MfProfileView());
@@ -192,11 +234,14 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
               delegate: _GrowwTabBarDelegate(
                 TabBar(
                   controller: _tabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
                   indicatorColor: GrowwColors.mintTeal,
                   indicatorWeight: 3,
                   indicatorSize: TabBarIndicatorSize.label,
                   labelColor: GrowwColors.textPrimary,
                   unselectedLabelColor: GrowwColors.textSecondary,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 16),
                   labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
                   tabs: const [
@@ -229,16 +274,22 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
   Widget _buildExploreTab() {
     return Obx(() {
       if (controller.isLoading.value && controller.schemes.isEmpty) {
-        return const Center(child: CircularProgressIndicator(color: GrowwColors.mintTeal));
+        return const MfExploreSkeletonView();
       }
 
       final popular = controller.popularFunds;
       final recent = controller.recentlyViewed;
       final filtered = controller.filteredSchemes;
-
-      return ListView(
-        controller: _scrollController,
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      return RefreshIndicator(
+        color: GrowwColors.mintTeal,
+        backgroundColor: GrowwColors.card,
+        onRefresh: () async {
+          await controller.fetchOnboardingStatus();
+        },
+        child: ListView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
           // ── Onboarding / SIP Readiness Suggestion Card ──
           _buildOnboardingReadinessCard(),
@@ -360,7 +411,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                         ],
                         const SizedBox(height: 8),
                         Text(
-                          s.schemeName,
+                          _cleanSchemeName(s.schemeName),
                           style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold, height: 1.25),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -370,8 +421,14 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              s.cagr3Y != null ? '+${s.cagr3Y}%' : '—',
-                              style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 14, fontWeight: FontWeight.w900),
+                              s.cagr3Y != null ? '${s.cagr3Y! >= 0 ? "+" : ""}${s.cagr3Y!.toStringAsFixed(2)}%' : '—',
+                              style: TextStyle(
+                                color: s.cagr3Y == null
+                                    ? GrowwColors.textTertiary
+                                    : (s.cagr3Y! < 0 ? const Color(0xFFEF4444) : GrowwColors.mintTeal),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                             const Text('3Y', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
                           ],
@@ -423,13 +480,10 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
               GestureDetector(
                 onTap: () {
                   final cur = controller.selectedReturnPeriod.value;
-                  if (cur == '3Y') {
-                    controller.selectedReturnPeriod.value = '1Y';
-                  } else if (cur == '1Y') {
-                    controller.selectedReturnPeriod.value = '5Y';
-                  } else {
-                    controller.selectedReturnPeriod.value = '3Y';
-                  }
+                  final next = cur == '3Y' ? '1Y' : (cur == '1Y' ? '5Y' : '3Y');
+                  controller.selectedReturnPeriod.value = next;
+                  controller.selectedSort.value = '$next Returns';
+                  controller.fetchSchemes(page: 1, isRefresh: true);
                 },
                 child: Obx(() => Row(
                       children: [
@@ -447,7 +501,9 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           const SizedBox(height: 10),
 
           // List of Funds
-          if (filtered.isEmpty && !controller.isLoading.value)
+          if (filtered.isEmpty && controller.isLoading.value)
+            const MfFundListSkeleton(itemCount: 4)
+          else if (filtered.isEmpty && !controller.isLoading.value)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
               alignment: Alignment.center,
@@ -526,9 +582,10 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
             ),
           ],
         ],
-      );
-    });
-  }
+      ),
+    );
+  });
+}
 
 
   // ── Onboarding & SIP Readiness Suggestion Card (NSE UCC & AutoPay Mandate) ──
@@ -751,6 +808,28 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              Center(
+                child: GestureDetector(
+                  onTap: () => controller.openUccAuthWebView(context, clientCode: clientCode),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.security_rounded, size: 14, color: GrowwColors.mintTeal),
+                      const SizedBox(width: 5),
+                      Text(
+                        'NSE 2FA Client Authorization (e-Sign/OTP)',
+                        style: TextStyle(
+                          color: GrowwColors.mintTeal.withOpacity(0.9),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         );
@@ -842,6 +921,22 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                 ),
               ),
             ),
+            if (controller.userUcc.value != null || controller.onboardingData['clientCode'] != null) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 40,
+                child: OutlinedButton.icon(
+                  onPressed: () => controller.openUccAuthWebView(context, clientCode: clientCode),
+                  icon: const Icon(Icons.security_rounded, size: 16, color: GrowwColors.mintTeal),
+                  label: const Text('Authorize UCC on NSE (OTP / e-Sign)', style: TextStyle(color: GrowwColors.mintTeal, fontSize: 13, fontWeight: FontWeight.bold)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: GrowwColors.mintTeal),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       );
@@ -1200,7 +1295,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
       {
         'title': 'Cart',
         'img': 'assets/images/Mutual_Funds/mf_tool_cart.jpg',
-        'action': () => _showCartModal(),
+        'action': () => Get.to(() => const MfCartView()),
       },
     ];
 
@@ -1366,9 +1461,9 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    scheme.schemeName,
-                    style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
-                    maxLines: 1,
+                    _cleanSchemeName(scheme.schemeName),
+                    style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14, height: 1.25),
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
@@ -1392,27 +1487,45 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                         ),
                         const SizedBox(width: 6),
                       ],
-                      Text(scheme.category, style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
-                      const SizedBox(width: 4),
-                      const Text('•', style: TextStyle(color: GrowwColors.textTertiary, fontSize: 10)),
-                      const SizedBox(width: 4),
-                      Text('${scheme.rating}', style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
-                      const SizedBox(width: 2),
-                      const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 14),
+                      Flexible(
+                        child: Text(
+                          '${scheme.category}${scheme.subCategory.isNotEmpty ? " • ${scheme.subCategory}" : ""}',
+                          style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (scheme.rating != null && scheme.rating! > 0) ...[
+                        const SizedBox(width: 4),
+                        const Text('•', style: TextStyle(color: GrowwColors.textTertiary, fontSize: 10)),
+                        const SizedBox(width: 4),
+                        Text('${scheme.rating}', style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
+                        const SizedBox(width: 2),
+                        const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 14),
+                      ],
                     ],
                   ),
                 ],
               ),
             ),
+            const SizedBox(width: 12),
             Obx(() {
               final period = controller.selectedReturnPeriod.value;
               final returnVal = period == '1Y' ? scheme.cagr1Y : (period == '5Y' ? scheme.cagr5Y : scheme.cagr3Y);
+              final bool hasReturn = returnVal != null && returnVal != 0;
+              final String retStr = hasReturn
+                  ? '${returnVal >= 0 ? "+" : ""}${returnVal.toStringAsFixed(2)}%'
+                  : '—';
+              final Color retColor = !hasReturn
+                  ? GrowwColors.textTertiary
+                  : (returnVal < 0 ? const Color(0xFFEF4444) : GrowwColors.mintTeal);
+
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    returnVal != null ? '${returnVal > 0 ? "+" : ""}${returnVal}%' : '—',
-                    style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 14, fontWeight: FontWeight.w900),
+                    retStr,
+                    style: TextStyle(color: retColor, fontSize: 14, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 2),
                   Text(period, style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11)),
@@ -1423,6 +1536,34 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
         ),
       ),
     );
+  }
+
+  String _cleanSchemeName(String name) {
+    var s = name
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan\s*-\s*Growth(\s+Option)?', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan\s*-\s*Regular\s+Growth', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan\s*-\s*GROWTH\s*OPTION', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan\s*-\s*GROWTH', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Direct\s+Plan\s*-\s*Growth(\s+Option)?', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Direct\s+Plan', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Growth\s+Option', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Growth', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*\(Erstwhile[^\)]*\)', caseSensitive: false), '')
+        .trim();
+
+    if (s.startsWith('BANDHAN ')) {
+      s = 'Bandhan ${s.substring(8)}';
+    } else if (s.startsWith('BANK OF INDIA ')) {
+      s = 'Bank of India ${s.substring(14)}';
+    } else if (s.startsWith('QUANTUM ')) {
+      s = 'Quantum ${s.substring(8)}';
+    } else if (s.startsWith('TRUSTMF ')) {
+      s = 'Trust ${s.substring(8)}';
+    } else if (s.startsWith('SBI SMALL CAP FUND')) {
+      s = 'SBI Small Cap Fund';
+    }
+    return s;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1843,334 +1984,6 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           ],
         ),
       ),
-    );
-  }
-
-  void _showCartModal() {
-    controller.fetchCart();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.75,
-          ),
-          decoration: const BoxDecoration(
-            color: GrowwColors.card,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Obx(() {
-            final cart = controller.cartData.value;
-            final items = cart.items;
-            final count = cart.count;
-            final total = cart.totalAmount;
-
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Modal Handle
-                Center(
-                  child: Container(
-                    margin: const EdgeInsets.only(top: 10, bottom: 6),
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: GrowwColors.border,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-
-                // Header
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 12, 12),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.shopping_cart_outlined, color: GrowwColors.mintTeal, size: 22),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'Mutual Funds Cart',
-                        style: TextStyle(
-                          color: GrowwColors.textPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: GrowwColors.cardElevated,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: GrowwColors.border),
-                        ),
-                        child: Text(
-                          '$count',
-                          style: const TextStyle(
-                            color: GrowwColors.mintTeal,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      if (items.isNotEmpty)
-                        TextButton(
-                          onPressed: () => controller.clearCart(),
-                          child: const Text(
-                            'Clear',
-                            style: TextStyle(color: GrowwColors.negativeRed, fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded, color: GrowwColors.textSecondary),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1, color: GrowwColors.border),
-
-                // Content
-                if (controller.isCartLoading.value && items.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(40),
-                    child: Center(
-                      child: CircularProgressIndicator(color: GrowwColors.mintTeal),
-                    ),
-                  )
-                else if (items.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 64,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              color: GrowwColors.cardElevated,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: GrowwColors.border),
-                            ),
-                            child: const Icon(
-                              Icons.shopping_cart_outlined,
-                              color: GrowwColors.textTertiary,
-                              size: 32,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Your Cart is Empty',
-                            style: TextStyle(
-                              color: GrowwColors.textPrimary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Add SIP or One-time orders from any fund page to invest in multiple funds together.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13),
-                          ),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: GrowwColors.mintTeal,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            child: const Text('Explore Funds', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else ...[
-                  Flexible(
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      padding: const EdgeInsets.all(16),
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-                        final isSip = item.investmentType.toUpperCase() == 'SIP';
-
-                        return Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: GrowwColors.cardElevated,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: GrowwColors.border),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 38,
-                                height: 38,
-                                decoration: BoxDecoration(
-                                  color: GrowwColors.card,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: GrowwColors.border),
-                                ),
-                                child: Center(
-                                  child: Icon(
-                                    isSip ? Icons.repeat_rounded : Icons.flash_on_rounded,
-                                    color: GrowwColors.mintTeal,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      item.schemeName,
-                                      style: const TextStyle(
-                                        color: GrowwColors.textPrimary,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: isSip
-                                                ? GrowwColors.mintTeal.withOpacity(0.12)
-                                                : Colors.blue.withOpacity(0.12),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            isSip ? 'SIP • Day ${item.sipDay}' : 'One-time',
-                                            style: TextStyle(
-                                              color: isSip ? GrowwColors.mintTeal : Colors.blue,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        if (item.category.isNotEmpty) ...[
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            '• ${item.category}',
-                                            style: const TextStyle(color: GrowwColors.textTertiary, fontSize: 11),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '₹${item.amount.toInt()}',
-                                    style: const TextStyle(
-                                      color: GrowwColors.textPrimary,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    icon: const Icon(Icons.delete_outline_rounded, color: GrowwColors.negativeRed, size: 20),
-                                    onPressed: () => controller.removeFromCart(item.id),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  // Bottom Checkout Bar
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: const BoxDecoration(
-                      color: GrowwColors.cardElevated,
-                      border: Border(top: BorderSide(color: GrowwColors.border)),
-                    ),
-                    child: SafeArea(
-                      child: Row(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                'Total Investment',
-                                style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '₹${total.toInt()}',
-                                style: const TextStyle(
-                                  color: GrowwColors.textPrimary,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: SizedBox(
-                              height: 48,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.pop(ctx);
-                                  Get.snackbar(
-                                    'Ready to Invest',
-                                    'Checkout for ${items.length} items totaling ₹${total.toInt()} initiated.',
-                                    backgroundColor: GrowwColors.cardElevated,
-                                    colorText: GrowwColors.mintTeal,
-                                    snackPosition: SnackPosition.BOTTOM,
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: GrowwColors.mintTeal,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                child: const Text(
-                                  'Proceed to Invest',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            );
-          }),
-        );
-      },
     );
   }
 }

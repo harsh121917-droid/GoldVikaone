@@ -5,6 +5,7 @@ import '../../../data/models/mf_scheme_model.dart';
 import '../controllers/mutual_funds_controller.dart';
 import 'mf_scheme_detail_view.dart';
 import 'widgets/mf_groww_widgets.dart';
+import 'widgets/mf_skeleton_widgets.dart';
 
 class MfCollectionListView extends StatefulWidget {
   final String collectionId;
@@ -588,10 +589,19 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
 
               // ── 4. Mutual Funds List ──
               if (_isLoading && _schemes.isEmpty)
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: CircularProgressIndicator(color: Color(0xFF00D09C)),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => const Column(
+                      children: [
+                        MfFundTileSkeleton(),
+                        Divider(
+                          height: 1,
+                          thickness: 0.6,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ],
+                    ),
+                    childCount: 7,
                   ),
                 )
               else if (displayList.isEmpty)

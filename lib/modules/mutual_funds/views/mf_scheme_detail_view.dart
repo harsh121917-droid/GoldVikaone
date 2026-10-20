@@ -1406,12 +1406,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
   Widget _buildInvestmentSection(Color mintGreen, Color textSecondary, Color textPrimary, Color surface, Color border) {
     final rules = _detailData?['investmentRules'] as Map<String, dynamic>?;
-    final double? minInv = (rules?['minPurchaseAmount'] as num?)?.toDouble() ?? widget.scheme.minPurchaseAmount;
-    final double? minAdd = (rules?['minAdditionalPurchaseAmount'] as num?)?.toDouble() ?? (minInv != null ? (minInv <= 500 ? minInv : 500) : null);
     final double? minSip = (rules?['minSipAmount'] as num?)?.toDouble() ?? widget.scheme.minSipAmount;
-
-    final String minInvStr = minInv != null ? '₹${minInv.toInt()}' : '—';
-    final String minAddStr = minAdd != null ? '₹${minAdd.toInt()}' : '—';
     final String minSipStr = minSip != null ? '₹${minSip.toInt()}' : '—';
 
     String freqStr = 'Monthly';
@@ -1421,13 +1416,6 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
         return s == 'MONTHLY' ? 'Monthly' : s == 'QUARTERLY' ? 'Quarterly' : s;
       }).join(' / ');
     }
-
-    String datesStr = 'Any business day';
-    if (rules?['sipDates'] is List && (rules!['sipDates'] as List).isNotEmpty) {
-      datesStr = (rules['sipDates'] as List).take(6).join(', ');
-    }
-
-    final String cutoffTime = rules?['nseCutoffTime']?.toString() ?? '3:00 PM';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1448,56 +1436,9 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildMetricItem('Min. 1st Investment', minInvStr, textSecondary, textPrimary)),
-                Expanded(child: _buildMetricItem('Min. 2nd+ Investment', minAddStr, textSecondary, textPrimary)),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
                 Expanded(child: _buildMetricItem('Min. SIP Amount', minSipStr, textSecondary, textPrimary)),
                 Expanded(child: _buildMetricItem('SIP Frequency', freqStr, textSecondary, textPrimary)),
               ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(child: _buildMetricItem('Preferred SIP Dates', datesStr, textSecondary, textPrimary)),
-                Expanded(child: _buildMetricItem('NSE Cut-off Time', cutoffTime, textSecondary, textPrimary)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Official NSE & SEBI Cutoff Advisory
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF1E293B)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.access_time_rounded, color: Color(0xFF38BDF8), size: 18),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'NSE MFSS Cut-off & NAV Allotment',
-                          style: TextStyle(color: Color(0xFFF1F5F9), fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Orders placed and paid before $cutoffTime receive same-day NAV subject to fund realization by NSE Clearing Limited (NCL) as per SEBI regulations. Stamp duty of 0.005% applies on unit allotment.',
-                          style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, height: 1.35),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),
@@ -2508,7 +2449,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
           final m = managers[idx];
           final name = m['name'] as String;
           final role = m['role'] as String;
-          final tenure = m['tenure'] as String;
+          final tenure = _formatManagerTenure(m);
           final isExpanded = _expandedManagers.contains(name);
 
           return Column(
@@ -2523,7 +2464,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                       Text(name, style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 3),
                       Text(
-                        role.isNotEmpty ? '$role • $tenure' : tenure,
+                        tenure,
                         style: TextStyle(color: textSecondary, fontSize: 12),
                       ),
                     ],
@@ -2558,6 +2499,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
               if (isExpanded) ...[
                 const SizedBox(height: 12),
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0F141E),
@@ -2567,11 +2509,19 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (role.isNotEmpty && role != '—') ...[
+                        Text('Role: $role', style: TextStyle(color: textSecondary, fontSize: 12)),
+                        const SizedBox(height: 6),
+                      ],
                       Text('Qualification: ${m["edu"]}', style: TextStyle(color: textSecondary, fontSize: 12)),
                       const SizedBox(height: 6),
                       Text('Total Experience: ${m["experience"]}', style: TextStyle(color: textSecondary, fontSize: 12, height: 1.35)),
                       const SizedBox(height: 6),
-                      Text('Fund Tenure: ${m["tenure"]}', style: TextStyle(color: textSecondary, fontSize: 12)),
+                      Text('Fund Tenure: $tenure', style: TextStyle(color: textSecondary, fontSize: 12)),
+                      if (m['funds'] != null && m['funds'].toString() != '—') ...[
+                        const SizedBox(height: 6),
+                        Text('Funds Managed: ${m["funds"]}', style: TextStyle(color: textSecondary, fontSize: 12, height: 1.35)),
+                      ],
                     ],
                   ),
                 ),
@@ -2581,6 +2531,26 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
         },
       ),
     );
+  }
+
+  String _formatManagerTenure(Map<String, dynamic> m) {
+    final tenure = (m['tenure'] ?? '').toString().trim();
+    if (tenure.isNotEmpty && tenure != '—') {
+      return tenure;
+    }
+    final tenureDisplay = (m['tenureDisplay'] ?? '').toString().trim();
+    if (tenureDisplay.isNotEmpty && tenureDisplay != '—') {
+      return tenureDisplay;
+    }
+    final fromDate = (m['date_from'] ?? m['dateFrom'] ?? m['fromDate'])?.toString();
+    if (fromDate != null && fromDate.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(fromDate);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return '${months[dt.month - 1]} ${dt.year} - Present';
+      } catch (_) {}
+    }
+    return tenure.isNotEmpty ? tenure : '—';
   }
 
   Widget _buildFundHouseSection(Color mintGreen, Color textSecondary, Color textPrimary) {

@@ -32,7 +32,15 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
   void initState() {
     super.initState();
     if (widget.initialSchemes != null && widget.initialSchemes!.isNotEmpty) {
-      _selectedFunds.addAll(widget.initialSchemes!.take(3));
+      _selectedFunds.addAll(widget.initialSchemes!.take(2));
+      if (_selectedFunds.length < 2) {
+        final allPool = _getAllAvailableFunds();
+        final currentCode = _selectedFunds.first.schemeCode;
+        final secondFund = allPool.where((s) => s.schemeCode != currentCode).firstOrNull;
+        if (secondFund != null) {
+          _selectedFunds.add(secondFund);
+        }
+      }
     } else {
       // Auto-populate with top 2 funds from controller for immediate instant comparison
       final allPool = _getAllAvailableFunds();
@@ -64,7 +72,7 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
       if (index < _selectedFunds.length) {
         _selectedFunds[index] = scheme;
       } else {
-        if (_selectedFunds.length < 3) {
+        if (_selectedFunds.length < 2) {
           _selectedFunds.add(scheme);
         }
       }
@@ -131,7 +139,7 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
           ],
         ),
         actions: [
-          if (_selectedFunds.length < 3)
+          if (_selectedFunds.length < 2)
             TextButton.icon(
               onPressed: () => _openFundPicker(_selectedFunds.length),
               icon: const Icon(Icons.add, size: 18, color: mintGreen),
@@ -189,7 +197,7 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Select up to 3 mutual funds for instant comparison.',
+            'Select 2 mutual funds for instant comparison.',
             style: TextStyle(color: subtleText, fontSize: 13),
           ),
           const SizedBox(height: 20),
@@ -212,42 +220,55 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
   }
 
   Widget _buildFundHeaderCards() {
-    final int count = _selectedFunds.length + (_selectedFunds.length < 3 ? 1 : 0);
+    final int count = _selectedFunds.length;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: List.generate(count, (index) {
-          if (index < _selectedFunds.length) {
-            final fund = _selectedFunds[index];
-            return Expanded(
-              child: Container(
-                margin: EdgeInsets.only(
-                  right: index < count - 1 ? 8 : 0,
-                  left: index > 0 ? 8 : 0,
-                ),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: cardBg,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: borderColor),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        AmcBrandLogo(
-                          amcName: fund.amcName,
-                          schemeName: fund.schemeName,
-                          size: 36,
-                        ),
-                        Row(
-                          children: [
+          final fund = _selectedFunds[index];
+          return Expanded(
+            child: Container(
+              margin: EdgeInsets.only(
+                right: index < count - 1 ? 8 : 0,
+                left: index > 0 ? 8 : 0,
+              ),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: borderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      AmcBrandLogo(
+                        amcName: fund.amcName,
+                        schemeName: fund.schemeName,
+                        size: 36,
+                      ),
+                      Row(
+                        children: [
+                          InkWell(
+                            onTap: () => _openFundPicker(index),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.08),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.sync_rounded, color: mintGreen, size: 16),
+                            ),
+                          ),
+                          if (_selectedFunds.length > 1) ...[
+                            const SizedBox(width: 4),
                             InkWell(
-                              onTap: () => _openFundPicker(index),
+                              onTap: () => _removeFund(index),
                               borderRadius: BorderRadius.circular(12),
                               child: Container(
                                 padding: const EdgeInsets.all(4),
@@ -255,110 +276,60 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
                                   color: Colors.white.withOpacity(0.08),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.sync_rounded, color: mintGreen, size: 16),
+                                child: const Icon(Icons.close_rounded, color: Colors.white70, size: 16),
                               ),
                             ),
-                            if (_selectedFunds.length > 1) ...[
-                              const SizedBox(width: 4),
-                              InkWell(
-                                onTap: () => _removeFund(index),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.08),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.close_rounded, color: Colors.white70, size: 16),
-                                ),
-                              ),
-                            ],
                           ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    InkWell(
-                      onTap: () => Get.to(() => MfSchemeDetailView(scheme: fund)),
-                      child: Text(
-                        fund.schemeName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          height: 1.25,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(Icons.star_rounded, color: Color(0xFFFFB020), size: 14),
-                        const SizedBox(width: 3),
-                        Text(
-                          '${fund.rating}★',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E2A3E),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            fund.category,
-                            style: const TextStyle(color: mintGreen, fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          } else {
-            // Add slot button card
-            return Expanded(
-              child: InkWell(
-                onTap: () => _openFundPicker(_selectedFunds.length),
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  margin: const EdgeInsets.only(left: 8),
-                  height: 130,
-                  decoration: BoxDecoration(
-                    color: cardBg.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: borderColor, style: BorderStyle.solid),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: mintGreen.withOpacity(0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.add_rounded, color: mintGreen, size: 24),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Add Fund',
-                        style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.bold),
+                        ],
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 10),
+                  InkWell(
+                    onTap: () => Get.to(() => MfSchemeDetailView(scheme: fund)),
+                    child: Text(
+                      fund.schemeName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        height: 1.25,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, color: Color(0xFFFFB020), size: 14),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${fund.rating}★',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E2A3E),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          fund.category,
+                          style: const TextStyle(color: mintGreen, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            );
-          }
+            ),
+          );
         }),
       ),
     );
@@ -511,7 +482,7 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
           const Divider(color: borderColor, height: 1),
           _buildMetricRow(
             label: 'Exit Load',
-            values: _selectedFunds.map((f) => '1% if redeemed within 1 yr').toList(),
+            values: _selectedFunds.map((f) => (f.exitLoad != null && f.exitLoad!.trim().isNotEmpty) ? f.exitLoad! : '1% if redeemed within 1 yr').toList(),
           ),
         ],
       ),
@@ -532,36 +503,48 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
           Text(label, style: const TextStyle(color: subtleText, fontSize: 11, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: List.generate(_selectedFunds.length, (idx) {
               final val = values.length > idx ? values[idx] : '-';
               final isWinner = (winners != null && winners.length > idx && winners[idx]);
 
               return Expanded(
-                child: Row(
-                  children: [
-                    Text(
-                      val,
-                      style: TextStyle(
-                        color: isWinner ? mintGreen : Colors.white,
-                        fontSize: 13,
-                        fontWeight: isWinner ? FontWeight.bold : FontWeight.w500,
-                      ),
-                    ),
-                    if (isWinner) ...[
-                      const SizedBox(width: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: mintGreen.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: idx < _selectedFunds.length - 1 ? 8 : 0,
+                    left: idx > 0 ? 8 : 0,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
                         child: Text(
-                          winnerTag,
-                          style: const TextStyle(color: mintGreen, fontSize: 9, fontWeight: FontWeight.bold),
+                          val,
+                          softWrap: true,
+                          style: TextStyle(
+                            color: isWinner ? mintGreen : Colors.white,
+                            fontSize: 13,
+                            fontWeight: isWinner ? FontWeight.bold : FontWeight.w500,
+                            height: 1.35,
+                          ),
                         ),
                       ),
+                      if (isWinner) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: mintGreen.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            winnerTag,
+                            style: const TextStyle(color: mintGreen, fontSize: 9, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               );
             }),

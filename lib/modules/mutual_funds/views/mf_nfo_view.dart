@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/mf_scheme_model.dart';
+import '../controllers/mutual_funds_controller.dart';
 import 'mf_sip_investment_view.dart';
 import 'widgets/mf_groww_widgets.dart';
+import 'widgets/mf_skeleton_widgets.dart';
 
 /// Full Production-Ready Screen for New Fund Offers (NFOs)
 /// Shows Open Now, Upcoming, and Recently Closed NFOs with full details,
@@ -16,16 +18,16 @@ class MfNfoView extends StatefulWidget {
 
 class _MfNfoViewState extends State<MfNfoView> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  // Curated live / active NFO records
-  final List<Map<String, dynamic>> _openNfos = const [];
-  final List<Map<String, dynamic>> _upcomingNfos = const [];
-  final List<Map<String, dynamic>> _closedNfos = const [];
+  late final MutualFundsController controller;
 
   @override
   void initState() {
     super.initState();
+    controller = Get.isRegistered<MutualFundsController>()
+        ? Get.find<MutualFundsController>()
+        : Get.put(MutualFundsController());
     _tabController = TabController(length: 3, vsync: this);
+    controller.fetchNfos();
   }
 
   @override
@@ -58,30 +60,38 @@ class _MfNfoViewState extends State<MfNfoView> with SingleTickerProviderStateMix
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: Color(0xFF22304A), width: 1)),
             ),
-            child: TabBar(
-              controller: _tabController,
-              indicatorColor: mintGreen,
-              indicatorWeight: 3,
-              labelColor: mintGreen,
-              unselectedLabelColor: Colors.white60,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              tabs: [
-                Tab(text: 'Open Now (${_openNfos.length})'),
-                Tab(text: 'Upcoming (${_upcomingNfos.length})'),
-                Tab(text: 'Closed (${_closedNfos.length})'),
-              ],
-            ),
+            child: Obx(() {
+              final openCount = controller.openNfos.length;
+              final upcomingCount = controller.upcomingNfos.length;
+              final closedCount = controller.closedNfos.length;
+
+              return TabBar(
+                controller: _tabController,
+                indicatorColor: mintGreen,
+                indicatorWeight: 3,
+                labelColor: mintGreen,
+                unselectedLabelColor: Colors.white60,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                tabs: [
+                  Tab(text: 'Open Now ($openCount)'),
+                  Tab(text: 'Upcoming ($upcomingCount)'),
+                  Tab(text: 'Closed ($closedCount)'),
+                ],
+              );
+            }),
           ),
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildNfoList(_openNfos, isOpen: true),
-          _buildNfoList(_upcomingNfos, isUpcoming: true),
-          _buildNfoList(_closedNfos, isClosed: true),
-        ],
-      ),
+      body: Obx(() {
+        return TabBarView(
+          controller: _tabController,
+          children: [
+            _buildNfoList(controller.openNfos, isOpen: true),
+            _buildNfoList(controller.upcomingNfos, isUpcoming: true),
+            _buildNfoList(controller.closedNfos, isClosed: true),
+          ],
+        );
+      }),
     );
   }
 
@@ -91,32 +101,54 @@ class _MfNfoViewState extends State<MfNfoView> with SingleTickerProviderStateMix
     bool isUpcoming = false,
     bool isClosed = false,
   }) {
+    if (controller.isNfoLoading.value && items.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: MfListScreenSkeleton(itemCount: 4),
+      );
+    }
+
     if (items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      return RefreshIndicator(
+        onRefresh: () => controller.fetchNfos(),
+        color: const Color(0xFF00D09C),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            Icon(Icons.inbox_outlined, size: 64, color: Colors.white.withOpacity(0.3)),
-            const SizedBox(height: 16),
-            const Text(
-              'No NFOs in this category right now',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inbox_outlined, size: 64, color: Colors.white.withOpacity(0.3)),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No NFOs in this category right now',
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      itemCount: items.length + 1,
-      itemBuilder: (context, index) {
-        if (index == items.length) {
-          return _buildEducationalCard();
-        }
-        final n = items[index];
-        return _buildNfoCard(n, isOpen: isOpen, isUpcoming: isUpcoming, isClosed: isClosed);
-      },
+    return RefreshIndicator(
+      onRefresh: () => controller.fetchNfos(),
+      color: const Color(0xFF00D09C),
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        itemCount: items.length + 1,
+        itemBuilder: (context, index) {
+          if (index == items.length) {
+            return _buildEducationalCard();
+          }
+          final n = items[index];
+          return _buildNfoCard(n, isOpen: isOpen, isUpcoming: isUpcoming, isClosed: isClosed);
+        },
+      ),
     );
   }
 
@@ -334,32 +366,7 @@ class _MfNfoViewState extends State<MfNfoView> with SingleTickerProviderStateMix
                 width: double.infinity,
                 height: 44,
                 child: ElevatedButton(
-                  onPressed: () {
-                    final nfoScheme = MfSchemeModel(
-                      id: n['id'],
-                      schemeCode: 'NFO_${n['id']}',
-                      schemeName: name,
-                      amcCode: n['amcCode'],
-                      amcName: amc,
-                      isin: '',
-                      category: 'Equity',
-                      subCategory: 'Sectoral',
-                      nav: issuePrice,
-                      cagr1Y: null,
-                      cagr3Y: null,
-                      cagr5Y: null,
-                      minPurchaseAmount: (n['minPurchase'] as num?)?.toDouble(),
-                      minSipAmount: minSip,
-                      rating: null,
-                      riskLevel: risk,
-                      fundManager: null,
-                      aum: null,
-                      expenseRatio: null,
-                      isPopular: false,
-                      isFeatured: true,
-                    );
-                    Get.to(() => MfSipInvestmentView(scheme: nfoScheme, isSip: true));
-                  },
+                  onPressed: () => _showNfoApplySheet(context, n),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: mintGreen,
                     foregroundColor: const Color(0xFF0F141E),
@@ -425,6 +432,142 @@ class _MfNfoViewState extends State<MfNfoView> with SingleTickerProviderStateMix
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNfoApplySheet(BuildContext context, Map<String, dynamic> n) {
+    final String name = n['name'] ?? '';
+    final String amc = n['amc'] ?? '';
+    final double issuePrice = (n['issuePrice'] ?? 10.0).toDouble();
+    final double minSip = (n['minSip'] as num?)?.toDouble() ?? 500.0;
+    final double minPurchase = (n['minPurchase'] as num?)?.toDouble() ?? 1000.0;
+    final String risk = n['risk'] ?? 'Very High';
+
+    final nfoScheme = MfSchemeModel(
+      id: n['id']?.toString() ?? n['schemeCode']?.toString() ?? 'nfo',
+      schemeCode: n['schemeCode']?.toString() ?? 'NFO_${n['id']}',
+      schemeName: name,
+      amcCode: n['amcCode']?.toString() ?? '',
+      amcName: amc,
+      isin: '',
+      category: n['category']?.toString() ?? 'Equity',
+      subCategory: n['category']?.toString() ?? 'Sectoral',
+      nav: issuePrice,
+      navDate: DateTime.now(),
+      cagr1Y: null,
+      cagr3Y: null,
+      cagr5Y: null,
+      minPurchaseAmount: minPurchase,
+      minSipAmount: minSip,
+      rating: null,
+      riskLevel: risk,
+      fundManager: n['fundManager']?.toString(),
+      aum: null,
+      expenseRatio: null,
+      isPopular: false,
+      isFeatured: true,
+    );
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF161E2D),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              name,
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Offer Price: ₹${issuePrice.toStringAsFixed(2)} • Closes ${n['closeDate'] ?? ""}',
+              style: const TextStyle(color: Color(0xFF00D09C), fontSize: 12.5, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 20),
+            // Option 1: Monthly SIP
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              tileColor: const Color(0xFF0F141E),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: Color(0xFF22304A)),
+              ),
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFF1E2A3E),
+                child: Icon(Icons.repeat_rounded, color: Color(0xFF00D09C)),
+              ),
+              title: const Text('Start Monthly SIP', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              subtitle: Text('Starting from ₹${minSip.toInt()}/month at ₹10 base NAV', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+              onTap: () {
+                Navigator.pop(ctx);
+                Get.to(() => MfSipInvestmentView(scheme: nfoScheme, isSip: true));
+              },
+            ),
+            const SizedBox(height: 10),
+            // Option 2: One-Time Lumpsum
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              tileColor: const Color(0xFF0F141E),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: Color(0xFF22304A)),
+              ),
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFF1E2A3E),
+                child: Icon(Icons.flash_on_rounded, color: Colors.blueAccent),
+              ),
+              title: const Text('Invest One-Time (Lumpsum)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              subtitle: Text('Min investment ₹${minPurchase.toInt()}', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+              onTap: () {
+                Navigator.pop(ctx);
+                Get.to(() => MfSipInvestmentView(scheme: nfoScheme, isSip: false));
+              },
+            ),
+            const SizedBox(height: 10),
+            // Option 3: Add to Cart
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              tileColor: const Color(0xFF0F141E),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: Color(0xFF22304A)),
+              ),
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFF1E2A3E),
+                child: Icon(Icons.add_shopping_cart_rounded, color: Color(0xFFFFB020)),
+              ),
+              title: const Text('Add to Cart', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              subtitle: const Text('Save to your cart to invest later', style: TextStyle(color: Colors.white54, fontSize: 12)),
+              trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await controller.addToCart(
+                  scheme: nfoScheme,
+                  amount: minSip,
+                  investmentType: 'SIP',
+                  sipDay: 5,
+                );
+              },
+            ),
           ],
         ),
       ),

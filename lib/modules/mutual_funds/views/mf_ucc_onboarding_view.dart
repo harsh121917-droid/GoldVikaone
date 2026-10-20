@@ -304,14 +304,17 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
 
     if (res != null && res['success'] == true) {
       if (!mounted) return;
-      Get.snackbar(
-        'Investor Account Activated! 🎉',
-        'Your official NSE Client Code is ${res['clientCode'] ?? ''}. You are ready to invest.',
-        backgroundColor: GrowwColors.mintTeal,
-        colorText: Colors.black,
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 4),
+      final authUrl = res['authUrl']?.toString();
+      final clientCode = res['clientCode']?.toString() ?? '';
+
+      // Open In-App NSE 2FA Client Authorization WebView directly with step-by-step guidance
+      await controller.openUccAuthWebView(
+        context,
+        authUrl: authUrl,
+        clientCode: clientCode,
       );
+
+      if (!mounted) return;
       Navigator.pop(context, true);
     }
   }

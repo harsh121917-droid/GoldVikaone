@@ -6,6 +6,7 @@ import 'mf_scheme_detail_view.dart';
 import 'mf_filter_view.dart';
 import 'mf_search_view.dart';
 import 'widgets/mf_groww_widgets.dart';
+import 'widgets/mf_skeleton_widgets.dart';
 
 class MfAllMutualFundsView extends StatefulWidget {
   final String? initialCategory;
@@ -153,7 +154,13 @@ class _MfAllMutualFundsViewState extends State<MfAllMutualFundsView> {
                         children: ['1Y', '3Y', '5Y'].map((p) {
                           final isSel = controller.allMfReturnPeriod.value == p;
                           return GestureDetector(
-                            onTap: () => controller.allMfReturnPeriod.value = p,
+                            onTap: () {
+                              if (controller.allMfReturnPeriod.value != p) {
+                                controller.allMfReturnPeriod.value = p;
+                                controller.allMfSort.value = '$p Returns';
+                                controller.fetchAllSchemes(isRefresh: true);
+                              }
+                            },
                             child: Container(
                               margin: const EdgeInsets.only(left: 4),
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -212,7 +219,7 @@ class _MfAllMutualFundsViewState extends State<MfAllMutualFundsView> {
             Expanded(
               child: Obx(() {
                 if (controller.isAllSchemesLoading.value && controller.allSchemes.isEmpty) {
-                  return const Center(child: CircularProgressIndicator(color: GrowwColors.mintTeal));
+                  return const MfListScreenSkeleton(itemCount: 8);
                 }
 
                 final list = controller.allSchemes;
@@ -329,7 +336,9 @@ class _MfAllMutualFundsViewState extends State<MfAllMutualFundsView> {
       final cleanName = _cleanSchemeName(s.schemeName);
       final hasRet = returnVal != null && returnVal != 0;
       final retStr = hasRet ? '${returnVal >= 0 ? '+' : ''}${returnVal.toStringAsFixed(2)}%' : '—';
-      final retColor = (returnVal ?? 0.0) < 0 ? const Color(0xFFEF4444) : GrowwColors.mintTeal;
+      final retColor = !hasRet
+          ? const Color(0xFF64748B)
+          : ((returnVal ?? 0.0) < 0 ? const Color(0xFFEF4444) : GrowwColors.mintTeal);
 
       return InkWell(
         onTap: () {

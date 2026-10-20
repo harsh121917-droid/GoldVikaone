@@ -5,6 +5,7 @@ import '../controllers/mutual_funds_controller.dart';
 import 'mf_scheme_detail_view.dart';
 import 'mf_search_view.dart';
 import 'widgets/mf_groww_widgets.dart';
+import 'widgets/mf_skeleton_widgets.dart';
 
 class MfPopularFundsView extends StatefulWidget {
   const MfPopularFundsView({Key? key}) : super(key: key);
@@ -54,12 +55,20 @@ class _MfPopularFundsViewState extends State<MfPopularFundsView> {
       body: SafeArea(
         child: Obx(() {
           if (controller.isPopularLoading.value && controller.popularSchemesList.isEmpty) {
-            return const Center(child: CircularProgressIndicator(color: GrowwColors.mintTeal));
+            return const MfListScreenSkeleton(itemCount: 8);
           }
 
-          final list = controller.popularSchemesList.isNotEmpty
+          final rawList = controller.popularSchemesList.isNotEmpty
               ? controller.popularSchemesList
               : controller.popularFunds;
+          final list = List<MfSchemeModel>.from(rawList);
+          if (_selectedPeriod == '1Y') {
+            list.sort((a, b) => (b.cagr1Y ?? -9999.0).compareTo(a.cagr1Y ?? -9999.0));
+          } else if (_selectedPeriod == '5Y') {
+            list.sort((a, b) => (b.cagr5Y ?? -9999.0).compareTo(a.cagr5Y ?? -9999.0));
+          } else {
+            list.sort((a, b) => (b.cagr3Y ?? -9999.0).compareTo(a.cagr3Y ?? -9999.0));
+          }
 
           return RefreshIndicator(
             color: GrowwColors.mintTeal,
@@ -213,7 +222,7 @@ class _MfPopularFundsViewState extends State<MfPopularFundsView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    s.schemeName,
+                    _cleanSchemeName(s.schemeName),
                     style: const TextStyle(
                       color: GrowwColors.textPrimary,
                       fontSize: 13.5,
@@ -267,9 +276,11 @@ class _MfPopularFundsViewState extends State<MfPopularFundsView> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  returnVal != null ? '${returnVal >= 0 ? "+" : ""}${returnVal.toStringAsFixed(1)}%' : '—',
-                  style: const TextStyle(
-                    color: GrowwColors.mintTeal,
+                  returnVal != null ? '${returnVal >= 0 ? "+" : ""}${returnVal.toStringAsFixed(2)}%' : '—',
+                  style: TextStyle(
+                    color: returnVal == null
+                        ? GrowwColors.textTertiary
+                        : (returnVal < 0 ? const Color(0xFFEF4444) : GrowwColors.mintTeal),
                     fontSize: 14,
                     fontWeight: FontWeight.w900,
                   ),
@@ -285,5 +296,33 @@ class _MfPopularFundsViewState extends State<MfPopularFundsView> {
         ),
       ),
     );
+  }
+
+  String _cleanSchemeName(String name) {
+    var s = name
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan\s*-\s*Growth(\s+Option)?', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan\s*-\s*Regular\s+Growth', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan\s*-\s*GROWTH\s*OPTION', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan\s*-\s*GROWTH', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Regular\s+Plan', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Direct\s+Plan\s*-\s*Growth(\s+Option)?', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Direct\s+Plan', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Growth\s+Option', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*-\s*Growth', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*\(Erstwhile[^\)]*\)', caseSensitive: false), '')
+        .trim();
+
+    if (s.startsWith('BANDHAN ')) {
+      s = 'Bandhan ${s.substring(8)}';
+    } else if (s.startsWith('BANK OF INDIA ')) {
+      s = 'Bank of India ${s.substring(14)}';
+    } else if (s.startsWith('QUANTUM ')) {
+      s = 'Quantum ${s.substring(8)}';
+    } else if (s.startsWith('TRUSTMF ')) {
+      s = 'Trust ${s.substring(8)}';
+    } else if (s.startsWith('SBI SMALL CAP FUND')) {
+      s = 'SBI Small Cap Fund';
+    }
+    return s;
   }
 }

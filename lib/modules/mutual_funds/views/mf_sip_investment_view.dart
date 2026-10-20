@@ -482,15 +482,21 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
       }
 
       final now = DateTime.now();
-      final startDate = DateTime(now.year, now.month, _selectedDay);
+      final today = DateTime(now.year, now.month, now.day);
+      final candidate = DateTime(now.year, now.month, _selectedDay);
+      final daysDiff = candidate.difference(today).inDays;
+      final startDate = daysDiff < 7
+          ? DateTime(now.year, now.month + 1, _selectedDay)
+          : candidate;
+
       final success = await controller.registerSipOrder(
         schemeCode: widget.scheme.schemeCode,
         schemeName: widget.scheme.schemeName,
         installmentAmount: _amount,
         frequency: 'MONTHLY',
-        startDate: startDate.isAfter(now) ? startDate : DateTime(now.year, now.month + 1, _selectedDay),
+        startDate: startDate,
         paymentMode: _paymentMethod,
-        firstOrderToday: _paymentMethod == 'NSE_GATEWAY',
+        firstOrderToday: true,
       );
       if (success) {
         if (!mounted) return;
@@ -667,6 +673,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                       ),
                     ),
                   ),
+                if (_isSip) _buildSipScheduleInfoCard(mintGreen),
               ],
             ),
           ),
@@ -949,6 +956,53 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                   style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                 ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSipScheduleInfoCard(Color mintGreen) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final candidate = DateTime(now.year, now.month, _selectedDay);
+    final daysDiff = candidate.difference(today).inDays;
+    final bool bufferApplied = daysDiff < 7;
+    final DateTime nextDebit = bufferApplied
+        ? DateTime(now.year, now.month + 1, _selectedDay)
+        : candidate;
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final nextDebitStr = '${nextDebit.day} ${months[nextDebit.month - 1]} ${nextDebit.year}';
+
+    return Container(
+      margin: const EdgeInsets.only(top: 14, left: 24, right: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF101726),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF1E2D4A)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded, color: mintGreen, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(fontSize: 11.5, height: 1.35, color: Color(0xFF94A3B8)),
+                children: [
+                  const TextSpan(text: 'Installment #1: ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  const TextSpan(text: 'Invest today.\n'),
+                  const TextSpan(text: 'Recurring AutoPay: ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  TextSpan(
+                    text: 'Debits start on $nextDebitStr${bufferApplied ? " (7-day exchange mandate buffer applied)" : ""}.',
+                    style: TextStyle(color: mintGreen, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
