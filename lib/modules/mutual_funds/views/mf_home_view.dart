@@ -15,6 +15,8 @@ import 'mf_compare_funds_view.dart';
 import 'mf_profile_view.dart';
 import 'widgets/mf_skeleton_widgets.dart';
 import 'mf_cart_view.dart';
+import '../../../data/models/mf_portfolio_model.dart';
+import 'mf_portfolio_view.dart';
 
 class MfHomeView extends StatefulWidget {
   const MfHomeView({Key? key}) : super(key: key);
@@ -34,6 +36,12 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.index == 1) {
+        controller.fetchPortfolio();
+        controller.fetchMyOrders();
+      }
+    });
     // Explicit "View more funds" button used instead of auto-scroll
   }
 
@@ -1571,157 +1579,265 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildDashboardTab() {
     return Obx(() {
-      if (controller.isPortfolioLoading.value && controller.holdings.isEmpty) {
+      final holdings = controller.holdings;
+      final inProgress = controller.inProgressOrders;
+      final summary = controller.portfolioSummary.value;
+
+      if (controller.isPortfolioLoading.value && holdings.isEmpty && inProgress.isEmpty) {
         return const Center(child: CircularProgressIndicator(color: GrowwColors.mintTeal));
       }
 
-      final summary = controller.portfolioSummary.value;
-      final holdings = controller.holdings;
-
-      return ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Total Portfolio Value Card
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF141D2B), Color(0xFF0F1722)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: GrowwColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Total Portfolio Value', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13)),
-                const SizedBox(height: 6),
-                Text(
-                  '₹${summary?.currentValuation.toStringAsFixed(2) ?? '0.00'}',
-                  style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 28, fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Total Invested', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
-                        const SizedBox(height: 4),
-                        Text(
-                          '₹${summary?.totalInvested.toStringAsFixed(2) ?? '0.00'}',
-                          style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text('Overall Return', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: GrowwColors.mintTeal.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '+${summary?.totalProfitLoss.toStringAsFixed(2) ?? '0.00'} (+${summary?.totalProfitLossPct.toStringAsFixed(2) ?? '0.00'}%)',
-                            style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Holdings
-          const Text(
-            'Your Investments',
-            style: TextStyle(color: GrowwColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-
-          if (holdings.isEmpty)
+      return RefreshIndicator(
+        color: GrowwColors.mintTeal,
+        backgroundColor: GrowwColors.card,
+        onRefresh: () async {
+          await Future.wait([
+            controller.fetchPortfolio(),
+            controller.fetchMyOrders(),
+          ]);
+        },
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Total Portfolio Value Card
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: GrowwColors.card,
-                borderRadius: BorderRadius.circular(16),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF141D2B), Color(0xFF0F1722)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: GrowwColors.border),
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      'assets/images/Mutual_Funds/mf_empty_portfolio_3d.jpg',
-                      width: 110,
-                      height: 110,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text('No investments yet', style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text('Total Portfolio Value', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13)),
                   const SizedBox(height: 6),
-                  const Text('Start investing in direct mutual funds with 0% brokerage', textAlign: TextAlign.center, style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => _tabController.animateTo(0),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: GrowwColors.mintTeal,
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('Explore Funds', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '₹${summary?.currentValuation.toStringAsFixed(2) ?? '0.00'}',
+                    style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 28, fontWeight: FontWeight.w900),
                   ),
-                ],
-              ),
-            )
-          else
-            ...holdings.map((h) => Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: GrowwColors.card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: GrowwColors.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 18),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(h.schemeName, style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Invested', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11)),
-                              Text('₹${h.investedAmount.toStringAsFixed(0)}', style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
-                            ],
+                          const Text('Total Invested', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          Text(
+                            '₹${summary?.totalInvested.toStringAsFixed(2) ?? '0.00'}',
+                            style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Text('Current Value', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11)),
-                              Text('₹${h.currentValue.toStringAsFixed(0)}', style: const TextStyle(color: GrowwColors.mintTeal, fontWeight: FontWeight.bold, fontSize: 13)),
-                            ],
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text('Overall Return', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: GrowwColors.mintTeal.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '+${summary?.totalProfitLoss.toStringAsFixed(2) ?? '0.00'} (+${summary?.totalProfitLossPct.toStringAsFixed(2) ?? '0.00'}%)',
+                              style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
                     ],
                   ),
-                )),
-        ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // ── In-Progress Orders (Groww / Fisdom style) ──
+            if (inProgress.isNotEmpty) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF59E0B),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Orders in progress (${inProgress.length})',
+                        style: const TextStyle(
+                          color: GrowwColors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  TextButton(
+                    onPressed: () => _showAllOrdersSheet(context),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'View All Orders',
+                      style: TextStyle(color: GrowwColors.mintTeal, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ...inProgress.map((order) => _buildInProgressOrderCard(order)),
+              const SizedBox(height: 20),
+            ],
+
+            // Holdings Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Your Investments',
+                  style: TextStyle(color: GrowwColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                if (holdings.isNotEmpty)
+                  GestureDetector(
+                    onTap: () => Get.to(() => const MfPortfolioView()),
+                    child: const Text(
+                      'View Portfolio',
+                      style: TextStyle(color: GrowwColors.mintTeal, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            if (holdings.isEmpty && inProgress.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: GrowwColors.card,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: GrowwColors.border),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00D09C).withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.hourglass_top_rounded, color: Color(0xFF00D09C), size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Holdings will update soon',
+                            style: TextStyle(color: GrowwColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Your investment order is registered with NSE MFSS. Units will be allotted within 1-2 business days as per AMC cut-off and appear in your portfolio.',
+                            style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12, height: 1.35),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (holdings.isEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: GrowwColors.card,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: GrowwColors.border),
+                ),
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        'assets/images/Mutual_Funds/mf_empty_portfolio_3d.jpg',
+                        width: 110,
+                        height: 110,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('No investments yet', style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    const Text('Start investing in direct mutual funds with 0% brokerage', textAlign: TextAlign.center, style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13)),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => _tabController.animateTo(0),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: GrowwColors.mintTeal,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Explore Funds', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...holdings.map((h) => Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: GrowwColors.card,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: GrowwColors.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(h.schemeName, style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Invested', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11)),
+                                Text('₹${h.investedAmount.toStringAsFixed(0)}', style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                const Text('Current Value', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11)),
+                                Text('₹${h.currentValue.toStringAsFixed(0)}', style: const TextStyle(color: GrowwColors.mintTeal, fontWeight: FontWeight.bold, fontSize: 13)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  )),
+          ],
+        ),
       );
     });
   }
@@ -1984,6 +2100,612 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           ],
         ),
       ),
+    );
+  }
+
+  // ── In-Progress Order Tracking (Groww / Fisdom Style) ──
+
+  Widget _buildInProgressOrderCard(MfOrderModel order) {
+    final bool isAllotted = order.allotmentStatus == 'ALLOTTED';
+    final Color badgeColor = isAllotted ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
+    final String dateStr = '${order.createdAt.day.toString().padLeft(2, '0')}/${order.createdAt.month.toString().padLeft(2, '0')}/${order.createdAt.year}';
+
+    return GestureDetector(
+      onTap: () => _showOrderDetailSheet(order),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: GrowwColors.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: badgeColor.withOpacity(0.35), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: badgeColor.withOpacity(0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    isAllotted ? Icons.check_circle_rounded : Icons.sync_rounded,
+                    color: badgeColor,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.schemeName,
+                        style: const TextStyle(
+                          color: GrowwColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${order.typeLabel} • ₹${order.orderAmount.toStringAsFixed(0)} • Placed on $dateStr',
+                        style: const TextStyle(
+                          color: GrowwColors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: badgeColor.withOpacity(0.3), width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: badgeColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        order.badgeLabel.toUpperCase(),
+                        style: TextStyle(
+                          color: badgeColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Middle Status Banner: Clean highlight for Allotment Pending
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E2638),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF2B364D), width: 0.8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isAllotted ? Icons.check_circle_outline_rounded : Icons.hourglass_top_rounded,
+                    color: badgeColor,
+                    size: 13,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      order.subStatusLabel,
+                      style: TextStyle(
+                        color: badgeColor,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: GrowwColors.border),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.access_time_rounded, color: GrowwColors.textSecondary, size: 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Expected Allotment: ${order.expectedAllotmentDate}',
+                      style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12),
+                    ),
+                  ],
+                ),
+                const Row(
+                  children: [
+                    Text(
+                      'Track Order',
+                      style: TextStyle(
+                        color: GrowwColors.mintTeal,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(width: 2),
+                    Icon(Icons.chevron_right_rounded, color: GrowwColors.mintTeal, size: 16),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showOrderDetailSheet(MfOrderModel order) {
+    final bool isAllotted = order.allotmentStatus == 'ALLOTTED';
+    final Color badgeColor = isAllotted ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
+    final String dateStr = '${order.createdAt.day.toString().padLeft(2, '0')}/${order.createdAt.month.toString().padLeft(2, '0')}/${order.createdAt.year}';
+    final String timeStr = '${order.createdAt.hour.toString().padLeft(2, '0')}:${order.createdAt.minute.toString().padLeft(2, '0')}';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          height: MediaQuery.of(ctx).size.height * 0.85,
+          decoration: const BoxDecoration(
+            color: Color(0xFF121B27),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Handle
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              // Title Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Order Details',
+                      style: TextStyle(color: GrowwColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: GrowwColors.textSecondary),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(color: GrowwColors.border, height: 1),
+
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    // Header Status Card
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: GrowwColors.card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: GrowwColors.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                order.typeLabel.toUpperCase(),
+                                style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: badgeColor.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: badgeColor.withOpacity(0.3), width: 1),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(color: badgeColor, shape: BoxShape.circle),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      order.badgeLabel.toUpperCase(),
+                                      style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.3),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            order.schemeName,
+                            style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            order.subStatusLabel,
+                            style: TextStyle(color: badgeColor, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Amount Paid', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '₹${order.orderAmount.toStringAsFixed(2)}',
+                                    style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                              if (order.nseTrxnOrderId != null && order.nseTrxnOrderId!.isNotEmpty)
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    const Text('NSE Order ID', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      '#${order.nseTrxnOrderId}',
+                                      style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 14, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Order Progress / Timeline Stepper
+                    const Text(
+                      'Order Progress',
+                      style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildTimelineStep(
+                      stepNumber: 1,
+                      title: 'Order Placed & Registered',
+                      subtitle: 'Order registered on NSE MFSS on $dateStr at $timeStr',
+                      isCompleted: true,
+                      isCurrent: false,
+                      isLast: false,
+                    ),
+                    _buildTimelineStep(
+                      stepNumber: 2,
+                      title: 'Payment Successful',
+                      subtitle: '₹${order.orderAmount.toStringAsFixed(0)} verified via NSE Gateway / Mandate',
+                      isCompleted: order.isPaymentDone,
+                      isCurrent: !order.isPaymentDone,
+                      isLast: false,
+                    ),
+                    _buildTimelineStep(
+                      stepNumber: 3,
+                      title: 'Sent to AMC / Fund House',
+                      subtitle: 'Order approved by exchange and submitted to the Mutual Fund house',
+                      isCompleted: order.orderStatus == 'PROCESSING' || isAllotted,
+                      isCurrent: order.orderStatus == 'PROCESSING' && !isAllotted,
+                      isLast: false,
+                    ),
+                    _buildTimelineStep(
+                      stepNumber: 4,
+                      title: 'NAV Calculation',
+                      subtitle: isAllotted
+                          ? 'Allotted at NAV ₹${order.allottedNav?.toStringAsFixed(2) ?? 'closing NAV'}'
+                          : 'Units will be allotted at today\'s market close NAV (calculated between 9 PM - 11 PM)',
+                      isCompleted: isAllotted,
+                      isCurrent: !isAllotted && (order.orderStatus == 'PROCESSING' || order.isPaymentDone),
+                      isLast: false,
+                    ),
+                    _buildTimelineStep(
+                      stepNumber: 5,
+                      title: 'Unit Allotment & Demat/Folio Credit',
+                      subtitle: isAllotted
+                          ? '${order.allottedUnits.toStringAsFixed(3)} units credited to your holdings'
+                          : 'Expected by ${order.expectedAllotmentDate} (T+1 business day)',
+                      isCompleted: isAllotted,
+                      isCurrent: false,
+                      isLast: true,
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Informational Box (Groww / Fisdom style)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: GrowwColors.card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: GrowwColors.border),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.info_outline_rounded, color: GrowwColors.mintTeal, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'How Mutual Fund Allotment Works',
+                                  style: TextStyle(color: GrowwColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Unlike stocks, mutual fund NAV is declared by AMCs at the end of each business day. RTAs (CAMS/KFintech) allot units on T+1 working day. Your portfolio value and units will automatically update as soon as the AMC confirms allotment.',
+                                  style: TextStyle(color: GrowwColors.textSecondary.withOpacity(0.9), fontSize: 12, height: 1.4),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: GrowwColors.mintTeal,
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Got It', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTimelineStep({
+    required int stepNumber,
+    required String title,
+    required String subtitle,
+    required bool isCompleted,
+    required bool isCurrent,
+    required bool isLast,
+  }) {
+    final Color color = isCompleted
+        ? const Color(0xFF00D09C)
+        : isCurrent
+            ? const Color(0xFFF59E0B)
+            : Colors.white24;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.18),
+                shape: BoxShape.circle,
+                border: Border.all(color: color, width: 1.5),
+              ),
+              child: Center(
+                child: isCompleted
+                    ? const Icon(Icons.check_rounded, color: Color(0xFF00D09C), size: 15)
+                    : isCurrent
+                        ? const Icon(Icons.hourglass_top_rounded, color: Color(0xFFF59E0B), size: 13)
+                        : Text(
+                            '$stepNumber',
+                            style: const TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+              ),
+            ),
+            if (!isLast)
+              Container(
+                width: 2,
+                height: 38,
+                color: isCompleted ? const Color(0xFF00D09C).withOpacity(0.6) : Colors.white12,
+              ),
+          ],
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: isCompleted || isCurrent ? GrowwColors.textPrimary : GrowwColors.textSecondary,
+                    fontSize: 14,
+                    fontWeight: isCompleted || isCurrent ? FontWeight.bold : FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: isCurrent ? const Color(0xFFF59E0B) : GrowwColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showAllOrdersSheet(BuildContext context) {
+    controller.fetchMyOrders();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          height: MediaQuery.of(ctx).size.height * 0.85,
+          decoration: const BoxDecoration(
+            color: Color(0xFF121B27),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'All Mutual Fund Orders',
+                      style: TextStyle(color: GrowwColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: GrowwColors.textSecondary),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(color: GrowwColors.border, height: 1),
+              Expanded(
+                child: Obx(() {
+                  if (controller.isOrdersLoading.value && controller.myOrders.isEmpty && controller.inProgressOrders.isEmpty) {
+                    return const Center(child: CircularProgressIndicator(color: GrowwColors.mintTeal));
+                  }
+
+                  final orders = controller.myOrders.isNotEmpty ? controller.myOrders : controller.inProgressOrders;
+
+                  if (orders.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.assignment_outlined, color: GrowwColors.textSecondary.withOpacity(0.5), size: 54),
+                          const SizedBox(height: 12),
+                          const Text('No Orders Found', style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 6),
+                          const Text('Your purchase and redemption orders will appear here', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13)),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: orders.length,
+                    itemBuilder: (context, index) {
+                      final order = orders[index];
+                      return _buildInProgressOrderCard(order);
+                    },
+                  );
+                }),
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        Get.to(() => const MfPortfolioView());
+                      },
+                      icon: const Icon(Icons.pie_chart_rounded, size: 18, color: GrowwColors.mintTeal),
+                      label: const Text('Go to Full Portfolio', style: TextStyle(color: GrowwColors.mintTeal, fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: GrowwColors.mintTeal),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

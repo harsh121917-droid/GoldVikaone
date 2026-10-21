@@ -70,6 +70,9 @@ class MutualFundsController extends GetxController {
   final Rx<MfPortfolioSummary?> portfolioSummary = Rx<MfPortfolioSummary?>(null);
   final RxList<MfHolding> holdings = <MfHolding>[].obs;
   final RxList<MfActiveSip> activeSips = <MfActiveSip>[].obs;
+  final RxList<MfOrderModel> inProgressOrders = <MfOrderModel>[].obs;
+  final RxList<MfOrderModel> myOrders = <MfOrderModel>[].obs;
+  final RxBool isOrdersLoading = false.obs;
   final Rx<MfUccModel?> userUcc = Rx<MfUccModel?>(null);
   final RxBool hasUcc = false.obs;
   final RxMap<String, dynamic> uccPrefill = <String, dynamic>{}.obs;
@@ -1627,11 +1630,39 @@ class MutualFundsController extends GetxController {
             (data['activeSips'] as List<dynamic>).map((e) => MfActiveSip.fromJson(e as Map<String, dynamic>)).toList(),
           );
         }
+        if (data['inProgressOrders'] != null) {
+          inProgressOrders.assignAll(
+            (data['inProgressOrders'] as List<dynamic>)
+                .map((e) => MfOrderModel.fromJson(e as Map<String, dynamic>))
+                .toList(),
+          );
+        }
       }
     } catch (e) {
       debugPrint('[MutualFundsController] fetchPortfolio error: $e');
     } finally {
       isPortfolioLoading.value = false;
+    }
+  }
+
+  // ── Fetch User Order History & Track In-Progress Transactions ──
+  Future<void> fetchMyOrders() async {
+    isOrdersLoading.value = true;
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.get('/mutual-funds/orders/my');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final list = (res.data['data'] as List<dynamic>?)
+                ?.map((e) => MfOrderModel.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [];
+        myOrders.assignAll(list);
+        inProgressOrders.assignAll(list.where((o) => o.isProcessing).toList());
+      }
+    } catch (e) {
+      debugPrint('[MutualFundsController] fetchMyOrders error: $e');
+    } finally {
+      isOrdersLoading.value = false;
     }
   }
 

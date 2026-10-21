@@ -18,8 +18,9 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     controller.fetchPortfolio();
+    controller.fetchMyOrders();
   }
 
   @override
@@ -48,7 +49,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Obx(() {
-        if (controller.isPortfolioLoading.value && controller.holdings.isEmpty && controller.activeSips.isEmpty) {
+        if (controller.isPortfolioLoading.value && controller.holdings.isEmpty && controller.activeSips.isEmpty && controller.inProgressOrders.isEmpty) {
           return const Center(child: CircularProgressIndicator(color: AppColors.accent));
         }
 
@@ -56,7 +57,12 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
 
         return RefreshIndicator(
           color: AppColors.accent,
-          onRefresh: controller.fetchPortfolio,
+          onRefresh: () async {
+            await Future.wait([
+              controller.fetchPortfolio(),
+              controller.fetchMyOrders(),
+            ]);
+          },
           child: Column(
             children: [
               // ── Summary Card ──
@@ -147,9 +153,10 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                   indicatorColor: AppColors.accent,
                   labelColor: AppColors.accent,
                   unselectedLabelColor: textSecondary,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
                   tabs: [
                     Tab(text: 'Holdings (${controller.holdings.length})'),
+                    Tab(text: 'In Progress (${controller.inProgressOrders.length})'),
                     Tab(text: 'Active SIPs (${controller.activeSips.length})'),
                   ],
                 ),
@@ -163,6 +170,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                   children: [
                     // Holdings Tab
                     _buildHoldingsTab(surface, textPrimary, textSecondary),
+                    _buildOrdersTab(surface, textPrimary, textSecondary),
 
                     // Active SIPs Tab
                     _buildSipsTab(surface, textPrimary, textSecondary),
@@ -178,6 +186,46 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
 
   Widget _buildHoldingsTab(Color surface, Color textPrimary, Color textSecondary) {
     if (controller.holdings.isEmpty) {
+      if (controller.inProgressOrders.isNotEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.hourglass_top_rounded, color: Color(0xFFF59E0B), size: 48),
+                ),
+                const SizedBox(height: 16),
+                Text('Orders in Progress', style: TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text(
+                  'You have ${controller.inProgressOrders.length} order(s) currently being processed by the exchange.\n\nUnits will be allotted within 1-2 business days as per AMC cut-off schedule and appear here.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: textSecondary, fontSize: 13, height: 1.4),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () => _tabController.animateTo(1),
+                  icon: const Icon(Icons.sync_rounded, size: 18),
+                  label: const Text('View In Progress Orders', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF59E0B),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -310,6 +358,165 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                     ],
                   ),
                 ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOrdersTab(Color surface, Color textPrimary, Color textSecondary) {
+    final orders = controller.inProgressOrders;
+
+    if (orders.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.check_circle_outline_rounded, color: textSecondary.withOpacity(0.5), size: 54),
+            const SizedBox(height: 12),
+            Text('No Orders In Progress', style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            Text('All your mutual fund purchases have been allotted.', style: TextStyle(color: textSecondary, fontSize: 13)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: orders.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final order = orders[index];
+        final bool isAllotted = order.allotmentStatus == 'ALLOTTED';
+        final Color badgeColor = isAllotted ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
+        final String dateStr = '${order.createdAt.day.toString().padLeft(2, '0')}/${order.createdAt.month.toString().padLeft(2, '0')}/${order.createdAt.year}';
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: badgeColor.withOpacity(0.3), width: 1.2),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      order.schemeName,
+                      style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: badgeColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: badgeColor.withOpacity(0.3), width: 1),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(color: badgeColor, shape: BoxShape.circle),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          order.badgeLabel.toUpperCase(),
+                          style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.3),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E2638),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF2B364D), width: 0.8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isAllotted ? Icons.check_circle_outline_rounded : Icons.hourglass_top_rounded,
+                      color: badgeColor,
+                      size: 13,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        order.subStatusLabel,
+                        style: TextStyle(color: badgeColor, fontSize: 11.5, fontWeight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Investment Amount', style: TextStyle(color: textSecondary, fontSize: 11)),
+                      const SizedBox(height: 2),
+                      Text('₹${order.orderAmount.toStringAsFixed(2)}', style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
+                    ],
+                  ),
+                  if (order.nseTrxnOrderId != null && order.nseTrxnOrderId!.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text('NSE Order ID', style: TextStyle(color: textSecondary, fontSize: 11)),
+                        const SizedBox(height: 2),
+                        Text('#${order.nseTrxnOrderId}', style: TextStyle(color: textPrimary, fontWeight: FontWeight.w600, fontSize: 13)),
+                      ],
+                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('Order Date', style: TextStyle(color: textSecondary, fontSize: 11)),
+                      const SizedBox(height: 2),
+                      Text(dateStr, style: TextStyle(color: textSecondary, fontWeight: FontWeight.w500, fontSize: 13)),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: badgeColor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.access_time_rounded, color: badgeColor, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Units allotment expected: ${order.expectedAllotmentDate} (T+1 business day)',
+                        style: TextStyle(color: badgeColor, fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

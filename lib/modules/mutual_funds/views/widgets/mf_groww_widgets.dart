@@ -311,6 +311,36 @@ class AmcBrandLogo extends StatelessWidget {
         color: Colors.white,
         size: 22,
       );
+    } else if (lowerAmc.contains('zerodha') || lowerScheme.contains('zerodha')) {
+      bg = const Color(0xFF387ED1);
+      iconWidget = const Text(
+        'Z',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+          fontSize: 16,
+        ),
+      );
+    } else if (lowerAmc.contains('carnelian') || lowerScheme.contains('carnelian')) {
+      bg = const Color(0xFF8B1E3F);
+      iconWidget = const Text(
+        'C',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+          fontSize: 16,
+        ),
+      );
+    } else if (lowerAmc.contains('choice') || lowerScheme.contains('choice')) {
+      bg = const Color(0xFF0F52BA);
+      iconWidget = const Text(
+        'CHOICE',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+          fontSize: 7.5,
+        ),
+      );
     } else {
       bg = const Color(0xFF334155);
       final initials = amcName.isNotEmpty

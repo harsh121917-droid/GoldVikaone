@@ -258,3 +258,118 @@ class MfUccModel {
     );
   }
 }
+
+class MfOrderModel {
+  final String id;
+  final String orderId;
+  final String schemeCode;
+  final String schemeName;
+  final String transactionType;
+  final double orderAmount;
+  final double estimatedUnits;
+  final double allottedUnits;
+  final double? allottedNav;
+  final double? navAtOrder;
+  final String orderStatus;
+  final String paymentStatus;
+  final String allotmentStatus;
+  final String? paymentLink;
+  final String? nseTrxnOrderId;
+  final String? nseStatus;
+  final DateTime createdAt;
+  final String displayStatus;
+  final String subStatus;
+  final String expectedAllotmentDate;
+  final bool isPaymentDone;
+
+  MfOrderModel({
+    required this.id,
+    required this.orderId,
+    required this.schemeCode,
+    required this.schemeName,
+    required this.transactionType,
+    required this.orderAmount,
+    required this.estimatedUnits,
+    required this.allottedUnits,
+    this.allottedNav,
+    this.navAtOrder,
+    required this.orderStatus,
+    required this.paymentStatus,
+    required this.allotmentStatus,
+    this.paymentLink,
+    this.nseTrxnOrderId,
+    this.nseStatus,
+    required this.createdAt,
+    required this.displayStatus,
+    this.subStatus = '',
+    required this.expectedAllotmentDate,
+    this.isPaymentDone = false,
+  });
+
+  bool get isProcessing =>
+      allotmentStatus != 'ALLOTTED' &&
+      (paymentStatus == 'SUCCESS' ||
+          orderStatus == 'PROCESSING' ||
+          orderStatus == 'SUBMITTED' ||
+          orderStatus == 'PAYMENT_SUCCESS') &&
+      orderStatus != 'CANCELLED' &&
+      orderStatus != 'REJECTED' &&
+      orderStatus != 'FAILED' &&
+      orderStatus != 'PAYMENT_PENDING';
+
+  String get typeLabel {
+    if (transactionType == 'R') return 'Redeem';
+    if (transactionType == 'S') return 'Switch';
+    return 'Lump Sum';
+  }
+
+  String get badgeLabel {
+    if (allotmentStatus == 'ALLOTTED') return 'Allotted';
+    if (orderStatus == 'CANCELLED' || orderStatus == 'REJECTED' || orderStatus == 'FAILED') return 'Failed';
+    if (orderStatus == 'PAYMENT_PENDING' || paymentStatus == 'PENDING') return 'Pending';
+    if (displayStatus.toLowerCase().contains('processing') || displayStatus.toLowerCase().contains('in progress') || isProcessing) {
+      return 'In Progress';
+    }
+    return displayStatus.isNotEmpty ? displayStatus : 'In Progress';
+  }
+
+  String get subStatusLabel {
+    if (allotmentStatus == 'ALLOTTED') return 'Units Allotted • Available in Holdings';
+    if (orderStatus == 'CANCELLED' || orderStatus == 'REJECTED' || orderStatus == 'FAILED') return 'Order Rejected / Expired';
+    if (orderStatus == 'PAYMENT_PENDING' || paymentStatus == 'PENDING') return 'Awaiting Payment Authorization';
+    if (subStatus.isNotEmpty) return subStatus;
+    return 'Payment Confirmed • Allotment Pending from AMC';
+  }
+
+  factory MfOrderModel.fromJson(Map<String, dynamic> json) {
+    return MfOrderModel(
+      id: json['_id']?.toString() ?? '',
+      orderId: json['orderId']?.toString() ?? '',
+      schemeCode: json['schemeCode']?.toString() ?? '',
+      schemeName: json['schemeName']?.toString() ?? 'Mutual Fund Investment',
+      transactionType: json['transactionType']?.toString() ?? 'P',
+      orderAmount: (json['orderAmount'] as num?)?.toDouble() ?? 0.0,
+      estimatedUnits: (json['estimatedUnits'] as num?)?.toDouble() ?? 0.0,
+      allottedUnits: (json['allottedUnits'] as num?)?.toDouble() ?? 0.0,
+      allottedNav: (json['allottedNav'] as num?)?.toDouble(),
+      navAtOrder: (json['navAtOrder'] as num?)?.toDouble(),
+      orderStatus: json['orderStatus']?.toString() ?? 'PAYMENT_PENDING',
+      paymentStatus: json['paymentStatus']?.toString() ?? 'PENDING',
+      allotmentStatus: json['allotmentStatus']?.toString() ?? 'PENDING',
+      paymentLink: json['paymentLink']?.toString(),
+      nseTrxnOrderId: json['nseTrxnOrderId']?.toString(),
+      nseStatus: json['nseStatus']?.toString(),
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      displayStatus: json['displayStatus']?.toString() ?? 'Order Placed',
+      subStatus: json['subStatus']?.toString() ?? '',
+      expectedAllotmentDate: json['expectedAllotmentDate']?.toString() ?? 'Tomorrow',
+      isPaymentDone: json['isPaymentDone'] == true ||
+          json['paymentStatus'] == 'SUCCESS' ||
+          json['orderStatus'] == 'PROCESSING' ||
+          json['orderStatus'] == 'PAYMENT_SUCCESS',
+    );
+  }
+}
+
