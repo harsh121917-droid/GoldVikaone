@@ -12,16 +12,16 @@ class DigiGoldBinding extends Bindings {
   @override
   void dependencies() {
     if (!Get.isRegistered<GoldRepository>()) {
-      Get.lazyPut<GoldRepository>(() => GoldRepository());
+      Get.lazyPut<GoldRepository>(() => GoldRepository(), fenix: true);
     }
     if (!Get.isRegistered<WalletRepository>()) {
-      Get.lazyPut<WalletRepository>(() => WalletRepository());
+      Get.lazyPut<WalletRepository>(() => WalletRepository(), fenix: true);
     }
     if (!Get.isRegistered<GoldController>()) {
-      Get.put(GoldController());
+      Get.put(GoldController(), permanent: true);
     }
     if (!Get.isRegistered<WalletController>()) {
-      Get.put(WalletController());
+      Get.put(WalletController(), permanent: true);
     }
   }
 }

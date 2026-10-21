@@ -1,9 +1,7 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../../core/services/auth_service.dart';
-import '../../../core/services/lock_service.dart';
 import '../../../routes/app_routes.dart';
 
 class SplashView extends StatefulWidget {
@@ -61,14 +59,7 @@ class _SplashViewState extends State<SplashView>
 
   void _navigateToNextScreen() {
     if (!mounted) return;
-    final auth = Get.find<AuthService>();
-    final lock = Get.find<LockService>();
-
-    final String nextRoute = !auth.isLoggedIn
-        ? AppRoutes.login
-        : (lock.pinActive.value ? AppRoutes.lockScreen : AppRoutes.home);
-
-    Get.offAllNamed(nextRoute);
+    Get.offAllNamed(AppRoutes.investmentChoice);
   }
 
   @override
@@ -317,12 +308,12 @@ class _SplashViewState extends State<SplashView>
                         ),
                         SizedBox(width: 8),
                         Text(
-                          'GOLD  •  SILVER  •  JEWELLERY',
+                          'DIGITAL GOLD  •  MUTUAL FUNDS  •  SILVER',
                           style: TextStyle(
                             color: Color(0xFFEDF3EF),
-                            fontSize: 11,
+                            fontSize: 10.5,
                             fontWeight: FontWeight.w800,
-                            letterSpacing: 2.2,
+                            letterSpacing: 1.8,
                           ),
                         ),
                       ],
@@ -330,7 +321,7 @@ class _SplashViewState extends State<SplashView>
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    '24K Gold  •  99.9% Pure Silver  •  Certified Jewellery',
+                    '24K Pure Gold  •  NSE Mutual Funds  •  Secure SIPs',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Color(0xFF7C9689),
@@ -341,7 +332,7 @@ class _SplashViewState extends State<SplashView>
                   ),
                   const Spacer(flex: 3),
                   SizedBox(
-                    width: 140,
+                    width: 160,
                     child: Column(
                       children: [
                         ClipRRect(
@@ -356,14 +347,14 @@ class _SplashViewState extends State<SplashView>
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Secured & Certified',
+                          'SEBI Regulated MF  •  100% Insured Gold',
                           style: TextStyle(
                             color: const Color(
                               0xFF7C9689,
-                            ).withValues(alpha: 0.7),
+                            ).withValues(alpha: 0.8),
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            letterSpacing: 1.2,
+                            letterSpacing: 0.8,
                           ),
                         ),
                       ],

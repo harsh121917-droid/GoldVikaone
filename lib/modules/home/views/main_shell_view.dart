@@ -13,8 +13,10 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
 import '../../../core/localization/localization_service.dart';
 
-class MainShellView extends GetView<MainShellController> {
+class MainShellView extends StatelessWidget {
   const MainShellView({super.key});
+
+  MainShellController get controller => Get.isRegistered<MainShellController>() ? Get.find<MainShellController>() : Get.put(MainShellController(), permanent: true);
 
   @override
   Widget build(BuildContext context) {

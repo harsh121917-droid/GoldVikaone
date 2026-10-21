@@ -278,17 +278,62 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
               const SizedBox(height: 20),
             ],
 
-            // ── Payment Mode ──
+            // ── Payment Mode (Strictly Official NSE Gateway) ──
             Text('Payment Method', style: TextStyle(color: textSecondary, fontSize: 13)),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                // Razorpay removed - pure NSE MF II
-                const SizedBox(width: 8),
-                _buildPayModeChip('NSE_GATEWAY', Icons.account_balance_wallet_rounded),
-                const SizedBox(width: 8),
-                _buildPayModeChip('MANDATE', Icons.autorenew_rounded),
-              ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.accent.withOpacity(0.4), width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.account_balance_rounded, color: AppColors.accent, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              'Official NSE Gateway',
+                              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF10B981),
+                                borderRadius: BorderRadius.all(Radius.circular(4)),
+                              ),
+                              child: const Text(
+                                'NSE MFSS',
+                                style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Direct payment via UPI (GPay/PhonePe), NetBanking & NEFT',
+                          style: TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
+                ],
+              ),
             ),
             const SizedBox(height: 24),
 
@@ -411,37 +456,6 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
               );
             }),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPayModeChip(String mode, IconData icon) {
-    final isSel = _paymentMode == mode;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _paymentMode = mode),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSel ? AppColors.accent.withOpacity(0.15) : Colors.transparent,
-            border: Border.all(color: isSel ? AppColors.accent : Colors.grey.withOpacity(0.3), width: isSel ? 1.5 : 1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: isSel ? AppColors.accent : Colors.grey, size: 20),
-              const SizedBox(height: 4),
-              Text(
-                mode,
-                style: TextStyle(
-                  color: isSel ? AppColors.accent : Colors.grey,
-                  fontSize: 11,
-                  fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

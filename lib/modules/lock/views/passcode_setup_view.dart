@@ -102,7 +102,15 @@ class _PasscodeSetupViewState extends State<PasscodeSetupView>
     if (result == true) {
       await LockService.to.enableBiometric(true);
     }
-    if (mounted) Get.offAllNamed(AppRoutes.home);
+    if (mounted) {
+      final String? dest = Get.arguments?['destination'] as String?;
+      if (dest != null && dest.isNotEmpty && dest != AppRoutes.home) {
+        Get.offAllNamed(AppRoutes.home);
+        Get.toNamed(dest);
+      } else {
+        Get.offAllNamed(AppRoutes.home);
+      }
+    }
   }
 
   void _skip() => Get.offAllNamed(AppRoutes.home);
@@ -257,7 +265,15 @@ class _LockScreenViewState extends State<LockScreenView>
 
   void _unlock() {
     LockService.to.setUnlocking(false);
-    if (mounted) Get.offAllNamed(AppRoutes.home);
+    if (mounted) {
+      final String? dest = Get.arguments?['destination'] as String?;
+      if (dest != null && dest.isNotEmpty && dest != AppRoutes.home) {
+        Get.offAllNamed(AppRoutes.home);
+        Get.toNamed(dest);
+      } else {
+        Get.offAllNamed(AppRoutes.home);
+      }
+    }
   }
 
   void _onKey(String k) {

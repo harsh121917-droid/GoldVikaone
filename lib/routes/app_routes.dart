@@ -10,6 +10,7 @@ import 'package:vika1/modules/home/views/main_shell_view.dart';
 import 'package:vika1/modules/auth/bindings/auth_binding.dart';
 import 'package:vika1/modules/auth/views/login_view.dart';
 import 'package:vika1/modules/auth/views/splash_view.dart';
+import 'package:vika1/modules/auth/views/investment_choice_view.dart';
 import 'package:vika1/modules/auth/views/register_view.dart';
 import 'package:vika1/modules/auth/views/forgot_password_view.dart';
 import 'package:vika1/modules/kyc/bindings/kyc_binding.dart';
@@ -69,6 +70,7 @@ import 'package:vika1/modules/orders/views/my_orders_view.dart';
 
 abstract class AppRoutes {
   static const splash = '/splash';
+  static const investmentChoice = '/investment-choice';
   static const orders = '/orders';
   static const login = '/login';
   static const register = '/register';
@@ -122,6 +124,10 @@ final appPages = [
   GetPage(
     name: AppRoutes.splash,
     page: () => const SplashView(),
+  ),
+  GetPage(
+    name: AppRoutes.investmentChoice,
+    page: () => const InvestmentChoiceView(),
   ),
   GetPage(
     name: AppRoutes.update,

@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import '../views/mf_ucc_onboarding_view.dart';
 import '../views/mf_cart_view.dart';
 import '../views/mf_ucc_auth_webview.dart';
+import '../views/mf_payment_webview.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -1047,15 +1048,8 @@ class MutualFundsController extends GetxController {
   }
 
   Future<void> openNsePaymentGateway(String paymentUrl, {required String title, required String message}) async {
-    final uri = Uri.parse(paymentUrl);
-    try {
-      final launched = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-      if (!launched) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (_) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    final cleanUrl = paymentUrl.trim();
+    if (cleanUrl.isEmpty) return;
 
     Get.snackbar(
       title,
@@ -1063,8 +1057,26 @@ class MutualFundsController extends GetxController {
       backgroundColor: const Color(0xFF00D09C),
       colorText: Colors.black,
       snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 6),
+      duration: const Duration(seconds: 5),
     );
+
+    // Open dedicated In-App NSE Payment WebView directly
+    try {
+      await Get.to(() => MfPaymentWebView(
+        paymentUrl: cleanUrl,
+        title: title,
+      ));
+    } catch (_) {
+      final uri = Uri.parse(cleanUrl);
+      try {
+        final launched = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+        if (!launched) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      } catch (_) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    }
   }
 
   // ── Groww-Style In-App UPI Collect Modal with Live Exchange Status Polling ──
@@ -1405,7 +1417,7 @@ class MutualFundsController extends GetxController {
     required double orderAmount,
     String? schemeName,
     String? folioNo,
-    String paymentMode = 'UPI',
+    String paymentMode = 'NSE_GATEWAY',
     String? vpa,
   }) async {
     isSubmittingOrder.value = true;
@@ -1560,6 +1572,7 @@ class MutualFundsController extends GetxController {
           );
         }
         fetchPortfolio();
+        fetchMyOrders();
         return true;
       } else {
         final code = (res.data is Map) ? res.data['code']?.toString() : null;

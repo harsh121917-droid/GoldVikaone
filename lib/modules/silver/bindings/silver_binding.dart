@@ -10,16 +10,16 @@ class SilverBinding extends Bindings {
   @override
   void dependencies() {
     if (!Get.isRegistered<SilverRepository>()) {
-      Get.lazyPut<SilverRepository>(() => SilverRepository());
+      Get.lazyPut<SilverRepository>(() => SilverRepository(), fenix: true);
     }
     if (!Get.isRegistered<WalletRepository>()) {
-      Get.lazyPut<WalletRepository>(() => WalletRepository());
+      Get.lazyPut<WalletRepository>(() => WalletRepository(), fenix: true);
     }
     if (!Get.isRegistered<SilverController>()) {
-      Get.put(SilverController());
+      Get.put(SilverController(), permanent: true);
     }
     if (!Get.isRegistered<WalletController>()) {
-      Get.put(WalletController());
+      Get.put(WalletController(), permanent: true);
     }
   }
 }

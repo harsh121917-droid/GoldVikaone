@@ -24,7 +24,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
   late bool _isSip;
   String _amountStr = '1000';
   int _selectedDay = 25; // Default 25th of every month as shown in screenshot
-  String _paymentMethod = 'UPI';
+  String _paymentMethod = 'NSE_GATEWAY';
   String _vpa = '';
 
   final List<int> _allowedDates = const [1, 5, 10, 15, 20, 25, 28];
@@ -36,7 +36,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     try {
       _vpa = GetStorage().read('mf_saved_vpa')?.toString() ?? '';
     } catch (_) {}
-    _paymentMethod = _isSip ? 'MANDATE' : 'UPI';
+    _paymentMethod = 'NSE_GATEWAY';
     final minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
     _amountStr = minAmount != null ? minAmount.toInt().toString() : '';
     controller.checkUserUcc();
@@ -283,7 +283,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                             final val = vpaCtrl.text.trim();
                             setState(() {
                               _vpa = val;
-                              _paymentMethod = 'UPI';
+                              _paymentMethod = 'NSE_GATEWAY';
                             });
                             try {
                               GetStorage().write('mf_saved_vpa', val);
@@ -347,67 +347,6 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
             const SizedBox(height: 16),
             Text('Select Payment Mode', style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            if (_isSip) ...[
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: mintGreen.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(Icons.autorenew_rounded, color: mintGreen, size: 22),
-                ),
-                title: Text('$bName (AutoPay Mandate)', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                subtitle: Text('A/C ••••$accNo • Automatic monthly debit via NPCI e-NACH on ${_selectedDay}th', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
-                trailing: _paymentMethod == 'MANDATE' ? Icon(Icons.check_circle_rounded, color: mintGreen) : null,
-                onTap: () {
-                  setState(() => _paymentMethod = 'MANDATE');
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(color: Color(0xFF1E2638)),
-            ],
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: mintGreen.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.flash_on_rounded, color: mintGreen, size: 22),
-              ),
-              title: const Text('Google Pay / PhonePe / Paytm (UPI)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-              subtitle: Text(
-                _vpa.isNotEmpty ? 'Collect request to $_vpa' : 'Direct collect request to your UPI app',
-                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_vpa.isNotEmpty)
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _openVpaInputDialog();
-                      },
-                      child: Text('Edit', style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.bold)),
-                    ),
-                  if (_paymentMethod == 'UPI') Icon(Icons.check_circle_rounded, color: mintGreen),
-                ],
-              ),
-              onTap: () {
-                if (_vpa.isEmpty) {
-                  Navigator.pop(context);
-                  _openVpaInputDialog();
-                } else {
-                  setState(() => _paymentMethod = 'UPI');
-                  Navigator.pop(context);
-                }
-              },
-            ),
-            const Divider(color: Color(0xFF1E2638)),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Container(
@@ -416,16 +355,40 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                   color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF3B82F6), size: 22),
+                child: const Icon(Icons.account_balance_rounded, color: Color(0xFF3B82F6), size: 22),
               ),
-              title: const Text('NetBanking & NEFT (NSE Gateway)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-              subtitle: const Text('Official NSE Clearing Limited web portal', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 12, fontWeight: FontWeight.w500)),
-              trailing: _paymentMethod == 'NSE_GATEWAY' ? Icon(Icons.check_circle_rounded, color: mintGreen) : null,
+              title: const Text('Official NSE Gateway', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              subtitle: const Text('Official NSE Clearing Limited payment portal • Pay via UPI (GPay/PhonePe/Paytm), NetBanking or NEFT', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 12, fontWeight: FontWeight.w500)),
+              trailing: Icon(Icons.check_circle_rounded, color: mintGreen),
               onTap: () {
                 setState(() => _paymentMethod = 'NSE_GATEWAY');
                 Navigator.pop(context);
               },
             ),
+            if (_isSip) ...[
+              const Divider(color: Color(0xFF1E2638)),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: mintGreen.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.verified_user_rounded, color: mintGreen, size: 22),
+                ),
+                title: Text('$bName (AutoPay Mandate)', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                subtitle: Text('A/C ••••$accNo • Recurring monthly debit via NPCI e-NACH on ${_selectedDay}th', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: mintGreen.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text('LINKED', style: TextStyle(color: mintGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
           ],
         ),
@@ -463,7 +426,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
           onSwitchToLumpSum: () {
             setState(() {
               _isSip = false;
-              _paymentMethod = 'UPI';
+              _paymentMethod = 'NSE_GATEWAY';
               final minAmt = widget.scheme.minPurchaseAmount;
               if (minAmt != null && _amount < minAmt) {
                 _amountStr = minAmt.toInt().toString();
@@ -503,16 +466,11 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
         Navigator.pop(context);
       }
     } else {
-      if (_paymentMethod == 'UPI' && _vpa.isEmpty) {
-        _openVpaInputDialog(thenSubmit: true);
-        return;
-      }
       final success = await controller.createPurchaseOrder(
         schemeCode: widget.scheme.schemeCode,
         schemeName: widget.scheme.schemeName,
         orderAmount: _amount,
-        paymentMode: _paymentMethod,
-        vpa: _paymentMethod == 'UPI' ? _vpa : '',
+        paymentMode: 'NSE_GATEWAY',
       );
       if (success) {
         if (!mounted) return;
@@ -549,7 +507,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
               onPressed: () {
                 setState(() {
                   _isSip = !_isSip;
-                  _paymentMethod = _isSip ? 'MANDATE' : 'UPI';
+                  _paymentMethod = 'NSE_GATEWAY';
                   final minAmt = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
                   if (minAmt != null && _amount < minAmt) {
                     _amountStr = minAmt.toInt().toString();
@@ -693,25 +651,13 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
               String badgeText;
               String subtitle;
 
-              if (_paymentMethod == 'MANDATE') {
-                icon = Icons.autorenew_rounded;
-                iconColor = mintGreen;
-                title = 'Bank AutoPay ($bName)';
-                badgeText = 'AUTO-DEBIT';
-                subtitle = '••••$accNo • Auto-debits on ${_selectedDay}th of month';
-              } else if (_paymentMethod == 'UPI') {
-                icon = Icons.flash_on_rounded;
-                iconColor = mintGreen;
-                title = 'Google Pay / PhonePe (UPI)';
-                badgeText = 'INSTANT';
-                subtitle = _vpa.isNotEmpty ? 'Collect request to $_vpa' : 'Tap to enter UPI ID / VPA';
-              } else {
-                icon = Icons.account_balance_rounded;
-                iconColor = const Color(0xFF3B82F6);
-                title = 'Official NSE Gateway';
-                badgeText = 'NETBANKING';
-                subtitle = 'Direct payment to NSE Clearing Limited';
-              }
+              icon = Icons.account_balance_rounded;
+              iconColor = const Color(0xFF3B82F6);
+              title = 'Official NSE Gateway';
+              badgeText = 'NSE MFSS';
+              subtitle = _isSip
+                  ? 'First order today on NSE • Recurring debit from $bName (••••$accNo)'
+                  : 'Direct payment via UPI (GPay/PhonePe), NetBanking & NEFT';
 
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -788,21 +734,15 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: () {
-                        if (_paymentMethod == 'UPI' && _vpa.isEmpty) {
-                          _openVpaInputDialog();
-                        } else {
-                          _openBankSelector(surface, textPrimary, mintGreen);
-                        }
-                      },
+                      onTap: () => _openBankSelector(surface, textPrimary, mintGreen),
                       child: Row(
                         children: [
-                          Text(
-                            _paymentMethod == 'UPI' && _vpa.isEmpty ? 'Enter UPI ID' : 'Change',
-                            style: const TextStyle(color: mintGreen, fontSize: 13, fontWeight: FontWeight.bold),
+                          const Text(
+                            'NSE Gateway',
+                            style: TextStyle(color: Color(0xFF3B82F6), fontSize: 13, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 2),
-                          const Icon(Icons.chevron_right_rounded, color: mintGreen, size: 18),
+                          const Icon(Icons.verified_rounded, color: Color(0xFF3B82F6), size: 18),
                         ],
                       ),
                     ),
@@ -992,7 +932,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                 style: const TextStyle(fontSize: 11.5, height: 1.35, color: Color(0xFF94A3B8)),
                 children: [
                   const TextSpan(text: 'Installment #1: ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  const TextSpan(text: 'Invest today.\n'),
+                  const TextSpan(text: 'Invest today.\r\n'),
                   const TextSpan(text: 'Recurring AutoPay: ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   TextSpan(
                     text: 'Debits start on $nextDebitStr${bufferApplied ? " (7-day exchange mandate buffer applied)" : ""}.',

@@ -8,8 +8,8 @@ import '../../auth/controllers/auth_controller.dart';
 class HomeBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<AuthController>(() => AuthController());
-    Get.lazyPut<MainShellController>(() => MainShellController());
+    if (!Get.isRegistered<AuthController>()) Get.lazyPut<AuthController>(() => AuthController(), fenix: true);
+    if (!Get.isRegistered<MainShellController>()) Get.put(MainShellController(), permanent: true);
     // Shared gold/wallet state, used by every gold-related screen.
     DigiGoldBinding().dependencies();
     // Silver is now a direct shell tab (not a separately-routed page), so its
