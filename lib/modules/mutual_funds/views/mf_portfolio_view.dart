@@ -592,10 +592,73 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              const Divider(color: Colors.white10, height: 1),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    sip.nextDueDate != null
+                        ? 'Next AutoPay: ${sip.nextDueDate!.day}/${sip.nextDueDate!.month}/${sip.nextDueDate!.year}'
+                        : 'Reg No: ${sip.sipRegNo}',
+                    style: TextStyle(color: textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _showCancelSipDialog(context, sip, surface, textPrimary, textSecondary),
+                    icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 16),
+                    label: const Text('Cancel SIP', style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 8)),
+                  ),
+                ],
+              ),
             ],
           ),
         );
       },
+    );
+  }
+
+  void _showCancelSipDialog(BuildContext context, dynamic sip, Color surface, Color textPrimary, Color textSecondary) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24),
+            const SizedBox(width: 8),
+            Text('Cancel SIP?', style: TextStyle(color: textPrimary, fontSize: 17, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to cancel your monthly SIP of ₹${sip.installmentAmount.toInt()} for ${sip.schemeName}?\n\nThis will submit an official cancellation request to the NSE MFSS exchange and stop all future AutoPay deductions from your bank mandate.',
+          style: TextStyle(color: textSecondary, fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Keep Active', style: TextStyle(color: textSecondary, fontWeight: FontWeight.bold)),
+          ),
+          Obx(() => ElevatedButton(
+                onPressed: controller.isCancellingSip.value
+                    ? null
+                    : () async {
+                        Navigator.pop(ctx);
+                        await controller.cancelSip(sip.id);
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: controller.isCancellingSip.value
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Yes, Cancel SIP', style: TextStyle(fontWeight: FontWeight.bold)),
+              )),
+        ],
+      ),
     );
   }
 

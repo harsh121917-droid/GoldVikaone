@@ -385,18 +385,18 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.12),
+                        color: const Color(0xFF00D09C).withOpacity(0.08),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                        border: Border.all(color: const Color(0xFF00D09C).withOpacity(0.2)),
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.science_outlined, color: Color(0xFF10B981), size: 18),
+                          Icon(Icons.verified_user_outlined, color: Color(0xFF00D09C), size: 18),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Sandbox Mode: Orders are immediately allotted & visible in your portfolio.',
-                              style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w600),
+                              'NSE MFSS Exchange Verified • Official Routing via Member 1031616',
+                              style: TextStyle(color: Color(0xFF00D09C), fontSize: 11, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],

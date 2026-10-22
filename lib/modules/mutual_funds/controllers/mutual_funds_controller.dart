@@ -1622,6 +1622,52 @@ class MutualFundsController extends GetxController {
     }
   }
 
+  // ── Cancel Active SIP on NSE Exchange ──
+  final RxBool isCancellingSip = false.obs;
+
+  Future<bool> cancelSip(String sipId) async {
+    isCancellingSip.value = true;
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.post('/mutual-funds/sips//cancel');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final msg = res.data['message']?.toString() ?? 'SIP cancelled successfully on NSE exchange.';
+        Get.snackbar(
+          'SIP Cancelled',
+          msg,
+          backgroundColor: const Color(0xFF00D09C),
+          colorText: Colors.black,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 4),
+        );
+        await fetchPortfolio();
+        return true;
+      } else {
+        final msg = extractErrorMessage(res.data, fallback: 'Failed to cancel SIP.');
+        Get.snackbar(
+          'Cancellation Failed',
+          msg,
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return false;
+      }
+    } catch (e) {
+      final msg = extractErrorMessage(e, fallback: 'Error cancelling SIP. Please try again.');
+      Get.snackbar(
+        'Cancellation Failed',
+        msg,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    } finally {
+      isCancellingSip.value = false;
+    }
+  }
+
   // ── Fetch Portfolio ──
   Future<void> fetchPortfolio() async {
     isPortfolioLoading.value = true;
