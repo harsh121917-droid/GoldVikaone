@@ -21,14 +21,14 @@ class _MfSearchViewState extends State<MfSearchView> {
   Timer? _debounceTimer;
 
   final List<String> trendingSearches = const [
-    'UTI Healthcare',
-    'Parag Parikh Flexi Cap',
+    'High Return',
     'Small Cap',
-    'HDFC Mid Cap',
-    'SBI Gold',
+    'Mid Cap',
+    'Flexi Cap',
     'Index Fund',
     'Tax Saver ELSS',
-    'ICICI Bluechip',
+    'Gold & Silver',
+    'Top Rated Funds',
   ];
 
   @override

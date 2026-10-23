@@ -2116,20 +2116,7 @@ class MutualFundsController extends GetxController {
         }
       }
 
-      // 3. Supplement with local pool of schemes (all cached schemes in controller)
-      final allPool = <MfSchemeModel>[...schemes, ...allSchemes, ...popularSchemesList, ...recentlyViewed];
-      final seenCodes = list.map((s) => s.schemeCode).toSet();
-      for (final s in allPool) {
-        if (seenCodes.contains(s.schemeCode)) continue;
-        final text = '${s.schemeName} ${s.amcName} ${s.subCategory} ${s.category} ${s.schemeCode}'
-            .replaceAll(RegExp(r'[^a-zA-Z0-9\s]'), ' ')
-            .toLowerCase();
-        if (cleanTokens.every((t) => text.contains(t))) {
-          list.add(s);
-          seenCodes.add(s.schemeCode);
-        }
-      }
-
+      // Server search is the authoritative source. Hidden/disabled AMCs are excluded.
       searchResults.assignAll(list);
     } catch (e) {
       debugPrint('[MutualFundsController] executeLiveSearch error: $e');

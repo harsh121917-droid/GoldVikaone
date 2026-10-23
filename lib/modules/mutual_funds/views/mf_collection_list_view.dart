@@ -135,7 +135,7 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
 
       final res = await dio.get('/mutual-funds/schemes', queryParameters: {
         'collection': widget.collectionId,
-        'limit': 50,
+        'limit': widget.collectionId == 'high_return' ? 15 : 50,
       });
       if (res.statusCode == 200 && res.data['success'] == true) {
         fetched = (res.data['data'] as List<dynamic>?)
@@ -207,6 +207,19 @@ class _MfCollectionListViewState extends State<MfCollectionListView> {
       }
 
       return curated;
+    }
+
+    if (widget.collectionId == 'high_return') {
+      // Return top 15 flagship high-return mutual funds sorted by 3Y CAGR
+      final seen = <String>{};
+      final List<MfSchemeModel> curated = [];
+      for (final s in rawList) {
+        final key = s.schemeCode.isNotEmpty ? s.schemeCode : s.schemeName;
+        if (seen.add(key)) {
+          curated.add(s);
+        }
+      }
+      return curated.take(15).toList();
     }
 
     // For other collections:
