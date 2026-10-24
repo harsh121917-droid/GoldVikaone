@@ -55,6 +55,8 @@ class MfHolding {
   final double profitLoss;
   final double profitLossPct;
   final double? pendingUnits;
+  final double? day1ChangeAmount;
+  final double? day1ChangePct;
 
   MfHolding({
     required this.schemeCode,
@@ -75,6 +77,8 @@ class MfHolding {
     required this.profitLoss,
     required this.profitLossPct,
     this.pendingUnits,
+    this.day1ChangeAmount,
+    this.day1ChangePct,
   });
 
   factory MfHolding.fromJson(Map<String, dynamic> json) {
@@ -101,6 +105,8 @@ class MfHolding {
       profitLoss: (json['profitLoss'] as num?)?.toDouble() ?? 0.0,
       profitLossPct: (json['profitLossPct'] as num?)?.toDouble() ?? 0.0,
       pendingUnits: (json['pendingUnits'] as num?)?.toDouble(),
+      day1ChangeAmount: (json['day1ChangeAmount'] as num?)?.toDouble() ?? (json['todayChangeAmount'] as num?)?.toDouble(),
+      day1ChangePct: (json['day1ChangePct'] as num?)?.toDouble() ?? (json['todayChangePct'] as num?)?.toDouble(),
     );
   }
 }

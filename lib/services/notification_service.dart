@@ -173,6 +173,24 @@ class NotificationService {
     link = link.replaceAll('http://vikaone.com/', '');
     if (link.startsWith('/')) link = link.substring(1);
 
+    // ── Mutual Fund Intelligent Deep Linking ──
+    if (link.contains('tab=sips') || link.startsWith('mutual_funds/sip') || link == 'mf_sip' || link == 'mf_sips') {
+      Get.toNamed(AppRoutes.mfPortfolio, arguments: {'tab': 'sips'});
+      return;
+    }
+    if (link.contains('tab=orders') || link.startsWith('mutual_funds/order') || link == 'mf_order' || link == 'mf_orders') {
+      Get.toNamed(AppRoutes.mfPortfolio, arguments: {'tab': 'orders'});
+      return;
+    }
+    if (link.startsWith('mutual_funds/portfolio') || link == 'mf_portfolio') {
+      Get.toNamed(AppRoutes.mfPortfolio, arguments: {'tab': 'dashboard'});
+      return;
+    }
+    if (link == 'mutual_funds' || link == 'mutualfunds' || link == 'mf') {
+      Get.toNamed(AppRoutes.mutualFunds);
+      return;
+    }
+
     switch (link) {
       case 'buy_gold':
       case 'buygold':
@@ -210,6 +228,18 @@ class NotificationService {
 
       case 'kyc':
         Get.toNamed(AppRoutes.kyc);
+        break;
+
+      case 'bank':
+      case 'banks':
+      case 'wallet/banks':
+      case 'bank_accounts':
+        Get.toNamed(AppRoutes.bankAccounts);
+        break;
+
+      case 'mutual_funds/portfolio':
+      case 'mf_portfolio':
+        Get.toNamed(AppRoutes.mfPortfolio);
         break;
 
       case 'orders':

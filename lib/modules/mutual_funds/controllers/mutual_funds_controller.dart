@@ -296,6 +296,107 @@ class MutualFundsController extends GetxController {
     }
   }
 
+  // ── Multi-Fund Cart Checkout via Official NSE MF II Gateway ──
+  final RxBool isCartCheckingOut = false.obs;
+
+  Future<Map<String, dynamic>?> checkoutCart({
+    List<String>? selectedItemIds,
+    List<Map<String, dynamic>>? customItems,
+    String paymentMode = 'NSE_PAYMENT_LINK',
+    String? vpa,
+  }) async {
+    try {
+      isCartCheckingOut.value = true;
+      final payload = {
+        if (selectedItemIds != null && selectedItemIds.isNotEmpty) 'selectedItemIds': selectedItemIds,
+        if (customItems != null && customItems.isNotEmpty) 'items': customItems,
+        'paymentMode': paymentMode,
+        if (vpa != null && vpa.trim().isNotEmpty) 'vpa': vpa.trim(),
+      };
+
+      final res = await ApiClient.instance.post('/mutual-funds/cart/checkout', data: payload);
+
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final data = res.data['data'] as Map<String, dynamic>?;
+        final primaryPaymentLink = data?['primaryPaymentLink']?.toString();
+        final serverPaymentMode = data?['paymentMode']?.toString() ?? paymentMode;
+        final totalAmount = (data?['totalAmount'] as num?)?.toDouble() ?? 0.0;
+        final totalFunds = data?['totalFunds'] ?? (selectedItemIds?.length ?? 1);
+
+        final paymentLinks = (data?['paymentLinks'] as List<dynamic>?) ?? [];
+        final distinctLinks = <String>{};
+        if (primaryPaymentLink != null && primaryPaymentLink.isNotEmpty) {
+          distinctLinks.add(primaryPaymentLink);
+        }
+        for (final item in paymentLinks) {
+          if (item is Map && item['paymentLink'] != null) {
+            final link = item['paymentLink'].toString().trim();
+            if (link.isNotEmpty) distinctLinks.add(link);
+          }
+        }
+
+        // Immediately refresh Cart and Portfolio so orders are reflected
+        await fetchCart();
+        fetchPortfolio();
+        fetchMyOrders();
+
+        if (serverPaymentMode == 'UPI' && vpa != null && vpa.isNotEmpty) {
+          await showUpiApprovalModal(
+            orderId: 'Cart-${totalFunds}-funds',
+            orderAmount: totalAmount,
+            vpa: vpa,
+            schemeName: '${totalFunds} Mutual Funds (Basket)',
+            paymentLink: primaryPaymentLink,
+            nseTrxnOrderId: data?['nsePaymentRefNo']?.toString(),
+          );
+        } else if (distinctLinks.isNotEmpty) {
+          final linkList = distinctLinks.toList();
+          for (int i = 0; i < linkList.length; i++) {
+            final isMulti = linkList.length > 1;
+            await openNsePaymentGateway(
+              linkList[i],
+              title: isMulti ? 'NSE Gateway (Fund ${i + 1} of ${linkList.length})' : 'NSE Exchange Basket Payment',
+              message: isMulti
+                  ? 'Official NSE gateway opened for fund ${i + 1}. Complete UPI or NetBanking payment to proceed.'
+                  : 'Official NSE gateway opened for $totalFunds mutual funds. Select UPI or NetBanking to complete payment.',
+            );
+          }
+        }
+
+        return data;
+      } else {
+        final code = (res.data is Map) ? res.data['code']?.toString() : null;
+        final errMsg = extractErrorMessage(res.data, fallback: 'Could not complete checkout for selected mutual funds.');
+        if (code == 'NSE_UCC_NOT_READY') {
+          showUccRequiredDialog();
+        } else {
+          Get.snackbar(
+            'Checkout Failed',
+            errMsg,
+            backgroundColor: Colors.redAccent,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.BOTTOM,
+            duration: const Duration(seconds: 4),
+          );
+        }
+        return null;
+      }
+    } catch (e) {
+      debugPrint('[checkoutCart error]: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to connect to checkout service. Please try again.',
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return null;
+    } finally {
+      isCartCheckingOut.value = false;
+    }
+  }
+
+
   // ── Mutual Funds NFO Operations ──
   Future<void> fetchNfos() async {
     try {

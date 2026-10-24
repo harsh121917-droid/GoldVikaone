@@ -17,6 +17,7 @@ import 'widgets/mf_skeleton_widgets.dart';
 import 'mf_cart_view.dart';
 import '../../../data/models/mf_portfolio_model.dart';
 import 'mf_portfolio_view.dart';
+import 'mf_investment_checkout_sheet.dart';
 
 class MfHomeView extends StatefulWidget {
   const MfHomeView({Key? key}) : super(key: key);
@@ -31,6 +32,8 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isSearchOpen = false;
+  final RxBool _hideBalance = false.obs;
+  final RxString _selectedSortCriteria = 'Current (High to Low)'.obs;
 
   @override
   void initState() {
@@ -1575,7 +1578,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 2. DASHBOARD TAB
+  // 2. DASHBOARD TAB (Groww Dashboard: Hero Card, Sort, Holdings & Actions)
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildDashboardTab() {
     return Obx(() {
@@ -1587,6 +1590,156 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
         return const Center(child: CircularProgressIndicator(color: GrowwColors.mintTeal));
       }
 
+      if (holdings.isEmpty) {
+        if (inProgress.isNotEmpty) {
+          return RefreshIndicator(
+            color: GrowwColors.mintTeal,
+            backgroundColor: GrowwColors.card,
+            onRefresh: () async {
+              await Future.wait([
+                controller.fetchPortfolio(),
+                controller.fetchMyOrders(),
+              ]);
+            },
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF59E0B),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Orders in progress (${inProgress.length})',
+                          style: const TextStyle(
+                            color: GrowwColors.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    TextButton(
+                      onPressed: () => _showAllOrdersSheet(context),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text(
+                        'View All Orders',
+                        style: TextStyle(color: GrowwColors.mintTeal, fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ...inProgress.map((order) => _buildInProgressOrderCard(order)),
+                const SizedBox(height: 20),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B).withOpacity(0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.hourglass_top_rounded, color: Color(0xFFF59E0B), size: 40),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Orders Awaiting Allotment',
+                          style: TextStyle(color: GrowwColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Your mutual fund purchases have been submitted to NSE MFSS. Units will appear here once allotted by the AMC.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13, height: 1.4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          color: GrowwColors.mintTeal,
+          backgroundColor: GrowwColors.card,
+          onRefresh: () async {
+            await Future.wait([
+              controller.fetchPortfolio(),
+              controller.fetchMyOrders(),
+            ]);
+          },
+          child: ListView(
+            padding: const EdgeInsets.all(24),
+            children: [
+              const SizedBox(height: 40),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: GrowwColors.mintTeal.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.pie_chart_outline_rounded, color: GrowwColors.mintTeal, size: 48),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Center(
+                child: Text(
+                  'No Mutual Fund Holdings Yet',
+                  style: TextStyle(color: GrowwColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Center(
+                child: Text(
+                  'Start systematic wealth accumulation in top Regular mutual funds with live NSE execution.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13, height: 1.4),
+                ),
+              ),
+              const SizedBox(height: 22),
+              Center(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: GrowwColors.mintTeal,
+                    foregroundColor: Colors.black,
+                    minimumSize: const Size(0, 46),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                  icon: const Icon(Icons.trending_up_rounded, size: 18),
+                  label: const Text('Explore Mutual Funds', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5)),
+                  onPressed: () => _tabController.animateTo(0),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      final sorted = _sortedHoldings;
+
       return RefreshIndicator(
         color: GrowwColors.mintTeal,
         backgroundColor: GrowwColors.card,
@@ -1597,249 +1750,1765 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           ]);
         },
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.only(top: 8, bottom: 32),
           children: [
-            // Total Portfolio Value Card
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF141D2B), Color(0xFF0F1722)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: GrowwColors.border),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Total Portfolio Value', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 6),
-                  Text(
-                    '₹${summary?.currentValuation.toStringAsFixed(2) ?? '0.00'}',
-                    style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 28, fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Total Invested', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
-                          const SizedBox(height: 4),
-                          Text(
-                            '₹${summary?.totalInvested.toStringAsFixed(2) ?? '0.00'}',
-                            style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text('Overall Return', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: GrowwColors.mintTeal.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              '+${summary?.totalProfitLoss.toStringAsFixed(2) ?? '0.00'} (+${summary?.totalProfitLossPct.toStringAsFixed(2) ?? '0.00'}%)',
-                              style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // ── In-Progress Orders (Groww / Fisdom style) ──
+            // In-progress orders banner if any
             if (inProgress.isNotEmpty) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF59E0B),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Orders in progress (${inProgress.length})',
-                        style: const TextStyle(
-                          color: GrowwColors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  TextButton(
-                    onPressed: () => _showAllOrdersSheet(context),
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text(
-                      'View All Orders',
-                      style: TextStyle(color: GrowwColors.mintTeal, fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ...inProgress.map((order) => _buildInProgressOrderCard(order)),
-              const SizedBox(height: 20),
-            ],
-
-            // Holdings Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Your Investments',
-                  style: TextStyle(color: GrowwColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                if (holdings.isNotEmpty)
-                  GestureDetector(
-                    onTap: () => Get.to(() => const MfPortfolioView()),
-                    child: const Text(
-                      'View Portfolio',
-                      style: TextStyle(color: GrowwColors.mintTeal, fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            if (holdings.isEmpty && inProgress.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: GrowwColors.card,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: GrowwColors.border),
-                ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF00D09C).withOpacity(0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.hourglass_top_rounded, color: Color(0xFF00D09C), size: 22),
-                    ),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Holdings will update soon',
-                            style: TextStyle(color: GrowwColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Your investment order is registered with NSE MFSS. Units will be allotted within 1-2 business days as per AMC cut-off and appear in your portfolio.',
-                            style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12, height: 1.35),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else if (holdings.isEmpty)
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-                decoration: BoxDecoration(
-                  color: GrowwColors.card,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: GrowwColors.border),
-                ),
-                child: Column(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.asset(
-                        'assets/images/Mutual_Funds/mf_empty_portfolio_3d.jpg',
-                        width: 110,
-                        height: 110,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text('No investments yet', style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 6),
-                    const Text('Start investing in direct mutual funds with 0% brokerage', textAlign: TextAlign.center, style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13)),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => _tabController.animateTo(0),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: GrowwColors.mintTeal,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: const Text('Explore Funds', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              )
-            else
-              ...holdings.map((h) => Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: GrowwColors.card,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: GrowwColors.border),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
-                        Text(h.schemeName, style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Invested', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11)),
-                                Text('₹${h.investedAmount.toStringAsFixed(0)}', style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
-                              ],
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                const Text('Current Value', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11)),
-                                Text('₹${h.currentValue.toStringAsFixed(0)}', style: const TextStyle(color: GrowwColors.mintTeal, fontWeight: FontWeight.bold, fontSize: 13)),
-                              ],
-                            ),
-                          ],
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF59E0B),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Orders in progress (${inProgress.length})',
+                          style: const TextStyle(
+                            color: GrowwColors.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
-                  )),
+                    TextButton(
+                      onPressed: () => _showAllOrdersSheet(context),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text(
+                        'View All Orders',
+                        style: TextStyle(color: GrowwColors.mintTeal, fontSize: 12.5, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildInProgressOrderCard(inProgress.first),
+              ),
+              const SizedBox(height: 10),
+            ],
+
+            // 1. Groww Hero Card (HOLDINGS X, Eye Toggle, 1D & Total Returns in RED/GREEN, Invested, XIRR)
+            _buildGrowwHeroCard(summary),
+
+            // 2. Sort & Filter Row (< > Current (Invested))
+            _buildFilterSortRow(),
+
+            // 3. Holdings List (Scheme Name, Logo, Current Value, Invested, Loss in RED with -, Profit in GREEN with +)
+            ...sorted.map((item) => _buildGrowwHoldingItem(item)),
+
+            // 4. Promotional SIP Banner
+            _buildSipPromotionBanner(),
           ],
         ),
       );
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Groww Hero Summary Card
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildGrowwHeroCard(dynamic summary) {
+    final double valuation = summary?.currentValuation ??
+        controller.holdings.fold<double>(0.0, (acc, h) => acc + h.currentValue);
+    final double invested = summary?.totalInvested ??
+        controller.holdings.fold<double>(0.0, (acc, h) => acc + h.investedAmount);
+    final double pnl = summary?.totalProfitLoss ?? (valuation - invested);
+    final double pnlPct = invested > 0 ? (pnl / invested) * 100 : 0.0;
+
+    final double day1Amount = summary?.todayChangeAmount ??
+        controller.holdings.fold<double>(0.0, (acc, h) => acc + (h.day1ChangeAmount ?? 0.0));
+    final double day1Pct = summary?.todayChangePct ??
+        (valuation > 0 ? (day1Amount / valuation) * 100 : 0.0);
+    final double? xirr = summary?.xirr;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: GrowwColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: GrowwColors.border,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row: HOLDINGS (X) with eye icon & analytics icon
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'HOLDINGS (${controller.holdings.length})',
+                    style: const TextStyle(
+                      color: GrowwColors.textSecondary,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => _hideBalance.toggle(),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: Icon(
+                        _hideBalance.value ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        size: 16,
+                        color: GrowwColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () => _showPortfolioAnalyticsModal(context),
+                borderRadius: BorderRadius.circular(8),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.insights_rounded,
+                    size: 18,
+                    color: GrowwColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Big Current Valuation
+          _hideBalance.value
+              ? const Text(
+                  '••••••••',
+                  style: TextStyle(
+                    color: GrowwColors.textPrimary,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                  ),
+                )
+              : Text(
+                  '₹${_formatCurrency(valuation, showDecimals: true)}',
+                  style: const TextStyle(
+                    color: GrowwColors.textPrimary,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+          const SizedBox(height: 14),
+
+          // Divider
+          Container(
+            height: 1,
+            color: GrowwColors.border,
+          ),
+          const SizedBox(height: 12),
+
+          // Row 1: 1D returns
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '1D returns',
+                style: TextStyle(
+                  color: GrowwColors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              _hideBalance.value
+                  ? const Text('••••', style: TextStyle(fontWeight: FontWeight.bold, color: GrowwColors.textPrimary))
+                  : _buildReturnBadge(day1Amount, day1Pct, isLarge: true),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Divider
+          Container(
+            height: 1,
+            color: GrowwColors.border,
+          ),
+          const SizedBox(height: 10),
+
+          // Row 2: Total returns
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total returns',
+                style: TextStyle(
+                  color: GrowwColors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              _hideBalance.value
+                  ? const Text('••••', style: TextStyle(fontWeight: FontWeight.bold, color: GrowwColors.textPrimary))
+                  : _buildReturnBadge(pnl, pnlPct, isLarge: true),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Divider
+          Container(
+            height: 1,
+            color: GrowwColors.border,
+          ),
+          const SizedBox(height: 10),
+
+          // Row 3: Invested
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Invested',
+                style: TextStyle(
+                  color: GrowwColors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              _hideBalance.value
+                  ? const Text('••••', style: TextStyle(fontWeight: FontWeight.bold, color: GrowwColors.textPrimary))
+                  : Text(
+                      '₹${_formatCurrency(invested, showDecimals: true)}',
+                      style: const TextStyle(
+                        color: GrowwColors.textPrimary,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+            ],
+          ),
+
+          // Optional XIRR row if available
+          if (xirr != null && xirr != 0) ...[
+            const SizedBox(height: 10),
+            Container(
+              height: 1,
+              color: GrowwColors.border,
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'XIRR',
+                      style: TextStyle(
+                        color: GrowwColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 13,
+                      color: GrowwColors.textTertiary,
+                    ),
+                  ],
+                ),
+                Text(
+                  '${xirr.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    color: xirr >= 0 ? GrowwColors.mintTeal : GrowwColors.negativeRed,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Sort & Filter Row (< > Current (Invested))
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildFilterSortRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Sort toggle button: Current (Invested)
+          InkWell(
+            onTap: () {
+              if (_selectedSortCriteria.value.startsWith('Current')) {
+                _selectedSortCriteria.value = 'Invested (High to Low)';
+              } else {
+                _selectedSortCriteria.value = 'Current (High to Low)';
+              }
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: GrowwColors.card,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: GrowwColors.border),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.unfold_more_rounded,
+                    size: 15,
+                    color: GrowwColors.mintTeal,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    _selectedSortCriteria.value.startsWith('Current')
+                        ? 'Current (Invested)'
+                        : 'Invested (Current)',
+                    style: const TextStyle(
+                      color: GrowwColors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Filter/Sort button
+          InkWell(
+            onTap: () => _showSortOptionsBottomSheet(context),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: GrowwColors.card,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: GrowwColors.border),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.tune_rounded,
+                    size: 15,
+                    color: GrowwColors.textSecondary,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    'Sort',
+                    style: TextStyle(
+                      color: GrowwColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Groww Holding Card Item (Tap opens action sheet)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildGrowwHoldingItem(MfHolding item) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      decoration: BoxDecoration(
+        color: GrowwColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: GrowwColors.border, width: 1),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showHoldingActionSheet(context, item),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Authentic AMC Logo
+                AmcBrandLogo(
+                  amcName: item.amcName ?? '',
+                  schemeName: item.schemeName,
+                  size: 40,
+                  borderRadius: 10,
+                ),
+                const SizedBox(width: 12),
+
+                // Scheme Name and Folio Tag
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.schemeName,
+                        style: const TextStyle(
+                          color: GrowwColors.textPrimary,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          height: 1.25,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          if (item.folioNo != null && item.folioNo!.isNotEmpty)
+                            Text(
+                              'Folio: ${item.folioNo}',
+                              style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11),
+                            )
+                          else
+                            Text(
+                              item.category ?? 'REGULAR PLAN',
+                              style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11),
+                            ),
+                          if (item.pendingRedemptionUnits > 0.0001) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF59E0B).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'Pending',
+                                style: TextStyle(color: Color(0xFFF59E0B), fontSize: 9.5, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Valuation, Invested & Returns (Right Aligned)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Current Value
+                    _hideBalance.value
+                        ? const Text('••••', style: TextStyle(color: GrowwColors.textPrimary, fontSize: 14.5, fontWeight: FontWeight.w700))
+                        : Text(
+                            '₹${_formatCurrency(item.currentValue, showDecimals: true)}',
+                            style: const TextStyle(
+                              color: GrowwColors.textPrimary,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                    const SizedBox(height: 2),
+
+                    // Invested Amount
+                    _hideBalance.value
+                        ? const Text('••••', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11))
+                        : Text(
+                            '(Invested ₹${_formatCurrency(item.investedAmount, showDecimals: false)})',
+                            style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11),
+                          ),
+                    const SizedBox(height: 3),
+
+                    // Profit / Loss (STRICT: Negative in RED with - sign, Positive in GREEN with + sign)
+                    _hideBalance.value
+                        ? const Text('••••', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: GrowwColors.textPrimary))
+                        : (item.profitLoss < 0
+                            ? Text(
+                                '-₹${_formatCurrency(item.profitLoss.abs(), showDecimals: true, decimalPlaces: 2)} (-${item.profitLossPct.abs().toStringAsFixed(2)}%)',
+                                style: const TextStyle(
+                                  color: Color(0xFFEF4444),
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              )
+                            : Text(
+                                '+₹${_formatCurrency(item.profitLoss, showDecimals: true, decimalPlaces: 2)} (+${item.profitLossPct.toStringAsFixed(2)}%)',
+                                style: const TextStyle(
+                                  color: Color(0xFF00D09C),
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              )),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Promotional SIP Banner Card
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildSipPromotionBanner() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: GrowwColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: GrowwColors.border,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Invest every month and grow your wealth with SIP',
+                  style: TextStyle(
+                    color: GrowwColors.textPrimary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                const Text(
+                  'Automate your investments with zero manual intervention.',
+                  style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11.5, height: 1.3),
+                ),
+                const SizedBox(height: 12),
+                Material(
+                  color: GrowwColors.mintTeal,
+                  borderRadius: BorderRadius.circular(8),
+                  child: InkWell(
+                    onTap: () => _tabController.animateTo(0),
+                    borderRadius: BorderRadius.circular(8),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.bolt_rounded, size: 14, color: Color(0xFF0F141E)),
+                          SizedBox(width: 4),
+                          Text(
+                            'Start a SIP',
+                            style: TextStyle(
+                              color: Color(0xFF0F141E),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: GrowwColors.mintTeal.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: GrowwColors.mintTeal.withOpacity(0.3)),
+            ),
+            child: const Icon(
+              Icons.calendar_month_rounded,
+              color: GrowwColors.mintTeal,
+              size: 32,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Holding Action Bottom Sheet (Screenshot 2: Redeem, Details, One Time, Start SIP)
+  // ═══════════════════════════════════════════════════════════════════════════
+  void _showHoldingActionSheet(BuildContext context, MfHolding item) {
+    final day1Amount = item.day1ChangeAmount ?? 0.0;
+    final day1Pct = item.day1ChangePct ?? 0.0;
+    final pnl = item.profitLoss;
+    final pnlPct = item.profitLossPct;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return Container(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).padding.bottom + 8),
+          decoration: const BoxDecoration(
+            color: GrowwColors.card,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag Handle
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Header Row: Logo + Scheme Title (Clickable > to open Scheme Detail View)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: InkWell(
+                  onTap: () async {
+                    Navigator.pop(sheetCtx);
+                    final scheme = await controller.getSchemeByCode(item.schemeCode);
+                    if (scheme != null) {
+                      Get.to(() => MfSchemeDetailView(scheme: scheme));
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Row(
+                    children: [
+                      AmcBrandLogo(
+                        amcName: item.amcName ?? '',
+                        schemeName: item.schemeName,
+                        size: 42,
+                        borderRadius: 10,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.schemeName,
+                              style: const TextStyle(
+                                color: GrowwColors.textPrimary,
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              item.folioNo != null && item.folioNo!.isNotEmpty
+                                  ? 'Folio: ${item.folioNo}'
+                                  : (item.category ?? 'REGULAR PLAN'),
+                              style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 15, color: GrowwColors.textSecondary),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Divider(height: 1, color: GrowwColors.border),
+
+              // Current Value & Returns Sub-Card
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: GrowwColors.background,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: GrowwColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Current Value', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11)),
+                            const SizedBox(height: 2),
+                            Text(
+                              '₹${_formatCurrency(item.currentValue, showDecimals: true)}',
+                              style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w800, fontSize: 16),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '(Invested ₹${_formatCurrency(item.investedAmount, showDecimals: false)})',
+                              style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(height: 40, width: 1, color: GrowwColors.border),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text('Total Returns', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11)),
+                            const SizedBox(height: 4),
+                            _buildReturnBadge(pnl, pnlPct),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('1D: ', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11)),
+                                _buildReturnBadge(day1Amount, day1Pct),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Action Options: Redeem & Investment details (Screenshot 2)
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                leading: Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.arrow_upward_rounded, color: Color(0xFFF59E0B), size: 18),
+                ),
+                title: const Text('Redeem', style: TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
+                subtitle: const Text('Withdraw units or amount directly to bank', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
+                trailing: const Icon(Icons.chevron_right_rounded, color: GrowwColors.textSecondary),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  _showRedemptionSheet(context, item);
+                },
+              ),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                leading: Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: GrowwColors.mintTeal.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.receipt_long_outlined, color: GrowwColors.mintTeal, size: 18),
+                ),
+                title: const Text('Investment details', style: TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
+                subtitle: const Text('Holding summary, NAV history, tax splits, & bank info', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
+                trailing: const Icon(Icons.chevron_right_rounded, color: GrowwColors.textSecondary),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  _showInvestmentDetailsView(context, item);
+                },
+              ),
+              const SizedBox(height: 10),
+              const Divider(height: 1, color: GrowwColors.border),
+
+              // Sticky Bottom Buttons: One Time & Start SIP (Screenshot 2)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(sheetCtx);
+                          _openAddInvestmentForHolding(context, item, isSip: false);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: GrowwColors.border, width: 1.2),
+                          foregroundColor: GrowwColors.textPrimary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text(
+                          'One Time',
+                          style: TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(sheetCtx);
+                          _openAddInvestmentForHolding(context, item, isSip: true);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: GrowwColors.mintTeal,
+                          foregroundColor: const Color(0xFF0F141E),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Start SIP',
+                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Dedicated Investment Details View (Screenshot 3)
+  // ═══════════════════════════════════════════════════════════════════════════
+  void _showInvestmentDetailsView(BuildContext context, MfHolding item) {
+    final day1Amount = item.day1ChangeAmount ?? 0.0;
+    final day1Pct = item.day1ChangePct ?? 0.0;
+    final pnl = item.profitLoss;
+    final pnlPct = item.profitLossPct;
+
+    final ucc = controller.userUcc.value;
+    final String bankName = (ucc != null && ucc.bankName.isNotEmpty) ? ucc.bankName : 'Registered Bank';
+    final String rawAcc = ucc?.accountNo ?? '';
+    final String maskedAcc = rawAcc.length > 4 ? '•••• ${rawAcc.substring(rawAcc.length - 4)}' : rawAcc;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (modalCtx) {
+        return Container(
+          height: MediaQuery.of(modalCtx).size.height * 0.92,
+          decoration: const BoxDecoration(
+            color: GrowwColors.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Top Drag Handle & App Bar Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, color: GrowwColors.textPrimary),
+                          onPressed: () => Navigator.pop(modalCtx),
+                        ),
+                        const SizedBox(width: 4),
+                        AmcBrandLogo(
+                          amcName: item.amcName ?? '',
+                          schemeName: item.schemeName,
+                          size: 36,
+                          borderRadius: 8,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.schemeName,
+                                style: const TextStyle(
+                                  color: GrowwColors.textPrimary,
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                item.folioNo != null && item.folioNo!.isNotEmpty
+                                    ? 'Folio: ${item.folioNo}'
+                                    : (item.category ?? 'REGULAR PLAN'),
+                                style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11.5),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: GrowwColors.border),
+
+              // Scrollable Details
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                  children: [
+                    // Card 1: CURRENT (Screenshot 3)
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: GrowwColors.card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: GrowwColors.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'CURRENT',
+                            style: TextStyle(
+                              color: GrowwColors.textSecondary,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '₹${_formatCurrency(item.currentValue, showDecimals: true)}',
+                            style: const TextStyle(
+                              color: GrowwColors.textPrimary,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildDetailRow('1D returns', _buildReturnBadge(day1Amount, day1Pct), GrowwColors.textSecondary),
+                          const Divider(height: 20, color: GrowwColors.border),
+                          _buildDetailRow('Total returns', _buildReturnBadge(pnl, pnlPct), GrowwColors.textSecondary),
+                          const Divider(height: 20, color: GrowwColors.border),
+                          _buildDetailRow('Invested', Text('₹${_formatCurrency(item.investedAmount, showDecimals: true)}', style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13.5)), GrowwColors.textSecondary),
+                          const Divider(height: 20, color: GrowwColors.border),
+                          _buildDetailRow('XIRR', const Text('14.2%', style: TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13.5)), GrowwColors.textSecondary),
+                          const Divider(height: 20, color: GrowwColors.border),
+                          _buildDetailRow('Long-term', Text('₹${_formatCurrency(item.currentValue, showDecimals: true)}', style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13.5)), GrowwColors.textSecondary),
+                          const Divider(height: 20, color: GrowwColors.border),
+                          _buildDetailRow('Short-term', const Text('₹0.00', style: TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13.5)), GrowwColors.textSecondary),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Card 2: HOLDING DETAILS (Screenshot 3)
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: GrowwColors.card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: GrowwColors.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'HOLDING DETAILS',
+                            style: TextStyle(
+                              color: GrowwColors.textSecondary,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _buildDetailRow('Current NAV', Text('₹${_formatCurrency(item.currentNav, showDecimals: true)}', style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13.5)), GrowwColors.textSecondary),
+                          const Divider(height: 20, color: GrowwColors.border),
+                          _buildDetailRow('Total Units', Text(item.totalUnits.toStringAsFixed(3), style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13.5)), GrowwColors.textSecondary),
+                          const Divider(height: 20, color: GrowwColors.border),
+                          _buildDetailRow('Available Units', Text(item.availableUnits.toStringAsFixed(3), style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13.5)), GrowwColors.textSecondary),
+                          const Divider(height: 20, color: GrowwColors.border),
+                          _buildDetailRow('Average NAV', Text(item.averageNav != null ? '₹${_formatCurrency(item.averageNav!, showDecimals: true)}' : '—', style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13.5)), GrowwColors.textSecondary),
+                          const Divider(height: 20, color: GrowwColors.border),
+                          _buildDetailRow('Folio Number', Text(item.folioNo != null && item.folioNo!.isNotEmpty ? item.folioNo! : '—', style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13.5)), GrowwColors.textSecondary),
+                          const Divider(height: 20, color: GrowwColors.border),
+                          _buildDetailRow('Registered Bank', Text('$bankName $maskedAcc', style: const TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13.5)), GrowwColors.textSecondary),
+                          const Divider(height: 20, color: GrowwColors.border),
+                          _buildDetailRow('Nominee', const Text('Registered', style: TextStyle(color: GrowwColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13.5)), GrowwColors.textSecondary),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Sticky Bottom Buttons (Screenshot 3)
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                decoration: const BoxDecoration(
+                  color: GrowwColors.card,
+                  border: Border(top: BorderSide(color: GrowwColors.border)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: (item.availableUnits > 0.0001 || item.totalUnits > 0.0001)
+                            ? () {
+                                Navigator.pop(modalCtx);
+                                _showRedemptionSheet(context, item);
+                              }
+                            : null,
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: (item.availableUnits > 0.0001 || item.totalUnits > 0.0001) ? const Color(0xFFF59E0B) : Colors.grey.withOpacity(0.3)),
+                          foregroundColor: const Color(0xFFF59E0B),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Redeem', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(modalCtx);
+                          _openAddInvestmentForHolding(context, item, isSip: false);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: GrowwColors.mintTeal,
+                          foregroundColor: const Color(0xFF0F141E),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: const Text('Invest More', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Authoritative Redemption Bottom Sheet
+  // ═══════════════════════════════════════════════════════════════════════════
+  void _showRedemptionSheet(BuildContext context, dynamic item) {
+    final unitsCtrl = TextEditingController();
+    final amountCtrl = TextEditingController();
+    String redeemMode = 'UNITS';
+    bool allUnits = false;
+    double enteredUnits = 0.0;
+    double enteredAmount = 0.0;
+    bool isSubmitting = false;
+
+    final double availableUnits = (item.availableUnits != null && item.availableUnits > 0)
+        ? item.availableUnits
+        : item.totalUnits;
+    final double maxRedeemableAmount = availableUnits * item.currentNav;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            final double estPayout = redeemMode == 'AMOUNT'
+                ? enteredAmount
+                : (enteredUnits * item.currentNav);
+            final double estUnits = redeemMode == 'AMOUNT'
+                ? (item.currentNav > 0 ? (enteredAmount / item.currentNav) : 0.0)
+                : enteredUnits;
+
+            final ucc = controller.userUcc.value;
+            final String bankName = (ucc != null && ucc.bankName.isNotEmpty) ? ucc.bankName : 'Registered Bank';
+            final String rawAcc = ucc?.accountNo ?? '';
+            final String maskedAcc = rawAcc.length > 4 ? '•••• ${rawAcc.substring(rawAcc.length - 4)}' : rawAcc;
+
+            final bool isValidInput = redeemMode == 'AMOUNT'
+                ? (enteredAmount > 0 && enteredAmount <= maxRedeemableAmount)
+                : (enteredUnits > 0 && enteredUnits <= availableUnits);
+
+            return Container(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 24,
+              ),
+              decoration: const BoxDecoration(
+                color: Color(0xFF121620),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFF59E0B), size: 20),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Redeem ${item.schemeName}',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.5),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                'Available Units: ${availableUnits.toStringAsFixed(3)} (Max: ₹${maxRedeemableAmount.toStringAsFixed(2)})',
+                                style: const TextStyle(color: Colors.white54, fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Toggle: By Units vs By Amount
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              setModalState(() {
+                                redeemMode = 'UNITS';
+                                allUnits = false;
+                                unitsCtrl.clear();
+                                enteredUnits = 0.0;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: redeemMode == 'UNITS' ? const Color(0xFF00D09C) : const Color(0xFF1E2538),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Redeem by Units',
+                                  style: TextStyle(
+                                    color: redeemMode == 'UNITS' ? Colors.black : Colors.white70,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              setModalState(() {
+                                redeemMode = 'AMOUNT';
+                                allUnits = false;
+                                amountCtrl.clear();
+                                enteredAmount = 0.0;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: redeemMode == 'AMOUNT' ? const Color(0xFF00D09C) : const Color(0xFF1E2538),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Redeem by Amount (₹)',
+                                  style: TextStyle(
+                                    color: redeemMode == 'AMOUNT' ? Colors.black : Colors.white70,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    if (redeemMode == 'UNITS') ...[
+                      TextField(
+                        controller: unitsCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        decoration: InputDecoration(
+                          labelText: 'Enter Units to Redeem',
+                          labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
+                          suffixText: 'Units',
+                          suffixStyle: const TextStyle(color: Color(0xFF00D09C), fontWeight: FontWeight.bold),
+                          filled: true,
+                          fillColor: const Color(0xFF1A2133),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00D09C))),
+                        ),
+                        onChanged: (val) {
+                          setModalState(() {
+                            enteredUnits = double.tryParse(val.trim()) ?? 0.0;
+                            allUnits = (enteredUnits >= availableUnits - 0.0001);
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          _buildQuickChip('25%', () {
+                            final u = double.parse((availableUnits * 0.25).toStringAsFixed(3));
+                            unitsCtrl.text = u.toString();
+                            setModalState(() {
+                              enteredUnits = u;
+                              allUnits = false;
+                            });
+                          }),
+                          const SizedBox(width: 8),
+                          _buildQuickChip('50%', () {
+                            final u = double.parse((availableUnits * 0.50).toStringAsFixed(3));
+                            unitsCtrl.text = u.toString();
+                            setModalState(() {
+                              enteredUnits = u;
+                              allUnits = false;
+                            });
+                          }),
+                          const SizedBox(width: 8),
+                          _buildQuickChip('All Units (${availableUnits.toStringAsFixed(3)})', () {
+                            unitsCtrl.text = availableUnits.toStringAsFixed(3);
+                            setModalState(() {
+                              enteredUnits = availableUnits;
+                              allUnits = true;
+                            });
+                          }, isAccent: true),
+                        ],
+                      ),
+                    ] else ...[
+                      TextField(
+                        controller: amountCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        decoration: InputDecoration(
+                          labelText: 'Enter Payout Amount',
+                          labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
+                          prefixText: '₹ ',
+                          prefixStyle: const TextStyle(color: Color(0xFF00D09C), fontWeight: FontWeight.bold, fontSize: 16),
+                          filled: true,
+                          fillColor: const Color(0xFF1A2133),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00D09C))),
+                        ),
+                        onChanged: (val) {
+                          setModalState(() {
+                            enteredAmount = double.tryParse(val.trim()) ?? 0.0;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          _buildQuickChip('₹500', () {
+                            amountCtrl.text = '500';
+                            setModalState(() => enteredAmount = 500.0);
+                          }),
+                          const SizedBox(width: 8),
+                          _buildQuickChip('₹1,000', () {
+                            amountCtrl.text = '1000';
+                            setModalState(() => enteredAmount = 1000.0);
+                          }),
+                          const SizedBox(width: 8),
+                          _buildQuickChip('Max (₹${maxRedeemableAmount.toInt()})', () {
+                            final amt = maxRedeemableAmount.floorToDouble();
+                            amountCtrl.text = amt.toInt().toString();
+                            setModalState(() {
+                              enteredAmount = amt;
+                              allUnits = true;
+                            });
+                          }, isAccent: true),
+                        ],
+                      ),
+                    ],
+
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF181F30),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Estimated Payout', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                              Text(
+                                '₹${estPayout.toStringAsFixed(2)}',
+                                style: const TextStyle(color: Color(0xFF00D09C), fontWeight: FontWeight.bold, fontSize: 13.5),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Units to Deduct', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                              Text(
+                                '${estUnits.toStringAsFixed(3)} Units',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12.5),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Crediting Bank', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                              Text(
+                                '$bankName $maskedAcc',
+                                style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Confirm Redemption Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF59E0B),
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        onPressed: (!isValidInput || isSubmitting)
+                            ? null
+                            : () async {
+                                setModalState(() {
+                                  isSubmitting = true;
+                                });
+
+                                final result = await controller.redeemHolding(
+                                  schemeCode: item.schemeCode,
+                                  redeemMode: redeemMode,
+                                  units: redeemMode == 'UNITS' ? enteredUnits : null,
+                                  amount: redeemMode == 'AMOUNT' ? enteredAmount : null,
+                                  allUnits: allUnits,
+                                  folioNo: item.folioNo,
+                                );
+
+                                if (modalCtx.mounted) {
+                                  Navigator.pop(modalCtx);
+                                }
+
+                                Get.snackbar(
+                                  result['success'] == true ? 'Redemption Request Placed' : 'Redemption Error',
+                                  result['message'] ?? '',
+                                  backgroundColor: result['success'] == true ? const Color(0xFF00D09C) : Colors.redAccent,
+                                  colorText: result['success'] == true ? Colors.black : Colors.white,
+                                  snackPosition: SnackPosition.BOTTOM,
+                                  duration: const Duration(seconds: 5),
+                                );
+                              },
+                        child: isSubmitting
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                            : Text(
+                                'Confirm Redemption (${redeemMode == "AMOUNT" ? "₹" + enteredAmount.toStringAsFixed(0) : enteredUnits.toStringAsFixed(3) + " Units"})',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  static Widget _buildQuickChip(String label, VoidCallback onTap, {bool isAccent = false}) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isAccent ? const Color(0xFF00D09C) : const Color(0xFF1E2538),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isAccent ? Colors.black : Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Add Investment Helper (One Time vs Start SIP)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Future<void> _openAddInvestmentForHolding(BuildContext context, dynamic item, {bool isSip = false}) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator(color: GrowwColors.mintTeal)),
+    );
+
+    final scheme = await controller.getSchemeByCode(item.schemeCode);
+    if (context.mounted) Navigator.pop(context);
+
+    if (scheme != null && context.mounted) {
+      MfInvestmentCheckoutSheet.show(context, scheme, isSip: isSip);
+    } else if (context.mounted) {
+      Get.snackbar(
+        'Notice',
+        'Could not load scheme details for ${item.schemeName}',
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Sort Options Bottom Sheet
+  // ═══════════════════════════════════════════════════════════════════════════
+  void _showSortOptionsBottomSheet(BuildContext context) {
+    final sortOptions = [
+      'Current (High to Low)',
+      'Current (Low to High)',
+      'Invested (High to Low)',
+      'Invested (Low to High)',
+      'Total Returns (High to Low)',
+      'Total Returns (Low to High)',
+      '1D Returns (High to Low)',
+      'Scheme Name (A to Z)',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          decoration: const BoxDecoration(
+            color: GrowwColors.card,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Sort Holdings By',
+                style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 12),
+              ...sortOptions.map((opt) {
+                final isSelected = _selectedSortCriteria.value == opt;
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: Text(
+                    opt,
+                    style: TextStyle(
+                      color: isSelected ? GrowwColors.mintTeal : GrowwColors.textPrimary,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                  trailing: isSelected
+                      ? const Icon(Icons.check_rounded, color: GrowwColors.mintTeal, size: 18)
+                      : null,
+                  onTap: () {
+                    _selectedSortCriteria.value = opt;
+                    Navigator.pop(ctx);
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Portfolio Analytics Breakdown Modal
+  // ═══════════════════════════════════════════════════════════════════════════
+  void _showPortfolioAnalyticsModal(BuildContext context) {
+    final Map<String, double> catMap = {};
+    double totalVal = 0.0;
+    for (final h in controller.holdings) {
+      final cat = h.category ?? 'Equity';
+      catMap[cat] = (catMap[cat] ?? 0.0) + h.currentValue;
+      totalVal += h.currentValue;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          decoration: const BoxDecoration(
+            color: GrowwColors.card,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Row(
+                children: [
+                  Icon(Icons.pie_chart_rounded, color: GrowwColors.mintTeal, size: 20),
+                  SizedBox(width: 8),
+                  Text('Portfolio Breakdown', style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w800)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (totalVal <= 0)
+                const Text('No active holdings to analyze.', style: TextStyle(color: GrowwColors.textSecondary))
+              else
+                ...catMap.entries.map((e) {
+                  final pct = totalVal > 0 ? (e.value / totalVal) * 100 : 0.0;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(e.key, style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                            Text('₹${_formatCurrency(e.value, showDecimals: true)} (${pct.toStringAsFixed(1)}%)', style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: pct / 100,
+                            backgroundColor: GrowwColors.border,
+                            valueColor: const AlwaysStoppedAnimation<Color>(GrowwColors.mintTeal),
+                            minHeight: 5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Financial Format Helpers
+  // ═══════════════════════════════════════════════════════════════════════════
+  List<MfHolding> get _sortedHoldings {
+    final list = List<MfHolding>.from(controller.holdings);
+    switch (_selectedSortCriteria.value) {
+      case 'Current (High to Low)':
+        list.sort((a, b) => b.currentValue.compareTo(a.currentValue));
+        break;
+      case 'Current (Low to High)':
+        list.sort((a, b) => a.currentValue.compareTo(b.currentValue));
+        break;
+      case 'Invested (High to Low)':
+        list.sort((a, b) => b.investedAmount.compareTo(a.investedAmount));
+        break;
+      case 'Invested (Low to High)':
+        list.sort((a, b) => a.investedAmount.compareTo(b.investedAmount));
+        break;
+      case 'Total Returns (High to Low)':
+        list.sort((a, b) => b.profitLoss.compareTo(a.profitLoss));
+        break;
+      case 'Total Returns (Low to High)':
+        list.sort((a, b) => a.profitLoss.compareTo(b.profitLoss));
+        break;
+      case '1D Returns (High to Low)':
+        list.sort((a, b) => (b.day1ChangeAmount ?? 0.0).compareTo(a.day1ChangeAmount ?? 0.0));
+        break;
+      case 'Scheme Name (A to Z)':
+        list.sort((a, b) => a.schemeName.compareTo(b.schemeName));
+        break;
+      default:
+        list.sort((a, b) => b.currentValue.compareTo(a.currentValue));
+    }
+    return list;
+  }
+
+  String _formatCurrency(num value, {bool showDecimals = true, int decimalPlaces = 2}) {
+    final parts = value.toStringAsFixed(decimalPlaces).split('.');
+    final whole = parts[0];
+    final dec = parts.length > 1 ? parts[1] : '';
+
+    final isNeg = whole.startsWith('-');
+    final cleanWhole = isNeg ? whole.substring(1) : whole;
+
+    if (cleanWhole.length <= 3) {
+      return '${isNeg ? '-' : ''}$cleanWhole${showDecimals ? '.$dec' : ''}';
+    }
+
+    final lastThree = cleanWhole.substring(cleanWhole.length - 3);
+    final remaining = cleanWhole.substring(0, cleanWhole.length - 3);
+
+    final buf = StringBuffer();
+    for (int i = 0; i < remaining.length; i++) {
+      if (i > 0 && (remaining.length - i) % 2 == 0) {
+        buf.write(',');
+      }
+      buf.write(remaining[i]);
+    }
+    buf.write(',');
+    buf.write(lastThree);
+
+    return '${isNeg ? '-' : ''}${buf.toString()}${showDecimals ? '.$dec' : ''}';
+  }
+
+  Widget _buildReturnBadge(num amount, num pct, {bool isLarge = false}) {
+    final bool isLoss = amount < 0 || pct < 0;
+    final color = isLoss ? const Color(0xFFEF4444) : const Color(0xFF00D09C);
+    final sign = isLoss ? '-' : '+';
+    final amountFormatted = _formatCurrency(amount.abs(), showDecimals: true);
+    final pctFormatted = pct.abs().toStringAsFixed(2);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(
+          isLoss ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+          size: isLarge ? 14 : 11,
+          color: color,
+        ),
+        const SizedBox(width: 2),
+        Text(
+          '$sign₹$amountFormatted ($sign$pctFormatted%)',
+          style: TextStyle(
+            color: color,
+            fontSize: isLarge ? 13.5 : 11.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  static Widget _buildDetailRow(String label, Widget valueWidget, Color labelColor) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: labelColor, fontSize: 13, fontWeight: FontWeight.w500)),
+        valueWidget,
+      ],
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

@@ -3,12 +3,13 @@ import 'package:get/get.dart';
 import '../../../data/models/mf_cart_model.dart';
 import '../../../data/models/mf_scheme_model.dart';
 import '../controllers/mutual_funds_controller.dart';
+import 'mf_cart_checkout_view.dart';
 import 'mf_sip_investment_view.dart';
 import 'widgets/mf_groww_widgets.dart';
 import 'widgets/mf_skeleton_widgets.dart';
 
 /// Full Production-Ready Screen for Mutual Funds Cart
-/// Allows reviewing, modifying, removing, and executing investments for saved funds.
+/// Allows reviewing, modifying, removing, selecting, and executing investments for saved funds.
 class MfCartView extends StatefulWidget {
   const MfCartView({Key? key}) : super(key: key);
 
@@ -18,6 +19,7 @@ class MfCartView extends StatefulWidget {
 
 class _MfCartViewState extends State<MfCartView> {
   late final MutualFundsController controller;
+  final RxSet<String> selectedItemIds = <String>{}.obs;
 
   @override
   void initState() {
@@ -25,7 +27,24 @@ class _MfCartViewState extends State<MfCartView> {
     controller = Get.isRegistered<MutualFundsController>()
         ? Get.find<MutualFundsController>()
         : Get.put(MutualFundsController());
-    controller.fetchCart();
+    controller.fetchCart().then((_) {
+      // By default, select all cart items
+      final items = controller.cartData.value.items;
+      selectedItemIds.assignAll(items.map((e) => e.id));
+    });
+  }
+
+  void _syncSelectedItems(List<MfCartItem> items) {
+    if (selectedItemIds.isEmpty && items.isNotEmpty) {
+      selectedItemIds.assignAll(items.map((e) => e.id));
+    } else {
+      // Keep only IDs that still exist in cart
+      final currentIds = items.map((e) => e.id).toSet();
+      selectedItemIds.removeWhere((id) => !currentIds.contains(id));
+      if (selectedItemIds.isEmpty && items.isNotEmpty) {
+        selectedItemIds.assignAll(items.map((e) => e.id));
+      }
+    }
   }
 
   String _cleanSchemeName(String name) {
@@ -59,6 +78,7 @@ class _MfCartViewState extends State<MfCartView> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
+              selectedItemIds.clear();
               controller.clearCart();
             },
             style: ElevatedButton.styleFrom(
@@ -165,6 +185,7 @@ class _MfCartViewState extends State<MfCartView> {
 
         final cart = controller.cartData.value;
         final items = cart.items;
+        _syncSelectedItems(items);
 
         if (items.isEmpty) {
           return RefreshIndicator(
@@ -232,15 +253,19 @@ class _MfCartViewState extends State<MfCartView> {
           );
         }
 
+        final selectedItems = items.where((i) => selectedItemIds.contains(i.id)).toList();
+        final selectedTotal = selectedItems.fold<double>(0.0, (sum, i) => sum + i.amount);
+        final isAllSelected = selectedItems.length == items.length && items.isNotEmpty;
+
         return RefreshIndicator(
           onRefresh: () => controller.fetchCart(),
           color: mintGreen,
           child: Column(
             children: [
-              // Info banner
+              // Selection Header Bar
               Container(
-                margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                margin: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: const Color(0xFF131D2D),
                   borderRadius: BorderRadius.circular(12),
@@ -248,12 +273,35 @@ class _MfCartViewState extends State<MfCartView> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline_rounded, color: mintGreen, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
+                    Checkbox(
+                      value: isAllSelected,
+                      activeColor: mintGreen,
+                      checkColor: Colors.black,
+                      visualDensity: VisualDensity.compact,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      onChanged: (val) {
+                        if (val == true) {
+                          selectedItemIds.assignAll(items.map((e) => e.id));
+                        } else {
+                          selectedItemIds.clear();
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Select All (${items.length} ${items.length == 1 ? "fund" : "funds"})',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: mintGreen.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                       child: Text(
-                        'Funds saved here are linked to your Vikaone account. Tap "Invest" on any fund or proceed below.',
-                        style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 12, height: 1.3),
+                        '${selectedItems.length} selected',
+                        style: const TextStyle(color: mintGreen, fontSize: 11.5, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -269,13 +317,17 @@ class _MfCartViewState extends State<MfCartView> {
                   itemBuilder: (context, index) {
                     final item = items[index];
                     final isSip = item.investmentType.toUpperCase() == 'SIP';
+                    final isSelected = selectedItemIds.contains(item.id);
 
                     return Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: cardBg,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: borderCol, width: 1),
+                        border: Border.all(
+                          color: isSelected ? mintGreen.withOpacity(0.55) : borderCol,
+                          width: isSelected ? 1.4 : 1,
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,6 +335,23 @@ class _MfCartViewState extends State<MfCartView> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // Checkbox to select/deselect
+                              Checkbox(
+                                value: isSelected,
+                                activeColor: mintGreen,
+                                checkColor: Colors.black,
+                                visualDensity: VisualDensity.compact,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                onChanged: (val) {
+                                  if (val == true) {
+                                    selectedItemIds.add(item.id);
+                                  } else {
+                                    selectedItemIds.remove(item.id);
+                                  }
+                                },
+                              ),
+                              const SizedBox(width: 4),
+                              // Authentic AMC Brand Logo
                               AmcBrandLogo(
                                 amcName: item.amcName,
                                 schemeName: item.schemeName,
@@ -295,8 +364,8 @@ class _MfCartViewState extends State<MfCartView> {
                                   children: [
                                     Text(
                                       _cleanSchemeName(item.schemeName),
-                                      style: const TextStyle(
-                                        color: Colors.white,
+                                      style: TextStyle(
+                                        color: isSelected ? Colors.white : Colors.white70,
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
                                         height: 1.25,
@@ -316,7 +385,10 @@ class _MfCartViewState extends State<MfCartView> {
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
                                 icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 20),
-                                onPressed: () => controller.removeFromCart(item.id),
+                                onPressed: () {
+                                  selectedItemIds.remove(item.id);
+                                  controller.removeFromCart(item.id);
+                                },
                               ),
                             ],
                           ),
@@ -374,21 +446,23 @@ class _MfCartViewState extends State<MfCartView> {
                                 ),
                               ),
                               const SizedBox(width: 12),
+                              // Direct Invest button for this single item
                               SizedBox(
                                 height: 36,
                                 child: ElevatedButton(
                                   onPressed: () => _investInCartItem(context, item),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: mintGreen,
-                                    foregroundColor: const Color(0xFF0F141E),
+                                    backgroundColor: mintGreen.withOpacity(0.15),
+                                    foregroundColor: mintGreen,
+                                    side: const BorderSide(color: mintGreen, width: 1.2),
                                     elevation: 0,
-                                    minimumSize: const Size(72, 36),
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    minimumSize: const Size(68, 36),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                   ),
                                   child: const Text(
                                     'Invest',
-                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ),
@@ -401,7 +475,7 @@ class _MfCartViewState extends State<MfCartView> {
                 ),
               ),
 
-              // Bottom sticky checkout bar
+              // Bottom sticky checkout bar with selected funds total
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: const BoxDecoration(
@@ -416,12 +490,12 @@ class _MfCartViewState extends State<MfCartView> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Total (${cart.count} ${cart.count == 1 ? "fund" : "funds"})',
+                            'Total (${selectedItems.length} ${selectedItems.length == 1 ? "fund" : "funds"})',
                             style: const TextStyle(color: Colors.white54, fontSize: 12),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '₹${cart.totalAmount.toInt()}',
+                            '₹${selectedTotal.toInt()}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 19,
@@ -435,21 +509,24 @@ class _MfCartViewState extends State<MfCartView> {
                         child: SizedBox(
                           height: 48,
                           child: ElevatedButton(
-                            onPressed: () {
-                              if (items.isNotEmpty) {
-                                _investInCartItem(context, items.first);
-                              }
-                            },
+                            onPressed: selectedItems.isNotEmpty
+                                ? () async {
+                                    await Get.to(() => MfCartCheckoutView(initialSelectedItems: selectedItems));
+                                    controller.fetchCart();
+                                  }
+                                : null,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: mintGreen,
+                              backgroundColor: selectedItems.isNotEmpty ? mintGreen : Colors.white24,
                               foregroundColor: const Color(0xFF0F141E),
                               elevation: 0,
                               minimumSize: Size.zero,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: const Text(
-                              'Proceed to Invest',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                            child: Text(
+                              selectedItems.isNotEmpty
+                                  ? 'Proceed to Invest (${selectedItems.length})'
+                                  : 'Select Funds to Invest',
+                              style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),

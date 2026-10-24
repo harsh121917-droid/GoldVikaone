@@ -116,6 +116,25 @@ class NotificationInboxController extends GetxController {
     markAsRead(notification.id);
 
     final link = notification.deepLink.toLowerCase().trim();
+
+    // ── Mutual Fund Intelligent Deep Linking ──
+    if (link.contains('tab=sips') || link.startsWith('mutual_funds/sip') || link == 'mf_sip' || link == 'mf_sips') {
+      Get.toNamed(AppRoutes.mfPortfolio, arguments: {'tab': 'sips'});
+      return;
+    }
+    if (link.contains('tab=orders') || link.startsWith('mutual_funds/order') || link == 'mf_order' || link == 'mf_orders') {
+      Get.toNamed(AppRoutes.mfPortfolio, arguments: {'tab': 'orders'});
+      return;
+    }
+    if (link.startsWith('mutual_funds/portfolio') || link == 'mf_portfolio' || link == 'portfolio') {
+      Get.toNamed(AppRoutes.mfPortfolio, arguments: {'tab': 'dashboard'});
+      return;
+    }
+    if (link == 'mutual_funds' || link == 'mutualfunds' || link == 'mf') {
+      Get.toNamed(AppRoutes.mutualFunds);
+      return;
+    }
+
     switch (link) {
       case 'buy_gold':
         Get.toNamed(AppRoutes.buyGold);
@@ -137,6 +156,21 @@ class NotificationInboxController extends GetxController {
         break;
       case 'rewards':
         Get.toNamed(AppRoutes.rewards);
+        break;
+      case 'bank':
+      case 'banks':
+      case 'wallet/banks':
+        Get.toNamed(AppRoutes.bankAccounts);
+        break;
+      case 'mutual_funds':
+      case 'mutualfunds':
+      case 'mf':
+        Get.toNamed(AppRoutes.mutualFunds);
+        break;
+      case 'mutual_funds/portfolio':
+      case 'mf_portfolio':
+      case 'portfolio':
+        Get.toNamed(AppRoutes.mfPortfolio);
         break;
       default:
         break;
