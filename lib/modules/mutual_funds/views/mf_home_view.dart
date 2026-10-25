@@ -364,9 +364,9 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Popular Funds',
-                style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+              Text(
+                'mf_popular_funds'.tr,
+                style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
               ),
               GestureDetector(
                 onTap: () {
@@ -454,9 +454,9 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           const SizedBox(height: 28),
 
           // ── D. Collections 3D Grid ──
-          const Text(
-            'Collections',
-            style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+          Text(
+            'mf_collections'.tr,
+            style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 14),
           _buildCollectionsGrid(),
@@ -1180,37 +1180,37 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
     final items = [
       {
         'id': 'high_return',
-        'title': 'High return',
+        'title': 'mf_high_return'.tr,
         'filter': 'High Return',
         'img': 'assets/images/Mutual_Funds/mf_icon_high_return.jpg',
       },
       {
         'id': 'sip_100',
-        'title': 'SIP with ₹100',
+        'title': 'mf_sip_with_100'.tr,
         'filter': 'SIP with ₹100',
         'img': 'assets/images/Mutual_Funds/mf_wallet_sip_3d.jpg',
       },
       {
         'id': 'gold_silver',
-        'title': 'Gold & Silver Funds',
+        'title': 'mf_gold_silver_funds'.tr,
         'filter': 'Gold & Silver',
         'img': 'assets/images/Mutual_Funds/mf_gold_silver_3d.jpg',
       },
       {
         'id': 'large_cap',
-        'title': 'Large Cap',
+        'title': 'mf_large_cap'.tr,
         'filter': 'Large Cap',
         'img': 'assets/images/Mutual_Funds/mf_icon_large_cap.jpg',
       },
       {
         'id': 'mid_cap',
-        'title': 'Mid Cap',
+        'title': 'mf_mid_cap'.tr,
         'filter': 'Mid Cap',
         'img': 'assets/images/Mutual_Funds/mf_icon_mid_cap.jpg',
       },
       {
         'id': 'small_cap',
-        'title': 'Small Cap',
+        'title': 'mf_small_cap'.tr,
         'filter': 'Small Cap',
         'img': 'assets/images/Mutual_Funds/mf_icon_small_cap.jpg',
       },
@@ -1281,101 +1281,107 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
 
   // ── Products & Tools Row ──
   Widget _buildProductsAndTools() {
-    final tools = [
-      {
-        'title': 'Import\nfunds',
-        'img': 'assets/images/Mutual_Funds/mf_tool_import.jpg',
-        'action': () => _showImportModal(),
-      },
-      {
-        'title': 'NFOs',
-        'img': 'assets/images/Mutual_Funds/mf_tool_nfo.jpg',
-        'badge': '2',
-        'action': () => Get.to(() => const MfNfoView()),
-      },
-      {
-        'title': 'SIP\ncalculator',
-        'img': 'assets/images/Mutual_Funds/mf_tool_calculator.jpg',
-        'action': () => Get.to(() => const MfSipCalculatorView()),
-      },
-      {
-        'title': 'Compare\nfunds',
-        'img': 'assets/images/Mutual_Funds/mf_tool_compare.jpg',
-        'action': () => Get.to(() => const MfCompareFundsView()),
-      },
-      {
-        'title': 'Cart',
-        'img': 'assets/images/Mutual_Funds/mf_tool_cart.jpg',
-        'action': () => Get.to(() => const MfCartView()),
-      },
-    ];
+    return Obx(() {
+      final nfoCount = controller.openNfos.length;
+      final cartCount = controller.cartCount;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: tools.map((t) {
-        final badge = t['badge']?.toString();
-        final img = t['img']?.toString();
-        final title = t['title']?.toString() ?? '';
-        final action = t['action'] as VoidCallback?;
+      final tools = [
+        {
+          'title': 'mf_tool_import'.tr,
+          'img': 'assets/images/Mutual_Funds/mf_tool_import.jpg',
+          'action': () => _showImportModal(),
+        },
+        {
+          'title': 'mf_tool_nfos'.tr,
+          'img': 'assets/images/Mutual_Funds/mf_tool_nfo.jpg',
+          if (nfoCount > 0) 'badge': '$nfoCount',
+          'action': () => Get.to(() => const MfNfoView()),
+        },
+        {
+          'title': 'mf_tool_sip_calc'.tr,
+          'img': 'assets/images/Mutual_Funds/mf_tool_calculator.jpg',
+          'action': () => Get.to(() => const MfSipCalculatorView()),
+        },
+        {
+          'title': 'mf_tool_compare'.tr,
+          'img': 'assets/images/Mutual_Funds/mf_tool_compare.jpg',
+          'action': () => Get.to(() => const MfCompareFundsView()),
+        },
+        {
+          'title': 'mf_tool_cart'.tr,
+          'img': 'assets/images/Mutual_Funds/mf_tool_cart.jpg',
+          if (cartCount > 0) 'badge': '$cartCount',
+          'action': () => Get.to(() => const MfCartView()),
+        },
+      ];
 
-        return GestureDetector(
-          onTap: action,
-          child: SizedBox(
-            width: 60,
-            child: Column(
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: GrowwColors.card,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: GrowwColors.border),
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: tools.map((t) {
+          final badge = t['badge']?.toString();
+          final img = t['img']?.toString();
+          final title = t['title']?.toString() ?? '';
+          final action = t['action'] as VoidCallback?;
+
+          return GestureDetector(
+            onTap: action,
+            child: SizedBox(
+              width: 60,
+              child: Column(
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: GrowwColors.card,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: GrowwColors.border),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: img != null && img.isNotEmpty
+                            ? Image.asset(
+                                img,
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.apps_rounded, color: GrowwColors.mintTeal, size: 24),
+                              )
+                            : const Icon(Icons.apps_rounded, color: GrowwColors.mintTeal, size: 24),
                       ),
-                      clipBehavior: Clip.antiAlias,
-                      child: img != null && img.isNotEmpty
-                          ? Image.asset(
-                              img,
-                              width: 48,
-                              height: 48,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(Icons.apps_rounded, color: GrowwColors.mintTeal, size: 24),
-                            )
-                          : const Icon(Icons.apps_rounded, color: GrowwColors.mintTeal, size: 24),
-                    ),
-                    if (badge != null && badge.isNotEmpty)
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: GrowwColors.mintTeal,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            badge,
-                            style: const TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.bold),
+                      if (badge != null && badge.isNotEmpty)
+                        Positioned(
+                          top: -4,
+                          right: -4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: GrowwColors.mintTeal,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              badge,
+                              style: const TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w500, height: 1.1),
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w500, height: 1.1),
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      }).toList(),
-    );
+          );
+        }).toList(),
+      );
+    });
   }
 
   // ── Filter Chips Row ──
@@ -3631,55 +3637,88 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
       final list = controller.watchlistSchemes;
 
       if (list.isEmpty) {
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: GrowwColors.mintTeal.withOpacity(0.4), width: 1.5),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Image.asset(
-                    'assets/images/logo.png',
+        return RefreshIndicator(
+          color: GrowwColors.mintTeal,
+          backgroundColor: GrowwColors.card,
+          onRefresh: controller.fetchWatchlist,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              height: MediaQuery.of(context).size.height * 0.6,
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
                     width: 80,
                     height: 80,
-                    fit: BoxFit.contain,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: GrowwColors.mintTeal.withValues(alpha: 0.4), width: 1.5),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                const Text('Your Watchlist is empty', style: TextStyle(color: GrowwColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                const Text('Bookmark funds to track their live returns and NAV changes in one place.', textAlign: TextAlign.center, style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13)),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () => _tabController.animateTo(0),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: GrowwColors.mintTeal,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(height: 16),
+                  const Text('Your Watchlist is empty', style: TextStyle(color: GrowwColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  const Text('Bookmark funds to track their live returns and NAV changes in one place.', textAlign: TextAlign.center, style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13)),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => _tabController.animateTo(0),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: GrowwColors.mintTeal,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Explore Funds', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
-                  child: const Text('Explore Funds', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
       }
 
-      return ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: list.length,
-        separatorBuilder: (_, __) => const Divider(color: GrowwColors.border, height: 1),
-        itemBuilder: (context, index) {
-          final s = list[index];
-          return _buildSchemeListItem(s);
-        },
+      return RefreshIndicator(
+        color: GrowwColors.mintTeal,
+        backgroundColor: GrowwColors.card,
+        onRefresh: controller.fetchWatchlist,
+        child: ListView.separated(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          padding: const EdgeInsets.all(16),
+          itemCount: list.length,
+          separatorBuilder: (_, __) => const Divider(color: GrowwColors.border, height: 1),
+          itemBuilder: (context, index) {
+            final s = list[index];
+            return Row(
+              children: [
+                Expanded(child: _buildSchemeListItem(s)),
+                IconButton(
+                  icon: const Icon(Icons.bookmark_rounded, color: GrowwColors.mintTeal, size: 22),
+                  tooltip: 'Remove from Watchlist',
+                  onPressed: () async {
+                    await controller.toggleWatchlist(s);
+                    Get.snackbar(
+                      'Removed from Watchlist',
+                      s.schemeName,
+                      backgroundColor: GrowwColors.mintTeal,
+                      colorText: Colors.black,
+                      snackPosition: SnackPosition.BOTTOM,
+                      duration: const Duration(seconds: 2),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        ),
       );
     });
   }

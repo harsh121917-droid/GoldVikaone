@@ -66,6 +66,8 @@ class MutualFundsController extends GetxController {
 
   final RxList<MfSchemeModel> schemes = <MfSchemeModel>[].obs;
   final RxList<String> watchlistSchemeCodes = <String>[].obs;
+  final RxList<MfSchemeModel> watchlistSchemes = <MfSchemeModel>[].obs;
+  final RxBool isWatchlistLoading = false.obs;
   final RxList<MfSchemeModel> recentlyViewed = <MfSchemeModel>[].obs;
 
   final Rx<MfPortfolioSummary?> portfolioSummary = Rx<MfPortfolioSummary?>(null);
@@ -85,6 +87,54 @@ class MutualFundsController extends GetxController {
   final RxInt onboardingStep = 1.obs; // 1: Needs UCC, 2: Needs Mandate, 3: SIP Ready
   final RxMap<String, dynamic> onboardingData = <String, dynamic>{}.obs;
   final RxBool isOnboardingLoading = false.obs;
+
+  // ── Bank Account Verification State ──
+  final Rxn<Map<String, dynamic>> rxBankDetails = Rxn<Map<String, dynamic>>();
+  final RxBool isBankVerifying = false.obs;
+  bool get isBankVerified {
+    if (rxBankDetails.value?['isVerified'] == true ||
+        rxBankDetails.value?['status'] == 'VERIFIED' ||
+        onboardingData['isBankVerified'] == true) {
+      return true;
+    }
+    // Registered UCC bank account provenance
+    if (userUcc.value != null &&
+        userUcc.value!.accountNo.isNotEmpty &&
+        userUcc.value!.accountNo.length >= 6) {
+      return true;
+    }
+    // Onboarding status bank account provenance
+    if ((onboardingData['hasUcc'] == true || onboardingData['clientCode'] != null) &&
+        onboardingData['accountNo'] != null &&
+        onboardingData['accountNo'].toString().length >= 6) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Ensures investor UCC and bank verification status are freshly synchronized
+  Future<void> ensureInvestorReadiness() async {
+    try {
+      await Future.wait([
+        checkUserUcc(),
+        fetchOnboardingStatus(),
+      ]);
+    } catch (_) {}
+    if (rxBankDetails.value == null && userUcc.value != null && userUcc.value!.accountNo.isNotEmpty) {
+      final acc = userUcc.value!.accountNo;
+      rxBankDetails.value = {
+        'hasBank': true,
+        'isVerified': true,
+        'status': 'VERIFIED',
+        'accountNumber': acc,
+        'maskedAccountNumber': acc.length > 4
+            ? '•••• ${acc.substring(acc.length - 4)}'
+            : acc,
+        'ifsc': userUcc.value!.ifsc,
+        'bankName': userUcc.value!.bankName.isNotEmpty ? userUcc.value!.bankName : 'Linked Bank',
+      };
+    }
+  }
 
   // ── Mutual Funds Cart State ──
   final Rx<MfCartData> cartData = MfCartData.empty().obs;
@@ -132,6 +182,8 @@ class MutualFundsController extends GetxController {
     fetchOnboardingStatus();
     fetchPortfolio();
     fetchRecentlyViewed();
+    loadLocalWatchlist();
+    fetchWatchlist();
     fetchCart();
     fetchMfProfile();
     fetchNfos();
@@ -153,10 +205,6 @@ class MutualFundsController extends GetxController {
     return list.take(6).toList();
   }
 
-  List<MfSchemeModel> get watchlistSchemes {
-    return schemes.where((s) => watchlistSchemeCodes.contains(s.schemeCode)).toList();
-  }
-
   List<MfSchemeModel> get filteredSchemes {
     var list = List<MfSchemeModel>.from(schemes);
     final period = selectedReturnPeriod.value;
@@ -170,13 +218,119 @@ class MutualFundsController extends GetxController {
     return list;
   }
 
-  void toggleWatchlist(String schemeCode) {
-    if (watchlistSchemeCodes.contains(schemeCode)) {
-      watchlistSchemeCodes.remove(schemeCode);
-    } else {
-      watchlistSchemeCodes.add(schemeCode);
+  // ── Watchlist / Wishlist Operations (API Synced & Persistent) ──
+  void loadLocalWatchlist() {
+    try {
+      final box = GetStorage();
+      final List<dynamic>? codes = box.read<List<dynamic>>('mf_watchlist_codes');
+      if (codes != null) {
+        watchlistSchemeCodes.assignAll(codes.map((e) => e.toString()).toList());
+      }
+      final List<dynamic>? cachedSchemes = box.read<List<dynamic>>('mf_watchlist_schemes');
+      if (cachedSchemes != null) {
+        watchlistSchemes.assignAll(
+          cachedSchemes.map((e) => MfSchemeModel.fromJson(Map<String, dynamic>.from(e as Map))).toList(),
+        );
+      }
+    } catch (e) {
+      debugPrint('[MutualFundsController] loadLocalWatchlist error: $e');
     }
   }
+
+  Future<void> fetchWatchlist() async {
+    try {
+      isWatchlistLoading.value = true;
+      final dio = ApiClient.instance;
+      final res = await dio.get('/mutual-funds/watchlist');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final codes = (res.data['schemeCodes'] as List<dynamic>? ?? [])
+            .map((e) => e.toString())
+            .toList();
+        final items = (res.data['data'] as List<dynamic>? ?? [])
+            .map((e) => MfSchemeModel.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+
+        watchlistSchemeCodes.assignAll(codes);
+        watchlistSchemes.assignAll(items);
+
+        try {
+          final box = GetStorage();
+          box.write('mf_watchlist_codes', codes);
+          box.write('mf_watchlist_schemes', res.data['data']);
+        } catch (_) {}
+      }
+    } catch (e) {
+      debugPrint('[MutualFundsController] fetchWatchlist error: $e');
+    } finally {
+      isWatchlistLoading.value = false;
+    }
+  }
+
+  Future<bool> toggleWatchlist(dynamic schemeOrCode) async {
+    final String code = (schemeOrCode is MfSchemeModel)
+        ? schemeOrCode.schemeCode
+        : schemeOrCode.toString().trim();
+    if (code.isEmpty) return false;
+
+    final bool isCurrentlySaved = watchlistSchemeCodes.contains(code);
+    final bool willBeSaved = !isCurrentlySaved;
+
+    // Optimistic local update so UI reacts immediately without glitch
+    if (willBeSaved) {
+      if (!watchlistSchemeCodes.contains(code)) {
+        watchlistSchemeCodes.add(code);
+      }
+      if (schemeOrCode is MfSchemeModel) {
+        if (!watchlistSchemes.any((s) => s.schemeCode == code)) {
+          watchlistSchemes.insert(0, schemeOrCode);
+        }
+      }
+    } else {
+      watchlistSchemeCodes.remove(code);
+      watchlistSchemes.removeWhere((s) => s.schemeCode == code);
+    }
+
+    // Cache to local storage immediately
+    try {
+      final box = GetStorage();
+      box.write('mf_watchlist_codes', watchlistSchemeCodes.toList());
+      box.write('mf_watchlist_schemes', watchlistSchemes.map((s) => s.toJson()).toList());
+    } catch (_) {}
+
+    // Sync to Backend API
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.post('/mutual-funds/watchlist/toggle', data: {
+        'schemeCode': code,
+      });
+
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final serverCodes = (res.data['schemeCodes'] as List<dynamic>? ?? [])
+            .map((e) => e.toString())
+            .toList();
+        final serverItems = (res.data['data'] as List<dynamic>? ?? [])
+            .map((e) => MfSchemeModel.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+
+        watchlistSchemeCodes.assignAll(serverCodes);
+        watchlistSchemes.assignAll(serverItems);
+
+        try {
+          final box = GetStorage();
+          box.write('mf_watchlist_codes', serverCodes);
+          box.write('mf_watchlist_schemes', res.data['data']);
+        } catch (_) {}
+
+        return res.data['saved'] == true;
+      }
+    } catch (e) {
+      debugPrint('[MutualFundsController] toggleWatchlist error: $e');
+    }
+
+    return willBeSaved;
+  }
+
+  bool isWatchlisted(String schemeCode) => watchlistSchemeCodes.contains(schemeCode);
 
   // ── Recently Viewed Schemes (API synced & persistent) ──
   void recordRecentlyViewed(MfSchemeModel scheme) {
@@ -434,6 +588,78 @@ class MutualFundsController extends GetxController {
     }
   }
 
+  // ── Authorized Bank Account Verification (Penny Drop & RBI Directory) ──
+  Future<Map<String, dynamic>> verifyBankDetails({
+    required String accountNumber,
+    required String ifsc,
+    required String accountHolder,
+    String accountType = 'savings',
+  }) async {
+    isBankVerifying.value = true;
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.post('/mutual-funds/bank/verify', data: {
+        'accountNumber': accountNumber.trim(),
+        'ifsc': ifsc.trim().toUpperCase(),
+        'accountHolder': accountHolder.trim().toUpperCase(),
+        'accountType': accountType,
+      });
+
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final data = res.data['data'] as Map<String, dynamic>? ?? res.data as Map<String, dynamic>;
+        rxBankDetails.value = Map<String, dynamic>.from(data);
+        return {
+          'success': true,
+          'status': 'VERIFIED',
+          'isVerified': true,
+          'message': res.data['message']?.toString() ?? 'Bank account verified successfully!',
+          'data': data,
+        };
+      }
+      return {
+        'success': false,
+        'status': 'FAILED',
+        'isVerified': false,
+        'message': extractErrorMessage(res.data, fallback: 'Bank account verification failed. Please check details.'),
+      };
+    } catch (e) {
+      String errMsg = 'Bank verification failed. Please check your account number and IFSC.';
+      if (e is DioException) {
+        dynamic data = e.response?.data;
+        if (data is String) {
+          try {
+            data = jsonDecode(data);
+          } catch (_) {}
+        }
+        if (data is Map<String, dynamic> && data['message'] != null) {
+          errMsg = data['message'].toString();
+        }
+      }
+      return {
+        'success': false,
+        'status': 'FAILED',
+        'isVerified': false,
+        'message': errMsg,
+      };
+    } finally {
+      isBankVerifying.value = false;
+    }
+  }
+
+  // ── Real-Time RBI IFSC Directory Lookup ──
+  Future<Map<String, dynamic>?> lookupIfsc(String ifscCode) async {
+    final clean = ifscCode.trim().toUpperCase();
+    if (clean.length != 11) return null;
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.get('/bank/ifsc/' + clean);
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        return res.data['data'] as Map<String, dynamic>?;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<bool> addBank({
     required String accountNumber,
     required String ifsc,
@@ -563,6 +789,22 @@ class MutualFundsController extends GetxController {
         onboardingData.assignAll(d);
         onboardingStep.value = (d['step'] as num?)?.toInt() ?? 1;
         hasUcc.value = d['hasUcc'] == true;
+        if (d['bankDetails'] != null && d['bankDetails'] is Map) {
+          rxBankDetails.value = Map<String, dynamic>.from(d['bankDetails'] as Map);
+        } else if ((d['isBankVerified'] == true || d['hasUcc'] == true || d['clientCode'] != null) && d['accountNo'] != null && d['accountNo'].toString().isNotEmpty) {
+          final acc = d['accountNo'].toString();
+          rxBankDetails.value = {
+            'hasBank': true,
+            'isVerified': true,
+            'status': 'VERIFIED',
+            'accountNumber': acc,
+            'maskedAccountNumber': acc.length > 4
+                ? '•••• ${acc.substring(acc.length - 4)}'
+                : acc,
+            'ifsc': d['ifsc']?.toString() ?? '',
+            'bankName': d['bankName']?.toString() ?? 'Linked Bank',
+          };
+        }
         if (d['clientCode'] != null && userUcc.value == null) {
           userUcc.value = MfUccModel(
             clientCode: d['clientCode'].toString(),
@@ -1030,6 +1272,20 @@ class MutualFundsController extends GetxController {
         hasUcc.value = res.data['exists'] == true;
         if (hasUcc.value && res.data['data'] != null) {
           userUcc.value = MfUccModel.fromJson(res.data['data']);
+          if (userUcc.value != null && userUcc.value!.accountNo.isNotEmpty) {
+            final acc = userUcc.value!.accountNo;
+            rxBankDetails.value ??= {
+              'hasBank': true,
+              'isVerified': true,
+              'status': 'VERIFIED',
+              'accountNumber': acc,
+              'maskedAccountNumber': acc.length > 4
+                  ? '•••• ${acc.substring(acc.length - 4)}'
+                  : acc,
+              'ifsc': userUcc.value!.ifsc,
+              'bankName': userUcc.value!.bankName.isNotEmpty ? userUcc.value!.bankName : 'Linked Bank',
+            };
+          }
         } else if (res.data['prefill'] != null) {
           uccPrefill.assignAll(Map<String, dynamic>.from(res.data['prefill']));
         }
@@ -1050,7 +1306,11 @@ class MutualFundsController extends GetxController {
         'pan': pan.trim().toUpperCase(),
       });
       if (res.statusCode == 200 && res.data['success'] == true) {
-        return res.data['data'] as Map<String, dynamic>? ?? res.data as Map<String, dynamic>;
+        final d = res.data['data'] as Map<String, dynamic>? ?? res.data as Map<String, dynamic>;
+        if (d['bankDetails'] != null) {
+          rxBankDetails.value = Map<String, dynamic>.from(d['bankDetails'] as Map);
+        }
+        return d;
       }
       return {
         'success': false,

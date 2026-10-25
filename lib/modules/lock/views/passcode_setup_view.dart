@@ -118,87 +118,127 @@ class _PasscodeSetupViewState extends State<PasscodeSetupView>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF060B16),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Column(
-            children: [
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _skip,
-                  child: const Text(
-                    'Skip',
-                    style: TextStyle(color: Color(0xFF8A95B0), fontSize: 13),
-                  ),
+      backgroundColor: const Color(0xFF040A07),
+      body: Stack(
+        children: [
+          // Background Ambience Glow (VikaOne Gold Theme)
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(0.0, -0.4),
+                  radius: 1.3,
+                  colors: [
+                    Color(0x33D4A017),
+                    Color(0x220B3D2E),
+                    Color(0xFF040A07),
+                  ],
+                  stops: [0.0, 0.55, 1.0],
                 ),
               ),
-
-              const Spacer(),
-              // Icon
-              Container(
-                width: 76,
-                height: 76,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [AppColors.accent, AppColors.accentLight],
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Column(
+                children: [
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _skip,
+                      child: const Text(
+                        'Skip',
+                        style: TextStyle(color: Color(0xFF9FBDB2), fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                    ),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.accent.withOpacity(0.4),
-                      blurRadius: 22,
+
+                  const Spacer(),
+                  // VikaOne Gold Theme Logo Badge
+                  Container(
+                    width: 82,
+                    height: 82,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF0C2017),
+                      border: Border.all(
+                        color: const Color(0xFFD4A017),
+                        width: 2.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFD4A017).withValues(alpha: 0.4),
+                          blurRadius: 26,
+                          spreadRadius: 2,
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.shield_rounded,
+                        color: Color(0xFFD4A017),
+                        size: 38,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [Color(0xFFFFF4D0), Color(0xFFD4A017), Color(0xFFFFD56B)],
+                    ).createShader(bounds),
+                    child: Text(
+                      _phase == 0 ? 'Create PIN' : 'Confirm PIN',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _phase == 0
+                        ? 'Set a 4-digit PIN to secure your app'
+                        : 'Enter the same PIN again',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Color(0xFF9FBDB2), fontSize: 14),
+                  ),
+                  const SizedBox(height: 36),
+
+                  // Dots
+                  _PinDots(input: _input, error: _error, shake: _shakeAnim),
+                  if (_error) ...[
+                    const SizedBox(height: 12),
+                    const Text(
+                      'PINs do not match. Try again.',
+                      style: TextStyle(
+                        color: Color(0xFFEF4444),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
-                ),
-                child: const Icon(
-                  Icons.lock_outline_rounded,
-                  color: Colors.white,
-                  size: 36,
-                ),
-              ),
-              const SizedBox(height: 24),
 
-              Text(
-                _phase == 0 ? 'Create PIN' : 'Confirm PIN',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
+                  const Spacer(),
+                  _NumPad(onKey: _onKey, onDelete: _onDelete),
+                  const SizedBox(height: 24),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                _phase == 0
-                    ? 'Set a 4-digit PIN to secure your app'
-                    : 'Enter the same PIN again',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFF8A95B0), fontSize: 14),
-              ),
-              const SizedBox(height: 40),
-
-              // Dots
-              _PinDots(input: _input, error: _error, shake: _shakeAnim),
-              if (_error) ...[
-                const SizedBox(height: 12),
-                const Text(
-                  'PINs do not match. Try again.',
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-
-              const Spacer(),
-              _NumPad(onKey: _onKey, onDelete: _onDelete),
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -312,98 +352,134 @@ class _LockScreenViewState extends State<LockScreenView>
     return WillPopScope(
       onWillPop: () async => false, // can't back out of lock screen
       child: Scaffold(
-        backgroundColor: const Color(0xFF060B16),
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: Column(
-              children: [
-                const Spacer(),
+        backgroundColor: const Color(0xFF040A07),
+        body: Stack(
+          children: [
+            // Background Ambience Glow (VikaOne Gold Theme)
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(0.0, -0.4),
+                    radius: 1.3,
+                    colors: [
+                      Color(0x33D4A017),
+                      Color(0x220B3D2E),
+                      Color(0xFF040A07),
+                    ],
+                    stops: [0.0, 0.55, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Column(
+                  children: [
+                    const Spacer(),
 
-                // Gold lock
-                Container(
-                  width: 84,
-                  height: 84,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFB8860B), Color(0xFFFFD700)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                    // VikaOne Gold Theme Logo Badge
+                    Container(
+                      width: 86,
+                      height: 86,
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF0C2017),
+                        border: Border.all(
+                          color: const Color(0xFFD4A017),
+                          width: 2.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFD4A017).withValues(alpha: 0.45),
+                            blurRadius: 28,
+                            spreadRadius: 2,
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.lock_rounded,
+                          color: Color(0xFFD4A017),
+                          size: 42,
+                        ),
+                      ),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFFD700).withOpacity(0.4),
-                        blurRadius: 28,
+                    const SizedBox(height: 18),
+
+                    ShaderMask(
+                      shaderCallback: (bounds) => const LinearGradient(
+                        colors: [Color(0xFFFFF4D0), Color(0xFFD4A017), Color(0xFFFFD56B)],
+                      ).createShader(bounds),
+                      child: const Text(
+                        'VIKAONE',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2.2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _canBio && LockService.to.biometricEnabled
+                          ? 'Use fingerprint or enter your PIN'
+                          : 'Enter your PIN to continue',
+                      style: const TextStyle(
+                        color: Color(0xFF9FBDB2),
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 36),
+
+                    // Dots
+                    _PinDots(input: _input, error: _error, shake: _shakeAnim),
+                    if (_error) ...[
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Incorrect PIN. Try again.',
+                        style: TextStyle(
+                          color: Color(0xFFEF4444),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
-                  ),
-                  child: const Icon(
-                    Icons.lock_rounded,
-                    color: Colors.black,
-                    size: 40,
-                  ),
+
+                    const Spacer(),
+                    _NumPad(onKey: _onKey, onDelete: _onDelete),
+                    const SizedBox(height: 20),
+
+                    // Biometric button — show if device supports it regardless of setting
+                    if (_canBio)
+                      LockService.to.biometricEnabled
+                          ? _BioButton(
+                              onTap: _tryBiometric,
+                              label: 'Use Fingerprint / Face ID',
+                            )
+                          : _EnableBioButton(
+                              onEnable: () async {
+                                await LockService.to.enableBiometric(true);
+                                setState(() {});
+                                _tryBiometric();
+                              },
+                            ),
+                    const SizedBox(height: 24),
+                  ],
                 ),
-                const SizedBox(height: 22),
-
-                const Text(
-                  'Vikaone',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _canBio && LockService.to.biometricEnabled
-                      ? 'Use fingerprint or enter your PIN'
-                      : 'Enter your PIN to continue',
-                  style: const TextStyle(
-                    color: Color(0xFF8A95B0),
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 40),
-
-                // Dots
-                _PinDots(input: _input, error: _error, shake: _shakeAnim),
-                if (_error) ...[
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Incorrect PIN. Try again.',
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-
-                const Spacer(),
-                _NumPad(onKey: _onKey, onDelete: _onDelete),
-                const SizedBox(height: 20),
-
-                // Biometric button — show if device supports it regardless of setting
-                // (if enabled: prominent; if device has it but user hasn't enabled: show enable option)
-                if (_canBio)
-                  LockService.to.biometricEnabled
-                      ? _BioButton(
-                          onTap: _tryBiometric,
-                          label: 'Use Fingerprint / Face ID',
-                        )
-                      : _EnableBioButton(
-                          onEnable: () async {
-                            await LockService.to.enableBiometric(true);
-                            setState(() {});
-                            _tryBiometric();
-                          },
-                        ),
-                const SizedBox(height: 24),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -539,18 +615,21 @@ class _BioButton extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.accent.withOpacity(0.2),
-            AppColors.accent.withOpacity(0.1),
+            const Color(0xFFD4A017).withValues(alpha: 0.22),
+            const Color(0xFF10B981).withValues(alpha: 0.12),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.accent.withOpacity(0.4)),
+        border: Border.all(color: const Color(0xFFD4A017).withValues(alpha: 0.5), width: 1.2),
         boxShadow: [
-          BoxShadow(color: AppColors.accent.withOpacity(0.15), blurRadius: 12),
+          BoxShadow(
+            color: const Color(0xFFD4A017).withValues(alpha: 0.2),
+            blurRadius: 16,
+          ),
         ],
       ),
       child: Row(
@@ -558,7 +637,7 @@ class _BioButton extends StatelessWidget {
         children: [
           const Icon(
             Icons.fingerprint_rounded,
-            color: AppColors.accent,
+            color: Color(0xFFFFD56B),
             size: 26,
           ),
           const SizedBox(width: 10),
@@ -585,18 +664,18 @@ class _EnableBioButton extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: const Color(0xFFD4A017).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.12)),
+        border: Border.all(color: const Color(0xFFD4A017).withValues(alpha: 0.25)),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.fingerprint_rounded, color: Color(0xFF8A95B0), size: 20),
+          Icon(Icons.fingerprint_rounded, color: Color(0xFFFFD56B), size: 20),
           SizedBox(width: 8),
           Text(
             'Enable biometric unlock',
-            style: TextStyle(color: Color(0xFF8A95B0), fontSize: 13),
+            style: TextStyle(color: Color(0xFF9FBDB2), fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -626,27 +705,36 @@ class _PinDots extends StatelessWidget {
           return AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             margin: const EdgeInsets.symmetric(horizontal: 12),
-            width: filled ? 20 : 16,
-            height: filled ? 20 : 16,
+            width: filled ? 22 : 18,
+            height: filled ? 22 : 18,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: error
-                  ? Colors.red
+                  ? const Color(0xFFEF4444)
                   : filled
-                  ? AppColors.accent
-                  : Colors.white.withOpacity(0.15),
+                  ? const Color(0xFFFFD56B)
+                  : const Color(0xFF0C2419),
+              gradient: filled && !error
+                  ? const LinearGradient(
+                      colors: [Color(0xFFFFDF80), Color(0xFFD4A017)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
               border: Border.all(
                 color: error
-                    ? Colors.red
+                    ? const Color(0xFFEF4444)
                     : filled
-                    ? AppColors.accent
-                    : Colors.white.withOpacity(0.3),
+                    ? const Color(0xFFFFD56B)
+                    : const Color(0xFFD4A017).withValues(alpha: 0.35),
+                width: 1.5,
               ),
               boxShadow: filled && !error
                   ? [
                       BoxShadow(
-                        color: AppColors.accent.withOpacity(0.6),
-                        blurRadius: 10,
+                        color: const Color(0xFFD4A017).withValues(alpha: 0.65),
+                        blurRadius: 14,
+                        spreadRadius: 1,
                       ),
                     ]
                   : null,
@@ -679,28 +767,31 @@ class _NumPad extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: row.map((k) {
-                  if (k.isEmpty) return const SizedBox(width: 84, height: 72);
+                  if (k.isEmpty) return const SizedBox(width: 86, height: 70);
                   final isDel = k == 'del';
                   return GestureDetector(
                     onTap: () => isDel ? onDelete() : onKey(k),
                     child: Container(
-                      width: 84,
-                      height: 72,
-                      margin: const EdgeInsets.symmetric(horizontal: 6),
+                      width: 86,
+                      height: 70,
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
                       decoration: BoxDecoration(
                         color: isDel
                             ? Colors.transparent
-                            : Colors.white.withOpacity(0.07),
-                        borderRadius: BorderRadius.circular(18),
+                            : const Color(0xFF0A1D15).withValues(alpha: 0.75),
+                        borderRadius: BorderRadius.circular(20),
                         border: isDel
                             ? null
-                            : Border.all(color: Colors.white.withOpacity(0.1)),
+                            : Border.all(
+                                color: const Color(0xFFD4A017).withValues(alpha: 0.22),
+                                width: 1.2,
+                              ),
                         boxShadow: isDel
                             ? null
                             : [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.25),
-                                  blurRadius: 8,
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
@@ -709,14 +800,14 @@ class _NumPad extends StatelessWidget {
                         child: isDel
                             ? const Icon(
                                 Icons.backspace_outlined,
-                                color: Color(0xFF8A95B0),
-                                size: 22,
+                                color: Color(0xFFD4A017),
+                                size: 24,
                               )
                             : Text(
                                 k,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 26,
+                                  fontSize: 27,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),

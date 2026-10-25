@@ -23,7 +23,7 @@ class _InvestmentChoiceViewState extends State<InvestmentChoiceView>
   static const Color _goldLight = Color(0xFFFFD56B);
   static const Color _mint = Color(0xFF00D09C);
   static const Color _mintLight = Color(0xFF5FF3C7);
-  static const Color _bgDark = Color(0xFF050B07);
+  static const Color _bgDark = Color(0xFF040A07);
 
   @override
   void initState() {
@@ -47,7 +47,7 @@ class _InvestmentChoiceViewState extends State<InvestmentChoiceView>
     );
 
     _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.08),
+      begin: const Offset(0, 0.06),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(
@@ -114,10 +114,10 @@ class _InvestmentChoiceViewState extends State<InvestmentChoiceView>
             child: Container(
               decoration: const BoxDecoration(
                 gradient: RadialGradient(
-                  center: Alignment(0.0, -0.4),
-                  radius: 1.3,
+                  center: Alignment(0.0, -0.45),
+                  radius: 1.35,
                   colors: [
-                    Color(0x33D4A017),
+                    Color(0x38D4A017),
                     Color(0x220B3D2E),
                     Color(0xFF040A07),
                   ],
@@ -134,7 +134,7 @@ class _InvestmentChoiceViewState extends State<InvestmentChoiceView>
               height: size.width * 0.75,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _gold.withValues(alpha: 0.05),
+                color: _gold.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -146,182 +146,75 @@ class _InvestmentChoiceViewState extends State<InvestmentChoiceView>
               height: size.width * 0.85,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _mint.withValues(alpha: 0.06),
+                color: _mint.withValues(alpha: 0.07),
               ),
             ),
           ),
 
-          // Main Scrollable Interactive Content (prevents any screen overflow)
+          // Main Responsive Full-Screen Layout
           SafeArea(
             child: FadeTransition(
               opacity: _fadeAnim,
               child: SlideTransition(
                 position: _slideAnim,
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Column(
-                    children: [
-                      // Top Brand Header
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCompact = constraints.maxHeight < 640;
+
+                    final content = Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Container(
-                            width: 32,
-                            height: 32,
-                            padding: const EdgeInsets.all(5),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF0C1710),
-                              border: Border.all(
-                                color: _gold.withValues(alpha: 0.6),
-                                width: 1.5,
+                          const SizedBox(height: 50),
+                          // ── 1. Big Centered Logo & Luxury Branding ──
+                          _buildBrandHeader(),
+                          const SizedBox(height: 14),
+
+                          // ── 2. Screen Title & Subtitle ──
+                          _buildTitleSection(),
+                          const SizedBox(height: 14),
+
+                          // ── 3. Dual Gateway Cards (Side by Side 1 | 2 - Full Height) ──
+                          if (isCompact)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: _buildGoldCard(isCompact: true)),
+                                const SizedBox(width: 12),
+                                Expanded(child: _buildMutualFundsCard(isCompact: true)),
+                              ],
+                            )
+                          else
+                            Expanded(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(child: _buildGoldCard(isCompact: false)),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: _buildMutualFundsCard(isCompact: false)),
+                                ],
                               ),
                             ),
-                            child: Image.asset(
-                              'assets/images/logo.png',
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) => const Icon(
-                                Icons.diamond_rounded,
-                                color: _gold,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          ShaderMask(
-                            shaderCallback: (bounds) => const LinearGradient(
-                              colors: [Color(0xFFFFF4D0), _gold, Color(0xFFF7D070)],
-                            ).createShader(bounds),
-                            child: const Text(
-                              'VIKAONE WEALTH',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 2.0,
-                              ),
-                            ),
-                          ),
+
+                          const SizedBox(height: 30),
+
+                          // ── 4. Compact Trust Badges Footer ──
+                          _buildTrustFooter(),
+                          const SizedBox(height: 30),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                    );
 
-                      // Title & Subtitle
-                      const Text(
-                        'Choose Your Investment Focus',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Select where you want to start. You can seamlessly switch anytime.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: const Color(0xFF9FBDB2).withValues(alpha: 0.9),
-                          fontSize: 12.5,
-                          height: 1.35,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
+                    if (isCompact) {
+                      return SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: content,
+                      );
+                    }
 
-                      // ── Choice 1: Digital Gold & Silver ──
-                      _buildGatewayCard(
-                        title: 'Digital Gold & Silver',
-                        badgeText: '24K 99.9% PURE • BRINK\'S VAULT',
-                        description:
-                            'Invest in 24K pure gold & silver from ₹10. Stored in 100% insured vaults or delivered to your doorstep.',
-                        features: const [
-                          'Daily & Monthly Gold SIP',
-                          'Live 24K Indian Market Rates',
-                          'Doorstep Delivery of Gold Coins',
-                        ],
-                        primaryColor: _gold,
-                        lightColor: _goldLight,
-                        iconBgColor: const Color(0xFF261D09),
-                        icon: Icons.monetization_on_rounded,
-                        iconImage: 'assets/images/gold_coin.png',
-                        buttonLabel: 'Enter Digital Gold',
-                        onTap: _openDigitalGold,
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // ── Choice 2: Mutual Funds (NSE MFSS) ──
-                      _buildGatewayCard(
-                        title: 'Mutual Funds',
-                        badgeText: 'NSE MFSS • ZERO BROKERAGE',
-                        description:
-                            'Invest in 1,000+ top performing schemes from HDFC, SBI, Axis, ICICI & more with zero commission.',
-                        features: const [
-                          'Start SIPs from ₹100 / Month',
-                          'Direct Exchange Allotment & NAV',
-                          'SEBI Regulated & 100% Paperless',
-                        ],
-                        primaryColor: _mint,
-                        lightColor: _mintLight,
-                        iconBgColor: const Color(0xFF04261B),
-                        icon: Icons.trending_up_rounded,
-                        iconImage: 'assets/images/Mutual_Funds/NSE.png',
-                        buttonLabel: 'Enter Mutual Funds',
-                        onTap: _openMutualFunds,
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Trust Badges Footer with FittedBox to prevent any overflow
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.03),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.06),
-                          ),
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.verified_user_rounded, color: _mint.withValues(alpha: 0.9), size: 13),
-                              const SizedBox(width: 5),
-                              const Text(
-                                'SEBI Regulated',
-                                style: TextStyle(color: Color(0xFF9FBDB2), fontSize: 11, fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(width: 10),
-                              Text('•', style: TextStyle(color: Colors.white.withValues(alpha: 0.3))),
-                              const SizedBox(width: 10),
-                              Icon(Icons.account_balance_rounded, color: _gold.withValues(alpha: 0.9), size: 13),
-                              const SizedBox(width: 5),
-                              const Text(
-                                'NSE MFSS Partner',
-                                style: TextStyle(color: Color(0xFF9FBDB2), fontSize: 11, fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(width: 10),
-                              Text('•', style: TextStyle(color: Colors.white.withValues(alpha: 0.3))),
-                              const SizedBox(width: 10),
-                              Icon(Icons.lock_rounded, color: _gold.withValues(alpha: 0.9), size: 13),
-                              const SizedBox(width: 5),
-                              const Text(
-                                '100% Insured',
-                                style: TextStyle(color: Color(0xFF9FBDB2), fontSize: 11, fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-                    ],
-                  ),
+                    return content;
+                  },
                 ),
               ),
             ),
@@ -331,10 +224,144 @@ class _InvestmentChoiceViewState extends State<InvestmentChoiceView>
     );
   }
 
+  // ── Big Centered Logo Badge ──
+  Widget _buildBrandHeader() {
+    return Column(
+      children: [
+        Container(
+          width: 115,
+          height: 115,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF0B1E15),
+            border: Border.all(
+              color: _gold,
+              width: 2.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _gold.withValues(alpha: 0.45),
+                blurRadius: 32,
+                spreadRadius: 2,
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.65),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Image.asset(
+            'assets/images/logo.png',
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => const Icon(
+              Icons.diamond_rounded,
+              color: _gold,
+              size: 44,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        ShaderMask(
+          shaderCallback: (bounds) => const LinearGradient(
+            colors: [Color(0xFFFFF6D8), _gold, Color(0xFFFFD56B)],
+          ).createShader(bounds),
+          child: const Text(
+            'VIKAONE',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 3.2,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Header Title & Subtitle ──
+  Widget _buildTitleSection() {
+    return Column(
+      children: [
+        const Text(
+          'Choose Your Investment Gateway',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 19,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.3,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Select where you want to start. Seamlessly switch anytime.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: const Color(0xFF9FBDB2).withValues(alpha: 0.9),
+            fontSize: 12,
+            height: 1.3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Choice 1: Digital Gold & Silver ──
+  Widget _buildGoldCard({required bool isCompact}) {
+    return _buildGatewayCard(
+      title: 'Digital Gold\n& Silver',
+      badgeText: '24K 99.9%',
+      tagline: 'Start from ₹10',
+      features: const [
+        '24K Pure Bullion',
+        'Live Market Rates',
+        'Daily & SIP Plans',
+        '100% Insured Vaults',
+        'Doorstep Delivery',
+      ],
+      primaryColor: _gold,
+      lightColor: _goldLight,
+      iconBgColor: const Color(0xFF261D09),
+      icon: Icons.monetization_on_rounded,
+      iconImage: 'assets/images/gold_coin.png',
+      buttonLabel: 'Enter Gold',
+      onTap: _openDigitalGold,
+      isCompact: isCompact,
+    );
+  }
+
+  // ── Choice 2: Mutual Funds ──
+  Widget _buildMutualFundsCard({required bool isCompact}) {
+    return _buildGatewayCard(
+      title: 'Mutual\nFunds',
+      badgeText: 'NSE MFSS',
+      tagline: 'SIP from ₹100',
+      features: const [
+        '1,000+ Schemes',
+        'Direct NAV Growth',
+        'Zero Commission',
+        'SEBI Regulated',
+        'Instant Switches',
+      ],
+      primaryColor: _mint,
+      lightColor: _mintLight,
+      iconBgColor: const Color(0xFF04261B),
+      icon: Icons.trending_up_rounded,
+      iconImage: 'assets/images/Mutual_Funds/NSE.png',
+      buttonLabel: 'Enter Funds',
+      onTap: _openMutualFunds,
+      isCompact: isCompact,
+    );
+  }
+
+  // ── Full-Height Gateway Card Builder ──
   Widget _buildGatewayCard({
     required String title,
     required String badgeText,
-    required String description,
+    required String tagline,
     required List<String> features,
     required Color primaryColor,
     required Color lightColor,
@@ -343,197 +370,197 @@ class _InvestmentChoiceViewState extends State<InvestmentChoiceView>
     String? iconImage,
     required String buttonLabel,
     required VoidCallback onTap,
+    required bool isCompact,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: const Color(0xFF0A120E),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: primaryColor.withValues(alpha: 0.45),
-            width: 1.4,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: primaryColor.withValues(alpha: 0.12),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
-            ),
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF08140E),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.45),
+          width: 1.5,
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: Stack(
-            children: [
-              // Subtle gradient background
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        primaryColor.withValues(alpha: 0.08),
-                        Colors.transparent,
-                        primaryColor.withValues(alpha: 0.03),
-                      ],
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withValues(alpha: 0.16),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.55),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            splashColor: primaryColor.withValues(alpha: 0.15),
+            highlightColor: primaryColor.withValues(alpha: 0.08),
+            child: Stack(
+              children: [
+                // Inner subtle gradient aura
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          primaryColor.withValues(alpha: 0.14),
+                          const Color(0xFF07120D),
+                          primaryColor.withValues(alpha: 0.05),
+                        ],
+                        stops: const [0.0, 0.45, 1.0],
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              // Ambient blur bubble in corner
-              Positioned(
-                top: -20,
-                right: -20,
-                child: Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: primaryColor.withValues(alpha: 0.15),
+                // Top corner radial glow
+                Positioned(
+                  top: -24,
+                  right: -24,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: primaryColor.withValues(alpha: 0.16),
+                    ),
                   ),
                 ),
-              ),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header row: Badge + Icon
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Pill badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: primaryColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: primaryColor.withValues(alpha: 0.4),
-                              width: 0.8,
-                            ),
-                          ),
-                          child: Text(
-                            badgeText,
-                            style: TextStyle(
-                              color: lightColor,
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                        ),
-                        const Spacer(),
-
-                        // 3D Visual Icon
-                        Container(
-                          width: 44,
-                          height: 44,
-                          padding: const EdgeInsets.all(7),
-                          decoration: BoxDecoration(
-                            color: iconBgColor,
-                            borderRadius: BorderRadius.circular(13),
-                            border: Border.all(
-                              color: primaryColor.withValues(alpha: 0.4),
-                              width: 1.2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: primaryColor.withValues(alpha: 0.25),
-                                blurRadius: 10,
-                                offset: const Offset(0, 3),
+                // Card interactive content
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: isCompact ? MainAxisSize.min : MainAxisSize.max,
+                    children: [
+                      // Top Row: 3D Icon + Pill Badge
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 3D Visual Icon Container
+                          Container(
+                            width: 48,
+                            height: 48,
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: iconBgColor,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: primaryColor.withValues(alpha: 0.5),
+                                width: 1.3,
                               ),
-                            ],
-                          ),
-                          child: iconImage != null
-                              ? Image.asset(
-                                  iconImage,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) => Icon(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: primaryColor.withValues(alpha: 0.28),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: iconImage != null
+                                ? Image.asset(
+                                    iconImage,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) => Icon(
+                                      icon,
+                                      color: primaryColor,
+                                      size: 24,
+                                    ),
+                                  )
+                                : Icon(
                                     icon,
                                     color: primaryColor,
-                                    size: 22,
+                                    size: 24,
                                   ),
-                                )
-                              : Icon(
-                                  icon,
-                                  color: primaryColor,
-                                  size: 22,
-                                ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // Title
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    // Description
-                    Text(
-                      description,
-                      style: const TextStyle(
-                        color: Color(0xFF9FBDB2),
-                        fontSize: 11.5,
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Feature Bullets
-                    Row(
-                      children: features.map((feat) {
-                        return Expanded(
-                          child: Container(
-                            margin: const EdgeInsets.only(right: 6),
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                          ),
+                          // Pill Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7.5, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.04),
-                              borderRadius: BorderRadius.circular(8),
+                              color: primaryColor.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: primaryColor.withValues(alpha: 0.15),
-                                width: 0.8,
+                                color: primaryColor.withValues(alpha: 0.45),
+                                width: 0.9,
                               ),
                             ),
+                            child: Text(
+                              badgeText,
+                              style: TextStyle(
+                                color: lightColor,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Title
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.2,
+                          height: 1.18,
+                        ),
+                        maxLines: 2,
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      // Tagline Chip
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(7),
+                          border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          tagline,
+                          style: TextStyle(
+                            color: lightColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Features Bullet List
+                      ...features.map((feat) => Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
                             child: Row(
-                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
                                   Icons.check_circle_rounded,
                                   color: primaryColor,
-                                  size: 11,
+                                  size: 13,
                                 ),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: 5),
                                 Expanded(
                                   child: Text(
                                     feat,
                                     style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 9.5,
+                                      color: Color(0xFFD3E7DE),
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w600,
                                     ),
                                     maxLines: 1,
@@ -542,61 +569,108 @@ class _InvestmentChoiceViewState extends State<InvestmentChoiceView>
                                 ),
                               ],
                             ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+                          )),
 
-                    const SizedBox(height: 14),
+                      // Dynamic spacer to push action button to the bottom on full-screen
+                      if (!isCompact) const Spacer(),
+                      if (isCompact) const SizedBox(height: 14),
 
-                    // Action Button
-                    Container(
-                      width: double.infinity,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            primaryColor,
-                            lightColor,
-                          ],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primaryColor.withValues(alpha: 0.35),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
+                      // Action Button (Pinned to Bottom)
+                      Container(
+                        width: double.infinity,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              primaryColor,
+                              lightColor,
+                            ],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
                           ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            buttonLabel,
-                            style: const TextStyle(
-                              color: Color(0xFF0A120E),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.2,
+                          borderRadius: BorderRadius.circular(13),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryColor.withValues(alpha: 0.38),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Icon(
-                            Icons.arrow_forward_rounded,
-                            color: Color(0xFF0A120E),
-                            size: 15,
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              buttonLabel,
+                              style: const TextStyle(
+                                color: Color(0xFF09130E),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Color(0xFF09130E),
+                              size: 15,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // ── Compact Trust Badges Footer ──
+  Widget _buildTrustFooter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF081711).withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+        ),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.verified_user_rounded, color: _mint.withValues(alpha: 0.9), size: 13),
+            const SizedBox(width: 5),
+            const Text(
+              'SEBI Regulated',
+              style: TextStyle(color: Color(0xFF9FBDB2), fontSize: 11, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(width: 10),
+            Text('•', style: TextStyle(color: Colors.white.withValues(alpha: 0.25))),
+            const SizedBox(width: 10),
+            Icon(Icons.account_balance_rounded, color: _gold.withValues(alpha: 0.9), size: 13),
+            const SizedBox(width: 5),
+            const Text(
+              'NSE MFSS Partner',
+              style: TextStyle(color: Color(0xFF9FBDB2), fontSize: 11, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(width: 10),
+            Text('•', style: TextStyle(color: Colors.white.withValues(alpha: 0.25))),
+            const SizedBox(width: 10),
+            Icon(Icons.lock_rounded, color: _goldLight.withValues(alpha: 0.9), size: 13),
+            const SizedBox(width: 5),
+            const Text(
+              '100% Insured',
+              style: TextStyle(color: Color(0xFF9FBDB2), fontSize: 11, fontWeight: FontWeight.w600),
+            ),
+          ],
         ),
       ),
     );

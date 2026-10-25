@@ -26,7 +26,6 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
   double? _scrubNav;
   String? _scrubDate;
   double? _scrubReturn;
-  bool _isBookmarked = false;
   bool _isAnnualised = true;
 
   // Calculator states (Screenshot 3)
@@ -57,7 +56,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
   @override
   void initState() {
     super.initState();
-    _isBookmarked = controller.watchlistSchemeCodes.contains(widget.scheme.schemeCode);
+
 
     // Track in recently viewed safely after build phase completes
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -692,20 +691,10 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     return 0.0;
   }
 
-  void _toggleBookmark() {
-    setState(() {
-      _isBookmarked = !_isBookmarked;
-      if (_isBookmarked) {
-        if (!controller.watchlistSchemeCodes.contains(widget.scheme.schemeCode)) {
-          controller.watchlistSchemeCodes.add(widget.scheme.schemeCode);
-        }
-      } else {
-        controller.watchlistSchemeCodes.remove(widget.scheme.schemeCode);
-      }
-    });
-
+  Future<void> _toggleBookmark() async {
+    final saved = await controller.toggleWatchlist(widget.scheme);
     Get.snackbar(
-      _isBookmarked ? 'Added to Watchlist' : 'Removed from Watchlist',
+      saved ? 'Added to Watchlist' : 'Removed from Watchlist',
       widget.scheme.schemeName,
       backgroundColor: const Color(0xFF00D09C),
       colorText: Colors.black,
@@ -758,14 +747,17 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: Icon(
-              _isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-              color: _isBookmarked ? mintGreen : Colors.white,
-              size: 22,
-            ),
-            onPressed: _toggleBookmark,
-          ),
+          Obx(() {
+            final isSaved = controller.isWatchlisted(widget.scheme.schemeCode);
+            return IconButton(
+              icon: Icon(
+                isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                color: isSaved ? mintGreen : Colors.white,
+                size: 22,
+              ),
+              onPressed: _toggleBookmark,
+            );
+          }),
           IconButton(
             icon: const Icon(Icons.search_rounded, color: Colors.white, size: 22),
             onPressed: () => Navigator.pop(context),
@@ -1142,9 +1134,9 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                       side: const BorderSide(color: Color(0xFF1C3A30), width: 1),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text(
-                      'One-time',
-                      style: TextStyle(color: mintGreen, fontSize: 15, fontWeight: FontWeight.bold),
+                    child: Text(
+                      'mf_one_time'.tr,
+                      style: const TextStyle(color: mintGreen, fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -1160,9 +1152,9 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text(
-                      'Start SIP',
-                      style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
+                    child: Text(
+                      'mf_monthly_sip'.tr,
+                      style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -1994,7 +1986,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                         border: _isCalculatorSip ? Border.all(color: Colors.white24) : null,
                       ),
                       child: Text(
-                        'Monthly SIP',
+                        'mf_monthly_sip'.tr,
                         style: TextStyle(
                           color: _isCalculatorSip ? Colors.white : textSecondary,
                           fontSize: 12,
@@ -2016,7 +2008,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                         border: !_isCalculatorSip ? Border.all(color: Colors.white24) : null,
                       ),
                       child: Text(
-                        'One-time',
+                        'mf_one_time'.tr,
                         style: TextStyle(
                           color: !_isCalculatorSip ? Colors.white : textSecondary,
                           fontSize: 12,

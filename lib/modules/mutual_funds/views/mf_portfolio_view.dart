@@ -479,7 +479,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Total returns',
+                'mf_total_returns'.tr,
                 style: TextStyle(
                   color: dark ? Colors.white70 : const Color(0xFF64748B),
                   fontSize: 13,
@@ -505,7 +505,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Invested',
+                'mf_total_invested'.tr,
                 style: TextStyle(
                   color: dark ? Colors.white70 : const Color(0xFF64748B),
                   fontSize: 13,
@@ -1001,7 +1001,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Current Value', style: TextStyle(color: textSecondary, fontSize: 11)),
+                            Text('mf_current_value'.tr, style: TextStyle(color: textSecondary, fontSize: 11)),
                             const SizedBox(height: 2),
                             Text(
                               '₹${_formatCurrency(item.currentValue, showDecimals: true)}',
@@ -1021,7 +1021,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text('Total Returns', style: TextStyle(color: textSecondary, fontSize: 11)),
+                            Text('mf_total_returns'.tr, style: TextStyle(color: textSecondary, fontSize: 11)),
                             const SizedBox(height: 4),
                             _buildReturnBadge(pnl, pnlPct),
                             const SizedBox(height: 4),

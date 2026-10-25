@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../controllers/mutual_funds_controller.dart';
 import 'widgets/mf_groww_widgets.dart';
+import 'widgets/mf_bank_verification_card.dart';
 
 /// Modern Groww-style Paperless Investor KYC (UCC) Onboarding
 /// 
@@ -35,6 +36,7 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
   String? _panErrorText;
   bool _isFreshInvestor = false;
   final TextEditingController _nameController = TextEditingController();
+  Map<String, dynamic>? _bankDetails;
 
   // Personal Details
   String _gender = 'M'; // M, F, O
@@ -84,6 +86,10 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
       _gender = controller.userUcc.value!.gender;
     }
 
+    if (controller.rxBankDetails.value != null) {
+      _bankDetails = Map<String, dynamic>.from(controller.rxBankDetails.value!);
+    }
+
     // Prefill if controller already has prefill data from user profile
     final prefillPan = controller.uccPrefill['pan']?.toString() ?? '';
     const dummyPans = ['ABCDE1234F', 'AAAAA0000A', 'XXXXX0000X', 'TYJPS0689R', 'PHOTO_SUBMITTED'];
@@ -129,6 +135,11 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
         final isFresh = data['isFreshInvestor'] == true || data['nseKycStatus'] == 'NEW';
         final isAlreadyRegistered = data['alreadyRegistered'] == true || data['hasUcc'] == true;
         final existingClientCode = (data['clientCode'] ?? '').toString();
+        final bank = (data['bankDetails'] is Map)
+            ? Map<String, dynamic>.from(data['bankDetails'] as Map)
+            : (controller.rxBankDetails.value != null
+                ? Map<String, dynamic>.from(controller.rxBankDetails.value!)
+                : null);
 
         if (isAlreadyRegistered && existingClientCode.isNotEmpty) {
           setState(() {
@@ -139,6 +150,7 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
             _isNameConfirmed = true;
             _isVerifyingPan = false;
             _panErrorText = null;
+            _bankDetails = bank;
           });
           controller.hasUcc.value = true;
           controller.fetchOnboardingStatus();
@@ -165,6 +177,7 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
           _isNameConfirmed = false;
           _isVerifyingPan = false;
           _panErrorText = null;
+          _bankDetails = bank;
         });
       } else {
         setState(() {
@@ -292,9 +305,33 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
       return;
     }
 
+    final isBankOk = _bankDetails != null &&
+        (_bankDetails!['isVerified'] == true || _bankDetails!['status'] == 'VERIFIED');
+    if (!isBankOk) {
+      Get.snackbar(
+        'Verify Bank Account',
+        'Please complete bank verification via Penny Drop to proceed with mutual funds.',
+        backgroundColor: Colors.amber.shade900,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 4),
+      );
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          200,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+        );
+      }
+      return;
+    }
+
     final res = await controller.registerUcc(
       pan: _panController.text.trim().toUpperCase(),
       fullName: _registeredName.isNotEmpty ? _registeredName : _nameController.text.trim().toUpperCase(),
+      accountNo: _bankDetails?['accountNumber']?.toString(),
+      ifsc: _bankDetails?['ifsc']?.toString(),
+      bankName: _bankDetails?['bankName']?.toString(),
       dob: _dobController.text.trim(),
       gender: _gender,
       occupationCode: _occupationCode,
@@ -365,6 +402,16 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
               // ── Groww "Is this you?" Name Confirmation Card ──
               if (_isPanVerified) ...[
                 _buildNameConfirmationCard(),
+                const SizedBox(height: 16),
+                MfBankVerificationCard(
+                  investorName: _registeredName.isNotEmpty ? _registeredName : _nameController.text.trim(),
+                  initialBankDetails: _bankDetails,
+                  onBankVerified: (bank) {
+                    setState(() {
+                      _bankDetails = bank;
+                    });
+                  },
+                ),
                 const SizedBox(height: 20),
               ],
 
@@ -420,7 +467,7 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'One-time SEBI registration. No bank details needed now.',
+                  'One-time SEBI registration & verified bank link.',
                   style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11),
                 ),
               ],
@@ -1044,12 +1091,12 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'No Bank Details Required on this Screen',
+                  'Bank Account Mapping & SEBI Compliance',
                   style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'Groww-style automated verification: Your bank will be linked seamlessly during Step 2 (AutoPay Mandate) or directly via instant UPI when investing.',
+                  'Your verified bank account is strictly mapped to all mutual fund purchase orders, SIP debits, and redemption payouts according to SEBI and NSE regulations.',
                   style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11, height: 1.3),
                 ),
               ],

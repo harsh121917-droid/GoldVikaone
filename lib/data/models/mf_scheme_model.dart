@@ -115,6 +115,46 @@ class MfSchemeModel {
       minAdditionalPurchaseAmount: (json['minAdditionalPurchaseAmount'] as num?)?.toDouble(),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      '_id': id,
+      'id': id,
+      'schemeCode': schemeCode,
+      'schemeName': schemeName,
+      'amcCode': amcCode,
+      'amcName': amcName,
+      'isin': isin,
+      'category': category,
+      'subCategory': subCategory,
+      'nav': nav,
+      'navDate': navDate?.toIso8601String(),
+      'cagr1Y': cagr1Y,
+      'cagr3Y': cagr3Y,
+      'cagr5Y': cagr5Y,
+      'return1M': return1M,
+      'return3M': return3M,
+      'return6M': return6M,
+      'minPurchaseAmount': minPurchaseAmount,
+      'minSipAmount': minSipAmount,
+      'rating': rating,
+      'riskLevel': riskLevel,
+      'fundManager': fundManager,
+      'aum': aum,
+      'expenseRatio': expenseRatio,
+      'benchmark': benchmark,
+      'exitLoad': exitLoad,
+      'navSource': navSource,
+      'isPopular': isPopular,
+      'isFeatured': isFeatured,
+      'isRecommended': isRecommended,
+      'planType': planType,
+      'option': option,
+      'riskometer': riskometer,
+      'investmentObjective': investmentObjective,
+      'minAdditionalPurchaseAmount': minAdditionalPurchaseAmount,
+    };
+  }
 }
 
 class NavHistoryPoint {

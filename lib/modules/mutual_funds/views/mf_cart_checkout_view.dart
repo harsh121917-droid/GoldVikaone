@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../data/models/mf_cart_model.dart';
 import '../controllers/mutual_funds_controller.dart';
 import 'widgets/mf_groww_widgets.dart';
+import 'mf_ucc_onboarding_view.dart';
 
 /// Dedicated Multi-Fund Checkout Screen
 /// Allows reviewing selected funds, adjusting amounts, selecting payment mode,
@@ -27,8 +28,7 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
   // Map of custom amounts for each item ID
   late final RxMap<String, double> itemAmounts;
 
-  String _paymentMode = 'NSE_PAYMENT_LINK'; // 'NSE_PAYMENT_LINK' or 'UPI'
-  final TextEditingController _vpaController = TextEditingController();
+  static const String _paymentMode = 'NSE_PAYMENT_LINK';
   bool _isSubmitting = false;
 
   static const Color darkBg = Color(0xFF0F141E);
@@ -44,16 +44,12 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
       for (final item in widget.initialSelectedItems) item.id: item.amount,
     }.obs;
 
-    // Prefill user UPI / Phone if available
-    final userPhone = controller.userUcc.value?.accountNo ?? '';
-    if (userPhone.isNotEmpty && userPhone.length == 10) {
-      _vpaController.text = '$userPhone@upi';
-    }
+    // Synchronize investor UCC and bank account status
+    controller.ensureInvestorReadiness();
   }
 
   @override
   void dispose() {
-    _vpaController.dispose();
     super.dispose();
   }
 
@@ -155,13 +151,20 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
       return;
     }
 
-    if (_paymentMode == 'UPI') {
-      final vpa = _vpaController.text.trim();
-      if (!vpa.contains('@') || vpa.length < 4) {
-        Get.snackbar('Invalid UPI ID', 'Please enter a valid UPI ID (e.g. mobile@okhdfcbank or yourname@paytm).',
-            backgroundColor: Colors.redAccent, colorText: Colors.white);
-        return;
-      }
+    if (!controller.isBankVerified) {
+      await controller.ensureInvestorReadiness();
+    }
+
+    if (!controller.isBankVerified) {
+      Get.snackbar(
+        'Bank Verification Required',
+        'Your registered bank account must be verified before completing this checkout.',
+        backgroundColor: Colors.amber.shade900,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      Get.to(() => const MfUccOnboardingView());
+      return;
     }
 
     setState(() => _isSubmitting = true);
@@ -187,7 +190,6 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
         selectedItemIds: selectedIds.toList(),
         customItems: customItems,
         paymentMode: _paymentMode,
-        vpa: _paymentMode == 'UPI' ? _vpaController.text.trim() : null,
       );
 
       if (result != null && mounted) {
@@ -214,7 +216,7 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
     final clientCode = ucc?.clientCode ?? 'NSE INVESTOR';
     final bankName = ucc?.bankName ?? 'Linked Bank';
     final accountNo = ucc?.accountNo ?? '';
-    final maskedBank = accountNo.length > 4 ? '•••• ${accountNo.substring(accountNo.length - 4)}' : accountNo;
+
 
     return Scaffold(
       backgroundColor: darkBg,
@@ -434,179 +436,198 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
 
                 const SizedBox(height: 16),
 
-                // ── Section 2: Payment Method Selection ──
+                // ── Section 2: Payment Method (Official NSE Gateway) ──
                 const Text(
                   'PAYMENT METHOD',
                   style: TextStyle(color: Colors.white54, fontSize: 11.5, fontWeight: FontWeight.bold, letterSpacing: 0.6),
                 ),
                 const SizedBox(height: 8),
 
-                // Option 1: NSE Gateway (Recommended)
-                GestureDetector(
-                  onTap: () => setState(() => _paymentMode = 'NSE_PAYMENT_LINK'),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: cardBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: _paymentMode == 'NSE_PAYMENT_LINK' ? mintGreen : borderColor,
-                        width: _paymentMode == 'NSE_PAYMENT_LINK' ? 1.5 : 1,
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          _paymentMode == 'NSE_PAYMENT_LINK' ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-                          color: _paymentMode == 'NSE_PAYMENT_LINK' ? mintGreen : Colors.white38,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Text(
-                                    'NSE Exchange Gateway',
-                                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: mintGreen.withOpacity(0.15),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: const Text(
-                                      'RECOMMENDED',
-                                      style: TextStyle(color: mintGreen, fontSize: 9.5, fontWeight: FontWeight.w800),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Official NSE portal with UPI (GPay/PhonePe/Paytm), NetBanking, and Debit Cards directly to NSE Clearing Ltd.',
-                                style: TextStyle(color: Colors.white.withOpacity(0.65), fontSize: 11.5, height: 1.3),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                // Option 2: UPI Direct Collect
-                GestureDetector(
-                  onTap: () => setState(() => _paymentMode = 'UPI'),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: cardBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: _paymentMode == 'UPI' ? mintGreen : borderColor,
-                        width: _paymentMode == 'UPI' ? 1.5 : 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              _paymentMode == 'UPI' ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-                              color: _paymentMode == 'UPI' ? mintGreen : Colors.white38,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'UPI Direct Collect Request',
-                                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'NSE will dispatch a combined UPI collect request directly to your UPI app.',
-                                    style: TextStyle(color: Colors.white.withOpacity(0.65), fontSize: 11.5, height: 1.3),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (_paymentMode == 'UPI') ...[
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _vpaController,
-                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                            decoration: InputDecoration(
-                              hintText: 'Enter UPI ID (e.g. mobile@okaxis)',
-                              hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-                              filled: true,
-                              fillColor: const Color(0xFF0F141E),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              prefixIcon: const Icon(Icons.payment_rounded, color: mintGreen, size: 18),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // ── Section 3: Investor & Bank Account ──
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF131D2D),
+                    color: cardBg,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFF1E2E48)),
+                    border: Border.all(
+                      color: mintGreen.withValues(alpha: 0.45),
+                      width: 1.2,
+                    ),
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: mintGreen.withOpacity(0.12),
-                          shape: BoxShape.circle,
+                          color: mintGreen.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.account_balance_rounded, color: mintGreen, size: 20),
+                        child: const Icon(
+                          Icons.account_balance_rounded,
+                          color: mintGreen,
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              '$bankName $maskedBank',
-                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                            Row(
+                              children: [
+                                const Text(
+                                  'NSE Exchange Gateway',
+                                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: mintGreen.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'OFFICIAL',
+                                    style: TextStyle(color: mintGreen, fontSize: 9.5, fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 4),
                             Text(
-                              'NSE Client: $clientCode • SEBI Verified',
-                              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11),
+                              'Official NSE portal with UPI (GPay/PhonePe/Paytm), NetBanking, and Debit Cards directly to NSE Clearing Ltd.',
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 11.5, height: 1.3),
                             ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.verified_rounded, color: mintGreen, size: 18),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        color: mintGreen,
+                        size: 20,
+                      ),
                     ],
                   ),
                 ),
+
+                const SizedBox(height: 16),
+
+                // ── Section 3: Investor & Bank Account ──
+                Obx(() {
+                  final bank = controller.rxBankDetails.value;
+                  final isBankVerified = controller.isBankVerified;
+                  final bankStatus = (bank?['status']?.toString() ?? (isBankVerified ? 'VERIFIED' : 'PENDING')).toUpperCase();
+                  final bName = bank?['bankName']?.toString() ?? bankName;
+                  final acc = bank?['accountNumber']?.toString() ?? accountNo;
+                  final masked = bank?['maskedAccountNumber']?.toString() ??
+                      (acc.length > 4 ? '•••• ${acc.substring(acc.length - 4)}' : acc);
+                  final isFailed = bankStatus == 'FAILED';
+                  final statusColor = isBankVerified
+                      ? mintGreen
+                      : (isFailed ? const Color(0xFFEF4444) : const Color(0xFFF59E0B));
+                  final statusLabel = isBankVerified
+                      ? 'Verified'
+                      : (isFailed ? 'Failed' : 'Pending');
+
+                  return Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF131D2D),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isBankVerified ? const Color(0xFF1E2E48) : statusColor.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.account_balance_rounded, color: statusColor, size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '$bName $masked',
+                                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'NSE Client: $clientCode • SEBI Mapped',
+                                    style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isBankVerified
+                                        ? Icons.check_circle_rounded
+                                        : (isFailed ? Icons.error_rounded : Icons.pending_rounded),
+                                    color: statusColor,
+                                    size: 12,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    statusLabel,
+                                    style: TextStyle(color: statusColor, fontSize: 10.5, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (!isBankVerified) ...[
+                          const SizedBox(height: 10),
+                          const Divider(color: borderColor, height: 1),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  isFailed
+                                      ? 'Penny Drop verification failed. Re-enter bank details.'
+                                      : 'Verify your bank via Penny Drop to enable transactions.',
+                                  style: TextStyle(color: statusColor, fontSize: 11),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => Get.to(() => const MfUccOnboardingView()),
+                                style: TextButton.styleFrom(
+                                  visualDensity: VisualDensity.compact,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                ),
+                                child: Text(
+                                  isFailed ? 'Retry' : 'Verify Bank',
+                                  style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }),
               ],
             ),
           ),

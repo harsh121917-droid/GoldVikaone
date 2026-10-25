@@ -558,8 +558,140 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                 );
               }
 
+              final bank = controller.rxBankDetails.value;
+              final bool isBankVerified = controller.isBankVerified;
+              final String bankStatus = (bank?['status']?.toString() ?? (isBankVerified ? 'VERIFIED' : 'PENDING')).toUpperCase();
+              final String bankName = bank?['bankName']?.toString() ?? controller.userUcc.value?.bankName ?? 'Linked Bank';
+              final String accNo = bank?['accountNumber']?.toString() ?? controller.userUcc.value?.accountNo ?? '';
+              final String maskedAcc = bank?['maskedAccountNumber']?.toString() ??
+                  (accNo.length > 4 ? '•••• ${accNo.substring(accNo.length - 4)}' : accNo);
+
+              if (!isBankVerified) {
+                final isFailed = bankStatus == 'FAILED';
+                final statusColor = isFailed ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
+                final statusBg = isFailed ? const Color(0xFF2D1515) : const Color(0xFF291E0A);
+
+                return Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: statusColor),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            isFailed ? Icons.error_outline_rounded : Icons.pending_actions_rounded,
+                            color: statusColor,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isFailed ? 'Bank Verification Failed' : 'Bank Account Verification Required',
+                                  style: TextStyle(color: statusColor, fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  isFailed
+                                      ? 'Penny Drop verification failed for your bank account. Please verify bank details to proceed with investment.'
+                                      : 'SEBI and NSE regulations require an authorized Penny Drop verified bank account before placing mutual fund orders.',
+                                  style: TextStyle(color: isFailed ? const Color(0xFFFCA5A5) : const Color(0xFFFDE68A), fontSize: 11.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () => Get.to(() => const MfUccOnboardingView()),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: mintTeal,
+                          foregroundColor: const Color(0xFF0F141E),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          isFailed ? 'Retry Bank Verification' : 'Verify Bank Account (₹1 Penny Drop)',
+                          style: const TextStyle(color: Color(0xFF0F141E), fontWeight: FontWeight.w800, fontSize: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }
+
               return Column(
                 children: [
+                  // ── Mapped Verified Bank Card ──
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: mintTeal.withValues(alpha: 0.35)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: mintTeal.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.account_balance_rounded, color: mintTeal, size: 16),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$bankName $maskedAcc',
+                                style: const TextStyle(color: textPrimary, fontSize: 12.5, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 2),
+                              const Text(
+                                'Mapped to NSE MFSS Orders & Mandate',
+                                style: TextStyle(color: textSecondary, fontSize: 10.5),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: mintTeal.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: mintTeal.withValues(alpha: 0.3)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle_rounded, color: mintTeal, size: 12),
+                              SizedBox(width: 4),
+                              Text(
+                                'Verified',
+                                style: TextStyle(color: mintTeal, fontSize: 10.5, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -588,6 +720,18 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                       onPressed: controller.isSubmittingOrder.value
                           ? null
                           : () async {
+                              if (!controller.isBankVerified) {
+                                Get.snackbar(
+                                  'Bank Verification Required',
+                                  'Please verify your bank account before completing this investment.',
+                                  backgroundColor: Colors.amber.shade900,
+                                  colorText: Colors.white,
+                                  snackPosition: SnackPosition.BOTTOM,
+                                );
+                                Get.to(() => const MfUccOnboardingView());
+                                return;
+                              }
+
                               final amount = double.tryParse(_amountController.text) ?? 0;
                               if (amount <= 0) {
                                 Get.snackbar('Invalid Amount', 'Enter valid investment amount', backgroundColor: Colors.red, colorText: Colors.white);
