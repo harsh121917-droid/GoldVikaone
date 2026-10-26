@@ -89,13 +89,45 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
     if (controller.rxBankDetails.value != null) {
       _bankDetails = Map<String, dynamic>.from(controller.rxBankDetails.value!);
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadSavedBankDetails();
 
-    // Prefill if controller already has prefill data from user profile
-    final prefillPan = controller.uccPrefill['pan']?.toString() ?? '';
-    const dummyPans = ['ABCDE1234F', 'AAAAA0000A', 'XXXXX0000X', 'TYJPS0689R', 'PHOTO_SUBMITTED'];
-    if (prefillPan.isNotEmpty && !dummyPans.contains(prefillPan.toUpperCase())) {
-      _panController.text = prefillPan.toUpperCase();
-      _triggerPanVerification(_panController.text);
+      // Prefill if controller already has prefill data from user profile
+      final prefillPan = controller.uccPrefill['pan']?.toString() ?? '';
+      const dummyPans = ['ABCDE1234F', 'AAAAA0000A', 'XXXXX0000X', 'TYJPS0689R', 'PHOTO_SUBMITTED'];
+      if (prefillPan.isNotEmpty && !dummyPans.contains(prefillPan.toUpperCase())) {
+        _panController.text = prefillPan.toUpperCase();
+        _triggerPanVerification(_panController.text);
+      }
+    });
+  }
+
+  Future<void> _loadSavedBankDetails() async {
+    if (_bankDetails != null && (_bankDetails!['hasBank'] == true || _bankDetails!['accountNumber'] != null)) {
+      return;
+    }
+    if (controller.rxBankDetails.value != null) {
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _bankDetails = Map<String, dynamic>.from(controller.rxBankDetails.value!);
+            });
+          }
+        });
+      }
+      return;
+    }
+    final bank = await controller.fetchUserBankAccounts();
+    if (mounted && bank != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _bankDetails = Map<String, dynamic>.from(bank);
+          });
+        }
+      });
     }
   }
 
@@ -139,7 +171,7 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
             ? Map<String, dynamic>.from(data['bankDetails'] as Map)
             : (controller.rxBankDetails.value != null
                 ? Map<String, dynamic>.from(controller.rxBankDetails.value!)
-                : null);
+                : _bankDetails);
 
         if (isAlreadyRegistered && existingClientCode.isNotEmpty) {
           setState(() {
@@ -341,10 +373,18 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
 
     if (res != null && res['success'] == true) {
       if (!mounted) return;
-      final authUrl = res['authUrl']?.toString();
-      final clientCode = res['clientCode']?.toString() ?? '';
+      final clientCode = res['clientCode']?.toString() ??
+          res['data']?['clientCode']?.toString() ??
+          '';
 
-      // Open In-App NSE 2FA Client Authorization WebView directly with step-by-step guidance
+      // Synchronize controller state
+      controller.hasUcc.value = true;
+      controller.fetchOnboardingStatus();
+      controller.fetchMfProfile();
+
+      final authUrl = res['authUrl']?.toString();
+
+      // Open the In-App NSE UCC 2FA Client Authorization WebView
       await controller.openUccAuthWebView(
         context,
         authUrl: authUrl,
@@ -405,11 +445,14 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
                 const SizedBox(height: 16),
                 MfBankVerificationCard(
                   investorName: _registeredName.isNotEmpty ? _registeredName : _nameController.text.trim(),
-                  initialBankDetails: _bankDetails,
+                  initialBankDetails: _bankDetails ?? controller.rxBankDetails.value,
                   onBankVerified: (bank) {
-                    setState(() {
-                      _bankDetails = bank;
-                    });
+                    _bankDetails = bank;
+                    if (mounted) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) setState(() {});
+                      });
+                    }
                   },
                 ),
                 const SizedBox(height: 20),

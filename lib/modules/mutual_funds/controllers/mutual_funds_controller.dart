@@ -660,6 +660,45 @@ class MutualFundsController extends GetxController {
     return null;
   }
 
+  // ── Fetch Saved Bank Accounts from /api/bank ──
+  Future<Map<String, dynamic>?> fetchUserBankAccounts() async {
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.get('/bank');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final List accounts = res.data['data'] as List? ?? [];
+        if (accounts.isNotEmpty) {
+          dynamic def = accounts.firstWhereOrNull((b) => b is Map && b['isDefault'] == true) ??
+              accounts.firstWhereOrNull((b) => b is Map && (b['isVerified'] == true || b['accountStatus'] == 'VERIFIED')) ??
+              accounts.firstOrNull;
+          if (def is Map) {
+            final acc = (def['accountNumber'] ?? def['accountNo'] ?? '').toString().trim();
+            final ifsc = (def['ifsc'] ?? def['ifscCode'] ?? '').toString().trim().toUpperCase();
+            final bName = (def['bankName'] ?? 'Linked Bank').toString().trim();
+            final holder = (def['accountHolder'] ?? def['verifiedName'] ?? '').toString().trim();
+            final isVer = def['isVerified'] == true || def['accountStatus'] == 'VERIFIED' || (acc.length >= 6 && ifsc.length == 11);
+            final bankMap = <String, dynamic>{
+              'hasBank': true,
+              'isVerified': isVer,
+              'status': isVer ? 'VERIFIED' : 'PENDING',
+              'accountNumber': acc,
+              'maskedAccountNumber': acc.length > 4 ? '•••• ${acc.substring(acc.length - 4)}' : acc,
+              'ifsc': ifsc,
+              'bankName': bName.isNotEmpty ? bName : 'Linked Bank',
+              'accountHolder': holder,
+              'accountType': (def['accountType'] ?? 'savings').toString().toLowerCase(),
+            };
+            rxBankDetails.value = bankMap;
+            return bankMap;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[MutualFundsController] fetchUserBankAccounts error: $e');
+    }
+    return null;
+  }
+
   Future<bool> addBank({
     required String accountNumber,
     required String ifsc,
@@ -791,19 +830,24 @@ class MutualFundsController extends GetxController {
         hasUcc.value = d['hasUcc'] == true;
         if (d['bankDetails'] != null && d['bankDetails'] is Map) {
           rxBankDetails.value = Map<String, dynamic>.from(d['bankDetails'] as Map);
-        } else if ((d['isBankVerified'] == true || d['hasUcc'] == true || d['clientCode'] != null) && d['accountNo'] != null && d['accountNo'].toString().isNotEmpty) {
-          final acc = d['accountNo'].toString();
+        } else if (d['accountNo'] != null && d['accountNo'].toString().trim().isNotEmpty) {
+          final acc = d['accountNo'].toString().trim();
+          final ifsc = (d['ifsc'] ?? '').toString().trim().toUpperCase();
+          final isVer = d['isBankVerified'] == true || (acc.length >= 6 && ifsc.length == 11);
           rxBankDetails.value = {
             'hasBank': true,
-            'isVerified': true,
-            'status': 'VERIFIED',
+            'isVerified': isVer,
+            'status': isVer ? 'VERIFIED' : 'PENDING',
             'accountNumber': acc,
             'maskedAccountNumber': acc.length > 4
                 ? '•••• ${acc.substring(acc.length - 4)}'
                 : acc,
-            'ifsc': d['ifsc']?.toString() ?? '',
+            'ifsc': ifsc,
             'bankName': d['bankName']?.toString() ?? 'Linked Bank',
+            'accountHolder': d['accountHolder']?.toString() ?? '',
           };
+        } else if (rxBankDetails.value == null) {
+          await fetchUserBankAccounts();
         }
         if (d['clientCode'] != null && userUcc.value == null) {
           userUcc.value = MfUccModel(
@@ -1008,12 +1052,13 @@ class MutualFundsController extends GetxController {
     );
   }
 
-  // ── Open In-App NSE UCC 2FA Client Authorization WebView ──
+  // ── Open In-App NSE UCC 2FA Client Authorization Hub / WebView ──
   Future<dynamic> openUccAuthWebView(BuildContext context, {String? authUrl, String? clientCode}) async {
     final code = clientCode ?? userUcc.value?.clientCode ?? onboardingData['clientCode']?.toString();
     var url = authUrl ?? onboardingData['authUrl']?.toString();
-    if (url == null || url.trim().isEmpty || url.contains('nsenmf.com')) {
-      url = 'https://www.nseinvest.com/mf/';
+    final clean = url?.trim().toLowerCase() ?? '';
+    if (url != null && (clean.isEmpty || clean.contains('nsenmf.com') || clean == 'https://www.nseinvest.com/mf' || clean == 'https://www.nseinvest.com/mf/')) {
+      url = null;
     }
     return await Get.to(() => MfUccAuthWebView(initialUrl: url, clientCode: code));
   }

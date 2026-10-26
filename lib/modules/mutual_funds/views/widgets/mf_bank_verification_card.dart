@@ -45,26 +45,41 @@ class _MfBankVerificationCardState extends State<MfBankVerificationCard> {
   bool _isEditing = false;
   Map<String, dynamic>? _currentBank;
 
+  bool _hasBankDetails(Map<String, dynamic>? bank) {
+    if (bank == null) return false;
+    if (bank['hasBank'] == true) return true;
+    final acc = (bank['accountNumber'] ?? bank['accountNo'] ?? '').toString().trim();
+    return acc.length >= 6;
+  }
+
+  bool _isBankVerified(Map<String, dynamic>? bank) {
+    if (bank == null) return false;
+    if (bank['isVerified'] == true || bank['status'] == 'VERIFIED') return true;
+    final acc = (bank['accountNumber'] ?? bank['accountNo'] ?? '').toString().trim();
+    final ifsc = (bank['ifsc'] ?? bank['ifscCode'] ?? '').toString().trim();
+    return acc.length >= 6 && ifsc.length == 11;
+  }
+
   @override
   void initState() {
     super.initState();
     _holderCtrl.text = widget.investorName.trim().toUpperCase();
 
     // Initialize from passed details or controller cache
-    if (widget.initialBankDetails != null && widget.initialBankDetails!['hasBank'] == true) {
-      _currentBank = Map<String, dynamic>.from(widget.initialBankDetails!);
-      final isVerified = _currentBank!['isVerified'] == true || _currentBank!['status'] == 'VERIFIED';
-      _isEditing = !isVerified;
-      if (isVerified) {
-        widget.onBankVerified(_currentBank!);
-      }
-    } else if (controller.rxBankDetails.value != null && controller.rxBankDetails.value!['hasBank'] == true) {
-      _currentBank = Map<String, dynamic>.from(controller.rxBankDetails.value!);
-      final isVerified = _currentBank!['isVerified'] == true || _currentBank!['status'] == 'VERIFIED';
-      _isEditing = !isVerified;
-      if (isVerified) {
-        widget.onBankVerified(_currentBank!);
-      }
+    Map<String, dynamic>? sourceBank;
+    if (_hasBankDetails(widget.initialBankDetails)) {
+      sourceBank = Map<String, dynamic>.from(widget.initialBankDetails!);
+    } else if (_hasBankDetails(controller.rxBankDetails.value)) {
+      sourceBank = Map<String, dynamic>.from(controller.rxBankDetails.value!);
+    }
+
+    if (sourceBank != null) {
+      _currentBank = sourceBank;
+      _currentBank!['hasBank'] = true;
+      final isVerified = _isBankVerified(_currentBank);
+      _currentBank!['isVerified'] = isVerified;
+      _currentBank!['status'] = isVerified ? 'VERIFIED' : (_currentBank!['status'] ?? 'PENDING');
+      _isEditing = false;
     } else {
       _isEditing = true;
     }
@@ -76,12 +91,13 @@ class _MfBankVerificationCardState extends State<MfBankVerificationCard> {
     if (widget.investorName.isNotEmpty && _holderCtrl.text.isEmpty) {
       _holderCtrl.text = widget.investorName.trim().toUpperCase();
     }
-    if (widget.initialBankDetails != null && widget.initialBankDetails != oldWidget.initialBankDetails) {
-      setState(() {
-        _currentBank = Map<String, dynamic>.from(widget.initialBankDetails!);
-        final isVerified = _currentBank!['isVerified'] == true || _currentBank!['status'] == 'VERIFIED';
-        _isEditing = !isVerified;
-      });
+    if (_hasBankDetails(widget.initialBankDetails) && widget.initialBankDetails != oldWidget.initialBankDetails) {
+      _currentBank = Map<String, dynamic>.from(widget.initialBankDetails!);
+      _currentBank!['hasBank'] = true;
+      final isVerified = _isBankVerified(_currentBank);
+      _currentBank!['isVerified'] = isVerified;
+      _currentBank!['status'] = isVerified ? 'VERIFIED' : (_currentBank!['status'] ?? 'PENDING');
+      _isEditing = false;
     }
   }
 
@@ -202,9 +218,8 @@ class _MfBankVerificationCardState extends State<MfBankVerificationCard> {
 
   @override
   Widget build(BuildContext context) {
-    final isVerified = _currentBank != null &&
-        (_currentBank!['isVerified'] == true || _currentBank!['status'] == 'VERIFIED');
-    final hasBank = _currentBank != null && _currentBank!['hasBank'] == true;
+    final isVerified = _isBankVerified(_currentBank);
+    final hasBank = _hasBankDetails(_currentBank);
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -409,21 +424,43 @@ class _MfBankVerificationCardState extends State<MfBankVerificationCard> {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _isEditing = true;
-                    _accountNumberCtrl.text = rawAcc;
-                    _confirmAccountCtrl.text = rawAcc;
-                    _ifscCtrl.text = ifsc;
-                    _holderCtrl.text = holder;
-                  });
-                },
-                icon: const Icon(Icons.edit_outlined, color: GrowwColors.mintTeal, size: 14),
-                label: const Text('Change Bank Account', style: TextStyle(color: GrowwColors.mintTeal, fontSize: 12)),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _isEditing = true;
+                  _accountNumberCtrl.clear();
+                  _confirmAccountCtrl.clear();
+                  _ifscCtrl.clear();
+                  _bankNameCtrl.clear();
+                  _branchName = '';
+                  _verificationError = null;
+                });
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: GrowwColors.cardElevated,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: GrowwColors.border),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.add_circle_outline_rounded, color: GrowwColors.mintTeal, size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      'Want to add another bank account?',
+                      style: TextStyle(
+                        color: GrowwColors.mintTeal,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ] else ...[
@@ -486,6 +523,71 @@ class _MfBankVerificationCardState extends State<MfBankVerificationCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (_hasBankDetails(_currentBank)) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: GrowwColors.cardElevated,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: GrowwColors.mintTeal.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: GrowwColors.mintTeal.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.account_balance_rounded, color: GrowwColors.mintTeal, size: 18),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Saved: ${_currentBank!['bankName'] ?? 'Linked Bank'}',
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _currentBank!['maskedAccountNumber']?.toString() ??
+                            (_currentBank!['accountNumber'] != null && _currentBank!['accountNumber'].toString().length > 4
+                                ? '•••• ${_currentBank!['accountNumber'].toString().substring(_currentBank!['accountNumber'].toString().length - 4)}'
+                                : 'Verified Account'),
+                        style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isEditing = false;
+                      _verificationError = null;
+                    });
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: GrowwColors.mintTeal.withValues(alpha: 0.15),
+                    foregroundColor: GrowwColors.mintTeal,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Use Saved Bank', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ],
         // 1. Account Number
         const Text('Bank Account Number', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
@@ -717,12 +819,27 @@ class _MfBankVerificationCardState extends State<MfBankVerificationCard> {
           ),
         ),
 
-        if (_currentBank != null && _currentBank!['hasBank'] == true) ...[
-          const SizedBox(height: 8),
-          Center(
-            child: TextButton(
-              onPressed: () => setState(() => _isEditing = false),
-              child: const Text('Cancel & Keep Existing Bank', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
+        if (_hasBankDetails(_currentBank)) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 42,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _isEditing = false;
+                  _verificationError = null;
+                });
+              },
+              icon: const Icon(Icons.arrow_back_rounded, size: 16, color: GrowwColors.mintTeal),
+              label: const Text(
+                'Cancel & Keep Saved Bank',
+                style: TextStyle(color: GrowwColors.mintTeal, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: GrowwColors.border),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             ),
           ),
         ],

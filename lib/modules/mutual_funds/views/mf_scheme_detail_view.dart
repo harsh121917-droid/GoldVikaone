@@ -90,7 +90,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     '100177': '120828', // Quant Small Cap Direct
     '125350': '125354', // Axis Small Cap Direct
     '145208': '145206', // Tata Small Cap Direct
-    '130502': '118989', // HDFC Mid Cap Direct
+    '130502': '130503', // HDFC Small Cap Direct
     '125494': '125497', // SBI Small Cap Direct
     '106823': '120594', // ICICI Prudential Small Cap Direct
     '105989': '119232', // DSP Small Cap Direct
@@ -182,36 +182,38 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
         }
       }
 
-      // Fetch Direct Plan benchmark from mfapi.in to ensure chart and returns match Groww & Fisdom 1:1
-      String? directCode = _directBenchmarkCodes[widget.scheme.schemeCode];
-      if (directCode == null) {
-        try {
-          final cleanName = _cleanSchemeName(widget.scheme.schemeName);
-          final searchRes = await dio.get('https://api.mfapi.in/mf/search?q=${Uri.encodeComponent(cleanName)}');
-          if (searchRes.statusCode == 200 && searchRes.data is List) {
-            final list = searchRes.data as List;
-            final match = list.firstWhere(
-              (item) {
-                final name = (item['schemeName'] ?? '').toString().toLowerCase();
-                return name.contains('direct') && name.contains('growth') && !name.contains('idcw');
-              },
-              orElse: () => null,
-            );
-            if (match != null && match['schemeCode'] != null) {
-              directCode = match['schemeCode'].toString();
+      // Fetch fallback chart points from mfapi.in ONLY if backend chartData was empty
+      if (_chartDataMap.isEmpty) {
+        String? directCode = _directBenchmarkCodes[widget.scheme.schemeCode];
+        if (directCode == null) {
+          try {
+            final cleanName = _cleanSchemeName(widget.scheme.schemeName);
+            final searchRes = await dio.get('https://api.mfapi.in/mf/search?q=${Uri.encodeComponent(cleanName)}');
+            if (searchRes.statusCode == 200 && searchRes.data is List) {
+              final list = searchRes.data as List;
+              final match = list.firstWhere(
+                (item) {
+                  final name = (item['schemeName'] ?? '').toString().toLowerCase();
+                  return name.contains('direct') && name.contains('growth') && !name.contains('idcw');
+                },
+                orElse: () => null,
+              );
+              if (match != null && match['schemeCode'] != null) {
+                directCode = match['schemeCode'].toString();
+              }
             }
+          } catch (_) {}
+        }
+
+        final targetCode = directCode ?? widget.scheme.schemeCode;
+        try {
+          final liveRes = await dio.get('https://api.mfapi.in/mf/$targetCode');
+          if (liveRes.statusCode == 200 && liveRes.data is Map && liveRes.data['data'] is List) {
+            final rawList = liveRes.data['data'] as List;
+            _applyLiveDirectData(rawList);
           }
         } catch (_) {}
       }
-
-      final targetCode = directCode ?? widget.scheme.schemeCode;
-      try {
-        final liveRes = await dio.get('https://api.mfapi.in/mf/$targetCode');
-        if (liveRes.statusCode == 200 && liveRes.data is Map && liveRes.data['data'] is List) {
-          final rawList = liveRes.data['data'] as List;
-          _applyLiveDirectData(rawList);
-        }
-      } catch (_) {}
     } catch (e) {
       debugPrint('[MfSchemeDetailView] _fetchSchemeDetails error: $e');
     } finally {
@@ -337,21 +339,23 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
       _detailData!['nav'] = latestNav;
       _detailData!['navDate'] = latestItem['date'];
       _detailData!['day1Return'] = day1Ret;
-      _detailData!['periodReturns'] = {
-        '1M': {'returnPercent': ret1M, 'isPositive': ret1M >= 0},
-        '3M': {'returnPercent': ret3M, 'isPositive': ret3M >= 0},
-        '6M': {'returnPercent': ret6M, 'isPositive': ret6M >= 0},
-        '1Y': {'returnPercent': ret1Y, 'isPositive': ret1Y >= 0},
-        '3Y': {'returnPercent': ret3Y, 'isPositive': ret3Y >= 0},
-        '5Y': {'returnPercent': ret5Y, 'isPositive': ret5Y >= 0},
-        'All': {'returnPercent': retAll, 'isPositive': retAll >= 0},
-      };
-      _detailData!['return1M'] = ret1M;
-      _detailData!['return3M'] = ret3M;
-      _detailData!['return6M'] = ret6M;
-      _detailData!['cagr1Y'] = ret1Y;
-      _detailData!['cagr3Y'] = ret3Y;
-      _detailData!['cagr5Y'] = ret5Y;
+      if (_detailData!['periodReturns'] == null) {
+        _detailData!['periodReturns'] = {
+          '1M': {'returnPercent': ret1M, 'isPositive': ret1M >= 0},
+          '3M': {'returnPercent': ret3M, 'isPositive': ret3M >= 0},
+          '6M': {'returnPercent': ret6M, 'isPositive': ret6M >= 0},
+          '1Y': {'returnPercent': ret1Y, 'isPositive': ret1Y >= 0},
+          '3Y': {'returnPercent': ret3Y, 'isPositive': ret3Y >= 0},
+          '5Y': {'returnPercent': ret5Y, 'isPositive': ret5Y >= 0},
+          'All': {'returnPercent': retAll, 'isPositive': retAll >= 0},
+        };
+        _detailData!['return1M'] = ret1M;
+        _detailData!['return3M'] = ret3M;
+        _detailData!['return6M'] = ret6M;
+        _detailData!['cagr1Y'] = ret1Y;
+        _detailData!['cagr3Y'] = ret3Y;
+        _detailData!['cagr5Y'] = ret5Y;
+      }
     });
   }
 
