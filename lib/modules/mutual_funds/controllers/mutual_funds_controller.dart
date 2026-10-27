@@ -1894,6 +1894,14 @@ class MutualFundsController extends GetxController {
           showUccRequiredDialog();
           return false;
         }
+        if (code == 'NSE_CLIENT_ACTIVATION_PENDING') {
+          final clActLink = (data['data'] is Map) ? data['data']['clActLink']?.toString() : null;
+          final clientCode = (data['data'] is Map) ? data['data']['clientCode']?.toString() : null;
+          if (Get.context != null) {
+            showClientActivationBottomSheet(Get.context!, clActLink: clActLink, clientCode: clientCode);
+            return false;
+          }
+        }
       }
       final msg = extractErrorMessage(e, fallback: 'Order could not be processed with NSE exchange. Please try again.');
       Get.snackbar(
@@ -2008,6 +2016,14 @@ class MutualFundsController extends GetxController {
         if (code == 'NSE_UCC_NOT_READY') {
           showUccRequiredDialog();
           return false;
+        }
+        if (code == 'NSE_CLIENT_ACTIVATION_PENDING') {
+          final clActLink = (data['data'] is Map) ? data['data']['clActLink']?.toString() : null;
+          final clientCode = (data['data'] is Map) ? data['data']['clientCode']?.toString() : null;
+          if (Get.context != null) {
+            showClientActivationBottomSheet(Get.context!, clActLink: clActLink, clientCode: clientCode);
+            return false;
+          }
         } else if (code == 'NSE_MANDATE_NOT_READY' && Get.context != null) {
           showMandateRequiredDialog(Get.context!);
           return false;
