@@ -821,24 +821,49 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
               ),
               const SizedBox(height: 10),
               Center(
-                child: GestureDetector(
-                  onTap: () => controller.openUccAuthWebView(context, clientCode: clientCode),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.security_rounded, size: 14, color: GrowwColors.mintTeal),
-                      const SizedBox(width: 5),
-                      Text(
-                        'NSE 2FA Client Authorization (e-Sign/OTP)',
-                        style: TextStyle(
-                          color: GrowwColors.mintTeal.withOpacity(0.9),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          decoration: TextDecoration.underline,
-                        ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => controller.openMandateAuthWebView(context),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.account_balance_wallet_outlined, size: 13, color: GrowwColors.mintTeal),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Authorize Mandate In-App',
+                            style: TextStyle(
+                              color: GrowwColors.mintTeal.withOpacity(0.9),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 14),
+                    GestureDetector(
+                      onTap: () => controller.openUccAuthWebView(context, clientCode: clientCode),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.security_rounded, size: 13, color: GrowwColors.mintTeal),
+                          const SizedBox(width: 4),
+                          Text(
+                            '2FA UCC Status',
+                            style: TextStyle(
+                              color: GrowwColors.mintTeal.withOpacity(0.9),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

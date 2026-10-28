@@ -5,6 +5,7 @@ import '../views/mf_ucc_onboarding_view.dart';
 import '../views/mf_cart_view.dart';
 import '../views/mf_ucc_auth_webview.dart';
 import '../views/mf_payment_webview.dart';
+import '../views/mf_mandate_auth_webview.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -868,7 +869,7 @@ class MutualFundsController extends GetxController {
   }
 
   // ── Initiate Bank AutoPay (eNACH Mandate) Setup ──
-  Future<void> initiateMandateSetup(BuildContext context) async {
+  Future<void> initiateMandateSetup(BuildContext context, {bool forceNew = false}) async {
     try {
       final dio = ApiClient.instance;
       Get.dialog(
@@ -876,7 +877,7 @@ class MutualFundsController extends GetxController {
         barrierDismissible: false,
       );
 
-      final res = await dio.post('/mutual-funds/mandates/setup', data: {'amount': 50000, 'forceNew': true});
+      final res = await dio.post('/mutual-funds/mandates/setup', data: {'amount': 50000, 'forceNew': forceNew});
       Get.back(); // close progress dialog
 
       if (res.statusCode == 200 && res.data['success'] == true) {
@@ -884,8 +885,16 @@ class MutualFundsController extends GetxController {
         final authUrl = data['authUrl']?.toString() ?? '';
         final mandateId = data['mandateId']?.toString() ?? '';
         final bank = data['bankName']?.toString() ?? 'Registered Bank';
+        final acc = data['accountNo']?.toString();
 
-        showMandateAuthBottomSheet(context, authUrl: authUrl, mandateId: mandateId, bankName: bank);
+        // Open In-App Mandate WebView directly for seamless authorization
+        await openMandateAuthWebView(
+          context,
+          authUrl: authUrl.isNotEmpty && authUrl != 'null' ? authUrl : null,
+          mandateId: mandateId,
+          bankName: bank,
+          accountNo: acc,
+        );
       } else {
         final errMsg = extractErrorMessage(res.data, fallback: 'Could not initiate bank mandate with exchange.');
         Get.snackbar(
@@ -987,16 +996,10 @@ class MutualFundsController extends GetxController {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      final uri = Uri.parse(clActLink);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
-                      }
-                    } catch (e) {
-                      debugPrint('Error launching url: $e');
-                    }
-                  },
+                  onPressed: () {
+                  Get.back();
+                  openUccAuthWebView(context, authUrl: clActLink, clientCode: clientCode);
+                },
                   icon: const Icon(Icons.open_in_browser_rounded, size: 18, color: Colors.black),
                   label: const Text('Verify OTP on NSE Official Portal', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14)),
                   style: ElevatedButton.styleFrom(
@@ -1061,6 +1064,49 @@ class MutualFundsController extends GetxController {
       url = null;
     }
     return await Get.to(() => MfUccAuthWebView(initialUrl: url, clientCode: code));
+  }
+
+  // ── Open In-App NSE Mandate (eNACH AutoPay) Authorization Hub / WebView ──
+  Future<String?> fetchMandateAuthUrl(String mandateId) async {
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.get('/mutual-funds/mandates/$mandateId/link');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final url = res.data['data']?['authUrl']?.toString();
+        if (url != null && url.trim().isNotEmpty && url.trim() != 'null') {
+          return url.trim();
+        }
+      }
+    } catch (e) {
+      debugPrint('[fetchMandateAuthUrl] error: $e');
+    }
+    return null;
+  }
+
+  Future<dynamic> openMandateAuthWebView(
+    BuildContext context, {
+    String? authUrl,
+    String? mandateId,
+    String? bankName,
+    String? accountNo,
+  }) async {
+    final mId = mandateId ??
+        onboardingData['mandateId']?.toString() ??
+        onboardingData['defaultMandateId']?.toString();
+    final bName = bankName ?? onboardingData['bankName']?.toString();
+    final acc = accountNo ?? onboardingData['accountNo']?.toString();
+    var url = authUrl ?? onboardingData['authUrl']?.toString();
+    final clean = url?.trim().toLowerCase() ?? '';
+    if (url != null && (clean.isEmpty || clean.contains('nsenmf.com') || clean == 'https://www.nseinvest.com/mf' || clean == 'https://www.nseinvest.com/mf/')) {
+      url = null;
+    }
+    return await Get.to(() => MfMandateAuthWebView(
+      initialUrl: url,
+      mandateId: mId,
+      bankName: bName,
+      accountNo: acc,
+      clientCode: userUcc.value?.clientCode ?? onboardingData['clientCode']?.toString(),
+    ));
   }
 
   // ── Show Mandate Authorization Bottom Sheet ──
@@ -1146,6 +1192,27 @@ class MutualFundsController extends GetxController {
               width: double.infinity,
               height: 48,
               child: ElevatedButton.icon(
+                onPressed: () {
+                  Get.back();
+                  openMandateAuthWebView(
+                    context,
+                    authUrl: authUrl,
+                    mandateId: mandateId,
+                    bankName: bankName,
+                  );
+                },
+                icon: const Icon(Icons.flash_on_rounded, size: 18, color: Colors.black),
+                label: const Text('Authorize in App with Bank OTP', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00D09C),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Center(
+              child: TextButton.icon(
                 onPressed: () async {
                   if (authUrl.isNotEmpty) {
                     try {
@@ -1153,18 +1220,11 @@ class MutualFundsController extends GetxController {
                       if (await canLaunchUrl(uri)) {
                         await launchUrl(uri, mode: LaunchMode.externalApplication);
                       }
-                    } catch (e) {
-                      debugPrint('Error launching url: $e');
-                    }
+                    } catch (_) {}
                   }
                 },
-                icon: const Icon(Icons.open_in_new_rounded, size: 18, color: Colors.black),
-                label: const Text('Authorize with Bank OTP', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00D09C),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
+                icon: const Icon(Icons.open_in_browser_rounded, size: 14, color: Color(0xFF94A3B8)),
+                label: const Text('Open in External Browser', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
               ),
             ),
             const SizedBox(height: 10),
