@@ -1552,7 +1552,11 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
             const SizedBox(width: 12),
             Obx(() {
               final period = controller.selectedReturnPeriod.value;
-              final returnVal = period == '1Y' ? scheme.cagr1Y : (period == '5Y' ? scheme.cagr5Y : scheme.cagr3Y);
+              final returnVal = period == '1Y'
+                  ? (scheme.cagr1Y ?? scheme.cagr3Y)
+                  : (period == '5Y'
+                      ? (scheme.cagr5Y ?? scheme.cagr3Y ?? scheme.cagr1Y)
+                      : (scheme.cagr3Y ?? scheme.cagr1Y ?? scheme.return1M));
               final bool hasReturn = returnVal != null && returnVal != 0;
               final String retStr = hasReturn
                   ? '${returnVal >= 0 ? "+" : ""}${returnVal.toStringAsFixed(2)}%'
@@ -3846,90 +3850,79 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
     return GestureDetector(
       onTap: () => _showOrderDetailSheet(order),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: GrowwColors.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: badgeColor.withOpacity(0.35), width: 1.2),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: badgeColor.withOpacity(0.3), width: 1.0),
           boxShadow: [
             BoxShadow(
-              color: badgeColor.withOpacity(0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: badgeColor.withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
+            // Header: Icon + Scheme Name + Status Badge
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: badgeColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     isAllotted ? Icons.check_circle_rounded : Icons.sync_rounded,
                     color: badgeColor,
-                    size: 20,
+                    size: 16,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        order.schemeName,
-                        style: const TextStyle(
-                          color: GrowwColors.textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${order.typeLabel} • ₹${order.orderAmount.toStringAsFixed(0)} • Placed on $dateStr',
-                        style: const TextStyle(
-                          color: GrowwColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    order.schemeName,
+                    style: const TextStyle(
+                      color: GrowwColors.textPrimary,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.bold,
+                      height: 1.25,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: badgeColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: badgeColor.withOpacity(0.3), width: 1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: badgeColor.withOpacity(0.3), width: 0.8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 6,
-                        height: 6,
+                        width: 5,
+                        height: 5,
                         decoration: BoxDecoration(
                           color: badgeColor,
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(width: 5),
+                      const SizedBox(width: 4),
                       Text(
                         order.badgeLabel.toUpperCase(),
                         style: TextStyle(
                           color: badgeColor,
-                          fontSize: 10,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.3,
                         ),
@@ -3939,66 +3932,84 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
 
-            // Middle Status Banner: Clean highlight for Allotment Pending
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E2638),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF2B364D), width: 0.8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    isAllotted ? Icons.check_circle_outline_rounded : Icons.hourglass_top_rounded,
-                    color: badgeColor,
-                    size: 13,
+            // Responsive Wrapped Info Strip
+            Wrap(
+              spacing: 10,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  '₹${order.orderAmount.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    color: GrowwColors.textPrimary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
                   ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      order.subStatusLabel,
-                      style: TextStyle(
-                        color: badgeColor,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '• ${order.typeLabel}',
+                  style: const TextStyle(
+                    color: GrowwColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(
+                    order.subStatusLabel,
+                    style: TextStyle(
+                      color: badgeColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-              ),
+                ),
+                Text(
+                  '• $dateStr',
+                  style: const TextStyle(
+                    color: GrowwColors.textSecondary,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            const Divider(height: 1, color: GrowwColors.border),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
+
+            // Bottom Timeline & Track row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.access_time_rounded, color: GrowwColors.textSecondary, size: 14),
-                    const SizedBox(width: 6),
+                    const Icon(Icons.access_time_rounded, color: GrowwColors.textSecondary, size: 12),
+                    const SizedBox(width: 4),
                     Text(
-                      'Expected Allotment: ${order.expectedAllotmentDate}',
-                      style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12),
+                      'Allotment: ${order.expectedAllotmentDate}',
+                      style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11),
                     ),
                   ],
                 ),
                 const Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       'Track Order',
                       style: TextStyle(
                         color: GrowwColors.mintTeal,
-                        fontSize: 12,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     SizedBox(width: 2),
-                    Icon(Icons.chevron_right_rounded, color: GrowwColors.mintTeal, size: 16),
+                    Icon(Icons.chevron_right_rounded, color: GrowwColors.mintTeal, size: 14),
                   ],
                 ),
               ],

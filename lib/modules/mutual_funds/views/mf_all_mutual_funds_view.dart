@@ -330,15 +330,18 @@ class _MfAllMutualFundsViewState extends State<MfAllMutualFundsView> {
     return Obx(() {
       final period = controller.allMfReturnPeriod.value;
       double? returnVal = s.cagr3Y;
-      if (period == '1Y') returnVal = s.cagr1Y;
-      if (period == '5Y') returnVal = s.cagr5Y;
+      if (period == '1Y') returnVal = s.cagr1Y ?? s.cagr3Y;
+      if (period == '5Y') returnVal = s.cagr5Y ?? s.cagr3Y ?? s.cagr1Y;
+      if (returnVal == null || returnVal == 0) {
+        returnVal = s.cagr3Y ?? s.cagr1Y ?? s.return1M;
+      }
 
       final cleanName = _cleanSchemeName(s.schemeName);
       final hasRet = returnVal != null && returnVal != 0;
       final retStr = hasRet ? '${returnVal >= 0 ? '+' : ''}${returnVal.toStringAsFixed(2)}%' : '—';
       final retColor = !hasRet
           ? const Color(0xFF64748B)
-          : ((returnVal ?? 0.0) < 0 ? const Color(0xFFEF4444) : GrowwColors.mintTeal);
+          : (returnVal < 0 ? const Color(0xFFEF4444) : GrowwColors.mintTeal);
 
       return InkWell(
         onTap: () {

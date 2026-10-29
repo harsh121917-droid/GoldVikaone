@@ -184,28 +184,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
 
       // Fetch fallback chart points from mfapi.in ONLY if backend chartData was empty
       if (_chartDataMap.isEmpty) {
-        String? directCode = _directBenchmarkCodes[widget.scheme.schemeCode];
-        if (directCode == null) {
-          try {
-            final cleanName = _cleanSchemeName(widget.scheme.schemeName);
-            final searchRes = await dio.get('https://api.mfapi.in/mf/search?q=${Uri.encodeComponent(cleanName)}');
-            if (searchRes.statusCode == 200 && searchRes.data is List) {
-              final list = searchRes.data as List;
-              final match = list.firstWhere(
-                (item) {
-                  final name = (item['schemeName'] ?? '').toString().toLowerCase();
-                  return name.contains('direct') && name.contains('growth') && !name.contains('idcw');
-                },
-                orElse: () => null,
-              );
-              if (match != null && match['schemeCode'] != null) {
-                directCode = match['schemeCode'].toString();
-              }
-            }
-          } catch (_) {}
-        }
-
-        final targetCode = directCode ?? widget.scheme.schemeCode;
+        final targetCode = _directBenchmarkCodes[widget.scheme.schemeCode] ?? widget.scheme.schemeCode;
         try {
           final liveRes = await dio.get('https://api.mfapi.in/mf/$targetCode');
           if (liveRes.statusCode == 200 && liveRes.data is Map && liveRes.data['data'] is List) {

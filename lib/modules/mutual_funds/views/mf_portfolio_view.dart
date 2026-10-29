@@ -1676,178 +1676,158 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
             '${order.createdAt.day.toString().padLeft(2, '0')}/${order.createdAt.month.toString().padLeft(2, '0')}/${order.createdAt.year}';
 
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: badgeColor.withOpacity(0.35), width: 1.2),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: badgeColor.withOpacity(0.3), width: 1.0),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(dark ? 0.2 : 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
+              // Header: Logo + Scheme Title + Status Pill
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   AmcBrandLogo(
                     amcName: '',
                     schemeName: order.schemeName,
-                    size: 38,
-                    borderRadius: 10,
+                    size: 32,
+                    borderRadius: 8,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       order.schemeName,
-                      style: TextStyle(color: textPrimary, fontWeight: FontWeight.w800, fontSize: 14.5),
+                      style: TextStyle(
+                        color: textPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                        height: 1.25,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: badgeColor.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: badgeColor.withOpacity(0.4), width: 1),
+                      color: badgeColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: badgeColor.withOpacity(0.35), width: 0.8),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 6,
-                          height: 6,
+                          width: 5,
+                          height: 5,
                           decoration: BoxDecoration(color: badgeColor, shape: BoxShape.circle),
                         ),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: 4),
                         Text(
                           order.badgeLabel.toUpperCase(),
-                          style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.3),
+                          style: TextStyle(
+                            color: badgeColor,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.3,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-              // Progress timeline status bar
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: dark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      isAllotted ? Icons.check_circle_rounded : Icons.hourglass_top_rounded,
-                      color: badgeColor,
-                      size: 15,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        order.subStatusLabel,
-                        style: TextStyle(color: badgeColor, fontSize: 12, fontWeight: FontWeight.w700),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // Responsive Wrapped Info Strip (No squishing/overflow on any screen size)
+              Wrap(
+                spacing: 12,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  // Amount
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '₹${order.orderAmount.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: textPrimary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Sub Status / Allotment Pill
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                    decoration: BoxDecoration(
+                      color: badgeColor.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('Investment Amount', style: TextStyle(color: textSecondary, fontSize: 11)),
-                        const SizedBox(height: 2),
-                        FittedBox(
-                          alignment: Alignment.centerLeft,
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            '₹${order.orderAmount.toStringAsFixed(2)}',
-                            style: TextStyle(color: textPrimary, fontWeight: FontWeight.w800, fontSize: 15),
+                        Icon(
+                          isAllotted ? Icons.check_circle_rounded : Icons.schedule_rounded,
+                          color: badgeColor,
+                          size: 11,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isAllotted
+                              ? 'Allotted'
+                              : (order.expectedAllotmentDate.isNotEmpty
+                                  ? '${order.subStatusLabel} • ${order.expectedAllotmentDate}'
+                                  : order.subStatusLabel),
+                          style: TextStyle(
+                            color: badgeColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  if (order.nseTrxnOrderId != null && order.nseTrxnOrderId!.isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text('NSE Order Ref', style: TextStyle(color: textSecondary, fontSize: 11)),
-                          const SizedBox(height: 2),
-                          FittedBox(
-                            alignment: Alignment.center,
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              '#${order.nseTrxnOrderId}',
-                              style: TextStyle(color: textPrimary, fontWeight: FontWeight.w600, fontSize: 12.5),
-                            ),
-                          ),
-                        ],
+
+                  // Date & Order Ref
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        dateStr,
+                        style: TextStyle(color: textSecondary, fontSize: 11.5, fontWeight: FontWeight.w500),
                       ),
-                    ),
-                  ],
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('Order Date', style: TextStyle(color: textSecondary, fontSize: 11)),
-                        const SizedBox(height: 2),
-                        FittedBox(
-                          alignment: Alignment.centerRight,
-                          fit: BoxFit.scaleDown,
-                          child: Text(dateStr, style: TextStyle(color: textSecondary, fontWeight: FontWeight.w600, fontSize: 12.5)),
+                      if (order.nseTrxnOrderId != null && order.nseTrxnOrderId!.isNotEmpty) ...[
+                        Text(
+                          ' • #${order.nseTrxnOrderId}',
+                          style: TextStyle(color: textSecondary, fontSize: 11.5, fontWeight: FontWeight.w500),
                         ),
                       ],
-                    ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                decoration: BoxDecoration(
-                  color: badgeColor.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.schedule_rounded, color: badgeColor, size: 14),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Allotment expected: ${order.expectedAllotmentDate} (T+1 business day)',
-                        style: TextStyle(color: badgeColor, fontSize: 11.5, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+
+              // Payment Action Button if pending
               if (!order.isPaymentDone && order.paymentLink != null && order.paymentLink!.isNotEmpty) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
-                  height: 38,
+                  height: 32,
                   child: ElevatedButton.icon(
                     onPressed: () {
                       controller.openNsePaymentGateway(
@@ -1856,13 +1836,14 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                         message: 'Official NSE portal opened for ${order.schemeName}. Complete payment to confirm allotment.',
                       );
                     },
-                    icon: const Icon(Icons.payment_rounded, size: 16),
-                    label: const Text('Complete Payment via NSE Gateway', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                    icon: const Icon(Icons.payment_rounded, size: 14),
+                    label: const Text('Complete Payment via NSE Gateway', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00D09C),
                       foregroundColor: const Color(0xFF0F141E),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                     ),
                   ),
                 ),
