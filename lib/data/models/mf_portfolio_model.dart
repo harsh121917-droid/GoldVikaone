@@ -121,6 +121,7 @@ class MfActiveSip {
   final DateTime? nextDueDate;
   final String status;
   final int installmentsPaid;
+  final String? paymentLink;
 
   MfActiveSip({
     required this.id,
@@ -132,6 +133,7 @@ class MfActiveSip {
     this.nextDueDate,
     required this.status,
     required this.installmentsPaid,
+    this.paymentLink,
   });
 
   factory MfActiveSip.fromJson(Map<String, dynamic> json) {
@@ -145,6 +147,7 @@ class MfActiveSip {
       nextDueDate: json['nextDueDate'] != null ? DateTime.tryParse(json['nextDueDate'].toString()) : null,
       status: json['status']?.toString() ?? 'ACTIVE',
       installmentsPaid: (json['installmentsPaid'] as num?)?.toInt() ?? 0,
+      paymentLink: json['paymentLink']?.toString() ?? json['authUrl']?.toString(),
     );
   }
 }

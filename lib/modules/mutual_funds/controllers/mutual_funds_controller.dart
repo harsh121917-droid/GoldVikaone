@@ -2032,8 +2032,8 @@ class MutualFundsController extends GetxController {
         if (paymentLink != null && paymentLink.isNotEmpty) {
           await openNsePaymentGateway(
             paymentLink,
-            title: 'SIP Registered • AutoPay Active',
-            message: userMsg,
+            title: 'NSE SIP Authorization & Payment',
+            message: 'Official NSE authorization opened. Please complete authentication to activate your SIP.',
           );
         } else {
           Get.snackbar(

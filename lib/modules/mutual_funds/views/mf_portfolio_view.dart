@@ -1947,13 +1947,23 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00D09C).withOpacity(0.15),
+                      color: sip.status == 'PENDING_PAYMENT'
+                          ? const Color(0xFFFFB020).withOpacity(0.15)
+                          : const Color(0xFF00D09C).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF00D09C).withOpacity(0.35)),
+                      border: Border.all(
+                        color: sip.status == 'PENDING_PAYMENT'
+                            ? const Color(0xFFFFB020).withOpacity(0.4)
+                            : const Color(0xFF00D09C).withOpacity(0.35),
+                      ),
                     ),
-                    child: const Text(
-                      'ACTIVE SIP',
-                      style: TextStyle(color: Color(0xFF00D09C), fontSize: 10, fontWeight: FontWeight.w800),
+                    child: Text(
+                      sip.status == 'PENDING_PAYMENT' ? 'PENDING AUTH' : 'ACTIVE SIP',
+                      style: TextStyle(
+                        color: sip.status == 'PENDING_PAYMENT' ? const Color(0xFFFFB020) : const Color(0xFF00D09C),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ],
@@ -2003,7 +2013,11 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                   Expanded(
                     child: Row(
                       children: [
-                        const Icon(Icons.calendar_today_rounded, size: 13, color: Color(0xFF00D09C)),
+                        Icon(
+                          Icons.calendar_today_rounded,
+                          size: 13,
+                          color: sip.status == 'PENDING_PAYMENT' ? const Color(0xFFFFB020) : const Color(0xFF00D09C),
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -2018,6 +2032,24 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                     ),
                   ),
                   const SizedBox(width: 6),
+                  if (sip.status == 'PENDING_PAYMENT' && sip.paymentLink != null && sip.paymentLink!.isNotEmpty) ...[
+                    TextButton.icon(
+                      onPressed: () => controller.openNsePaymentGateway(
+                        sip.paymentLink!,
+                        title: 'NSE SIP Authorization & Payment',
+                        message: 'Official NSE authorization opened. Complete authentication to activate your SIP.',
+                      ),
+                      icon: const Icon(Icons.payment_rounded, color: Color(0xFF00D09C), size: 14),
+                      label: const Text('Authorize / Pay', style: TextStyle(color: Color(0xFF00D09C), fontSize: 11.5, fontWeight: FontWeight.bold)),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
                   TextButton.icon(
                     onPressed: () => _showCancelSipDialog(context, sip, surface, textPrimary, textSecondary),
                     icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 14),
