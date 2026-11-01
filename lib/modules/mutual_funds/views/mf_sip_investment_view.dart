@@ -9,10 +9,10 @@ class MfSipInvestmentView extends StatefulWidget {
   final bool isSip;
 
   const MfSipInvestmentView({
-    Key? key,
+    super.key,
     required this.scheme,
     this.isSip = true,
-  }) : super(key: key);
+  });
 
   @override
   State<MfSipInvestmentView> createState() => _MfSipInvestmentViewState();
@@ -27,7 +27,9 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
   String _paymentMethod = 'NSE_GATEWAY';
   String _vpa = '';
 
-  final List<int> _allowedDates = const [1, 5, 10, 15, 20, 25, 28];
+  String _selectedFrequency = 'MONTHLY';
+  List<String> _supportedFrequencies = const ['MONTHLY'];
+  List<Map<String, dynamic>> _sipOptions = const [];
 
   @override
   void initState() {
@@ -37,9 +39,22 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
       _vpa = GetStorage().read('mf_saved_vpa')?.toString() ?? '';
     } catch (_) {}
     _paymentMethod = 'NSE_GATEWAY';
-    final minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
+
+    final initialFreqs = widget.scheme.supportedFrequencies;
+    if (initialFreqs.isNotEmpty) {
+      _supportedFrequencies = initialFreqs
+          .toSet()
+          .where((f) => ['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY'].contains(f))
+          .toList();
+      _selectedFrequency = _supportedFrequencies.contains('MONTHLY') ? 'MONTHLY' : _supportedFrequencies.first;
+    }
+    if (widget.scheme.sipOptions != null) {
+      _sipOptions = List<Map<String, dynamic>>.from(widget.scheme.sipOptions!);
+    }
+    final minAmount = _isSip ? _currentMinSipAmount : widget.scheme.minPurchaseAmount;
     _amountStr = minAmount != null ? minAmount.toInt().toString() : '';
     controller.ensureInvestorReadiness();
+    _loadSchemeSipOptions();
   }
 
   double get _amount => double.tryParse(_amountStr) ?? 0.0;
@@ -96,6 +111,176 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     });
   }
 
+  Future<void> _loadSchemeSipOptions() async {
+    if (!mounted) return;
+    try {
+      final data = await controller.fetchSchemeSipOptions(widget.scheme.schemeCode);
+      if (data != null && mounted) {
+        final rawFreqs = (data['supportedFrequencies'] as List<dynamic>?)?.map((e) => e.toString().toUpperCase()).toList();
+        final opts = (data['options'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        if (rawFreqs != null && rawFreqs.isNotEmpty) {
+          final freqs = rawFreqs
+              .toSet()
+              .where((f) => ['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY'].contains(f))
+              .toList();
+          setState(() {
+            _supportedFrequencies = freqs;
+            if (opts != null) _sipOptions = opts;
+            if (!_supportedFrequencies.contains(_selectedFrequency)) {
+              _selectedFrequency = _supportedFrequencies.contains('MONTHLY') ? 'MONTHLY' : _supportedFrequencies.first;
+            }
+            final allowed = _currentAllowedDates;
+            if (!allowed.contains(_selectedDay)) {
+              _selectedDay = allowed.isNotEmpty ? allowed.first : 25;
+            }
+            _adjustMinAmountForFrequency();
+          });
+        }
+      }
+    } catch (_) {} 
+  }
+
+    Map<String, dynamic>? _getOptionForFrequency(String freq) {
+    for (final opt in _sipOptions) {
+      if (opt['frequency']?.toString().toUpperCase() == freq.toUpperCase()) {
+        return opt;
+      }
+    }
+    return null;
+  }
+
+  double get _currentMinSipAmount {
+    if (!_isSip) return widget.scheme.minPurchaseAmount ?? 500.0;
+    final opt = _getOptionForFrequency(_selectedFrequency);
+    if (opt != null && opt['minAmount'] != null) {
+      return (opt['minAmount'] as num).toDouble();
+    }
+    if (_selectedFrequency == 'DAILY') return 100.0;
+    if (_selectedFrequency == 'WEEKLY') return 500.0;
+    return widget.scheme.minSipAmount ?? 500.0;
+  }
+
+  void _adjustMinAmountForFrequency() {
+    final minAmt = _currentMinSipAmount;
+    if (_amount < minAmt) {
+      _amountStr = minAmt.toInt().toString();
+    }
+  }
+
+  List<int> get _currentAllowedDates {
+    if (_selectedFrequency == 'DAILY') return const [];
+    if (_selectedFrequency == 'WEEKLY') {
+      final opt = _getOptionForFrequency(_selectedFrequency);
+      if (opt != null && opt['allowedDates'] is List) {
+        final list = (opt['allowedDates'] as List).map((e) => int.tryParse(e.toString())).whereType<int>().toList();
+        final validWeekdays = list.where((d) => d >= 1 && d <= 5).toList();
+        if (validWeekdays.isNotEmpty) return validWeekdays;
+      }
+      return const [1, 2, 3, 4, 5]; // Mon to Fri
+    }
+    final opt = _getOptionForFrequency(_selectedFrequency);
+    if (opt != null && opt['allowedDates'] is List) {
+      final list = (opt['allowedDates'] as List).map((e) => int.tryParse(e.toString())).whereType<int>().toList();
+      if (list.isNotEmpty) return list;
+    }
+    return const [1, 5, 10, 15, 20, 25, 28];
+  }
+
+  String _getWeekdayName(int d) {
+    switch (d) {
+      case 1: return 'Monday';
+      case 2: return 'Tuesday';
+      case 3: return 'Wednesday';
+      case 4: return 'Thursday';
+      case 5: return 'Friday';
+      default: return 'Day $d';
+    }
+  }
+
+  String _formatDateSelectionLabel(int d) {
+    if (_selectedFrequency == 'WEEKLY') {
+      return 'Every ${_getWeekdayName(d)}';
+    }
+    return '$d${_getDaySuffix(d)} of month';
+  }
+
+  bool _isNseMarketHours() {
+    final now = DateTime.now().toUtc();
+    final ist = now.add(const Duration(hours: 5, minutes: 30));
+    if (ist.weekday == DateTime.saturday || ist.weekday == DateTime.sunday) return false;
+    final minutes = ist.hour * 60 + ist.minute;
+    return minutes >= 9 * 60 && minutes < 15 * 60; // 09:00 AM - 03:00 PM IST
+  }
+
+  String _getDaySuffix(int day) {
+    if (day >= 11 && day <= 13) return 'th';
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  }
+
+  Widget _buildFrequencySelector(Color surface, Color mintGreen) {
+    if (!_isSip || _supportedFrequencies.length <= 1) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: const Color(0xFF131824),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF222B3D)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: _supportedFrequencies.map((freq) {
+          final isSel = _selectedFrequency == freq;
+          String label;
+          if (freq == 'DAILY') {
+            label = 'Daily';
+          } else if (freq == 'WEEKLY') {
+            label = 'Weekly';
+          } else if (freq == 'QUARTERLY') {
+            label = 'Quarterly';
+          } else {
+            label = 'Monthly';
+          }
+          return GestureDetector(
+            onTap: () {
+              if (_selectedFrequency != freq) {
+                setState(() {
+                  _selectedFrequency = freq;
+                  final allowed = _currentAllowedDates;
+                  if (!allowed.contains(_selectedDay)) {
+                    _selectedDay = allowed.isNotEmpty ? allowed.first : 25;
+                  }
+                  _adjustMinAmountForFrequency();
+                });
+              }
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: isSel ? mintGreen : Colors.transparent,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSel ? Colors.black : const Color(0xFF94A3B8),
+                  fontSize: 12.5,
+                  fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   void _openDatePickerSheet(Color bg, Color surface, Color textPrimary, Color mintGreen) {
     showModalBottomSheet(
       context: context,
@@ -122,19 +307,25 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Select Monthly SIP Debit Date',
+              _selectedFrequency == 'WEEKLY'
+                  ? 'Select Weekly SIP Debit Day'
+                  : (_selectedFrequency == 'QUARTERLY'
+                      ? 'Select Quarterly SIP Debit Date'
+                      : 'Select Monthly SIP Debit Date'),
               style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Your investment will be deducted automatically on this date every month.',
-              style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+            Text(
+              _selectedFrequency == 'WEEKLY'
+                  ? 'Your investment will be deducted automatically on this day of each week.'
+                  : 'Your investment will be deducted automatically on this date every cycle.',
+              style: const TextStyle(color: Color(0xFF8B949E), fontSize: 12),
             ),
             const SizedBox(height: 20),
             Wrap(
               spacing: 12,
               runSpacing: 12,
-              children: _allowedDates.map((d) {
+              children: _currentAllowedDates.map((d) {
                 final isSel = _selectedDay == d;
                 return GestureDetector(
                   onTap: () {
@@ -148,7 +339,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      '${d}th of month',
+                      _formatDateSelectionLabel(d),
                       style: TextStyle(
                         color: isSel ? Colors.black : Colors.white,
                         fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
@@ -378,7 +569,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                   child: Icon(Icons.verified_user_rounded, color: mintGreen, size: 22),
                 ),
                 title: Text('$bName (AutoPay Mandate)', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                subtitle: Text('A/C ••••$accNo • Recurring monthly debit via NPCI e-NACH on ${_selectedDay}th', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                subtitle: Text('A/C ••••$accNo • Recurring ${_selectedFrequency.toLowerCase()} debit via NPCI e-NACH${_selectedFrequency == "DAILY" ? " (business days)" : " on $_selectedDay${_getDaySuffix(_selectedDay)}"}', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
                 trailing: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
@@ -402,12 +593,12 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
       return;
     }
 
-    final double? minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
+    final double minAmount = _isSip ? _currentMinSipAmount : (widget.scheme.minPurchaseAmount ?? 500.0);
     if (_amount <= 0) {
       Get.snackbar('Invalid Amount', 'Please enter an investment amount', backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
       return;
     }
-    if (minAmount != null && _amount < minAmount) {
+    if (_amount < minAmount) {
       Get.snackbar(
         'Minimum Amount Required',
         'Minimum ${_isSip ? "SIP" : "investment"} amount for this fund is ₹${minAmount.toInt()}',
@@ -422,6 +613,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
       // Pre-check for Bank AutoPay Mandate (Step 2 of Onboarding)
       if (controller.onboardingStep.value == 2) {
         await controller.fetchOnboardingStatus();
+      if (!mounted) return;
       }
       if (controller.onboardingStep.value == 2) {
         controller.showMandateRequiredDialog(
@@ -449,20 +641,42 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
 
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final candidate = DateTime(now.year, now.month, _selectedDay);
-      final daysDiff = candidate.difference(today).inDays;
-      final startDate = daysDiff < 7
-          ? DateTime(now.year, now.month + 1, _selectedDay)
-          : candidate;
+      DateTime startDate;
+      if (_selectedFrequency == 'DAILY') {
+        startDate = today.add(const Duration(days: 1));
+        if (startDate.weekday == DateTime.saturday) {
+          startDate = startDate.add(const Duration(days: 2));
+        } else if (startDate.weekday == DateTime.sunday) {
+          startDate = startDate.add(const Duration(days: 1));
+        }
+      } else if (_selectedFrequency == 'WEEKLY') {
+        // Next occurrence of selected weekday (1=Mon ... 5=Fri) with at least 7-day mandate buffer
+        final targetWeekday = (_selectedDay >= 1 && _selectedDay <= 5) ? _selectedDay : DateTime.monday;
+        final minAllowedDate = today.add(const Duration(days: 7));
+        DateTime candidate = minAllowedDate;
+        while (candidate.weekday != targetWeekday) {
+          candidate = candidate.add(const Duration(days: 1));
+        }
+        startDate = candidate;
+      } else {
+        final candidate = DateTime(now.year, now.month, _selectedDay);
+        final daysDiff = candidate.difference(today).inDays;
+        startDate = daysDiff < 7 ? DateTime(now.year, now.month + 1, _selectedDay) : candidate;
+      }
+
+
+
+
+
 
       final success = await controller.registerSipOrder(
         schemeCode: widget.scheme.schemeCode,
         schemeName: widget.scheme.schemeName,
         installmentAmount: _amount,
-        frequency: 'MONTHLY',
+        frequency: _selectedFrequency,
         startDate: startDate,
         paymentMode: _paymentMethod,
-        firstOrderToday: true,
+        firstOrderToday: _isNseMarketHours(),
       );
       if (success) {
         if (!mounted) return;
@@ -490,8 +704,8 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     const textSecondary = Color(0xFF8B949E);
     const mintGreen = Color(0xFF00D09C);
 
-    final double? minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
-    final bool isValidAmount = minAmount != null ? _amount >= minAmount : _amount > 0;
+    final double minAmount = _isSip ? _currentMinSipAmount : (widget.scheme.minPurchaseAmount ?? 500.0);
+    final bool isValidAmount = _amount >= minAmount;
 
     return Scaffold(
       backgroundColor: bg,
@@ -554,88 +768,105 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
       body: Column(
         children: [
           Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Investment amount',
-                  style: TextStyle(color: textSecondary, fontSize: 13),
-                ),
-                const SizedBox(height: 12),
-
-                // Large Amount Display with Clear (x) Button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      '₹${_formatCurrency(_amountStr)}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -0.5,
+            child: Center(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Investment amount',
+                        style: TextStyle(color: textSecondary, fontSize: 13),
                       ),
-                    ),
-                    if (_amountStr.isNotEmpty) ...[
-                      const SizedBox(width: 12),
-                      GestureDetector(
-                        onTap: _clearAmount,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF222838),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.close_rounded, color: Colors.white70, size: 16),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 18),
+                      const SizedBox(height: 8),
 
-                // Quick Increment Chips (+ ₹1,000, + ₹2,000, + ₹5,000)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildIncrementChip('+ ₹1,000', () => _addIncrement(1000)),
-                    const SizedBox(width: 10),
-                    _buildIncrementChip('+ ₹2,000', () => _addIncrement(2000)),
-                    const SizedBox(width: 10),
-                    _buildIncrementChip('+ ₹5,000', () => _addIncrement(5000)),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // Monthly on 25th Dropdown Pill
-                if (_isSip)
-                  GestureDetector(
-                    onTap: () => _openDatePickerSheet(bg, surface, textPrimary, mintGreen),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF131824),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF222B3D)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      // Large Amount Display with Clear (x) Button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const Icon(Icons.calendar_today_outlined, color: Colors.white, size: 16),
-                          const SizedBox(width: 8),
                           Text(
-                            'Monthly on ${_selectedDay}th',
-                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                            '₹${_formatCurrency(_amountStr)}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 38,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.5,
+                            ),
                           ),
-                          const SizedBox(width: 6),
-                          const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white70, size: 18),
+                          if (_amountStr.isNotEmpty) ...[
+                            const SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: _clearAmount,
+                              child: Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF222838),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.close_rounded, color: Colors.white70, size: 15),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 12),
+
+                      // Quick Increment Chips (+ ₹1,000, + ₹2,000, + ₹5,000)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildIncrementChip('+ ₹1,000', () => _addIncrement(1000)),
+                          const SizedBox(width: 8),
+                          _buildIncrementChip('+ ₹2,000', () => _addIncrement(2000)),
+                          const SizedBox(width: 8),
+                          _buildIncrementChip('+ ₹5,000', () => _addIncrement(5000)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      if (_isSip) _buildFrequencySelector(surface, mintGreen),
+
+                      // Frequency / Date Dropdown Pill
+                      if (_isSip)
+                        GestureDetector(
+                          onTap: _selectedFrequency == 'DAILY' ? null : () => _openDatePickerSheet(bg, surface, textPrimary, mintGreen),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF131824),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFF222B3D)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.calendar_today_outlined, color: Colors.white, size: 15),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _selectedFrequency == 'DAILY'
+                                      ? 'Daily (Mon - Fri)'
+                                      : (_selectedFrequency == 'WEEKLY'
+                                          ? 'Every ${_getWeekdayName(_selectedDay)}'
+                                          : '${_selectedFrequency == "QUARTERLY" ? "Quarterly" : "Monthly"} on $_selectedDay${_getDaySuffix(_selectedDay)}'),
+                                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                                if (_selectedFrequency != 'DAILY') ...[
+                                  const SizedBox(width: 6),
+                                  const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white70, size: 18),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (_isSip) _buildSipScheduleInfoCard(mintGreen),
+                    ],
                   ),
-                if (_isSip) _buildSipScheduleInfoCard(mintGreen),
-              ],
+                ),
+              ),
             ),
           ),
 
@@ -658,8 +889,11 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
               iconColor = const Color(0xFF3B82F6);
               title = 'Official NSE Gateway';
               badgeText = 'NSE MFSS';
+              final marketOpen = _isNseMarketHours();
               subtitle = _isSip
-                  ? 'First order today on NSE • Recurring debit from $bName (••••$accNo)'
+                  ? (marketOpen
+                      ? 'First order today on NSE • Recurring debit from $bName (••••$accNo)'
+                      : 'Market closed • Recurring debit starting next trading day')
                   : 'Direct payment via UPI (GPay/PhonePe), NetBanking & NEFT';
 
               return Container(
@@ -820,6 +1054,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                             scheme: widget.scheme,
                             amount: amt,
                             investmentType: _isSip ? 'SIP' : 'LUMPSUM',
+                            frequency: _selectedFrequency,
                             sipDay: _selectedDay,
                           );
                         },
@@ -917,8 +1152,8 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     final nextDebitStr = '${nextDebit.day} ${months[nextDebit.month - 1]} ${nextDebit.year}';
 
     return Container(
-      margin: const EdgeInsets.only(top: 14, left: 24, right: 24),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      margin: const EdgeInsets.only(top: 8, left: 20, right: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         color: const Color(0xFF101726),
         borderRadius: BorderRadius.circular(12),

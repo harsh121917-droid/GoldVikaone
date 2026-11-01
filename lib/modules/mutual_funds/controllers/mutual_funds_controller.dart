@@ -1524,31 +1524,14 @@ class MutualFundsController extends GetxController {
     final cleanUrl = paymentUrl.trim();
     if (cleanUrl.isEmpty) return;
 
-    Get.snackbar(
-      title,
-      message,
-      backgroundColor: const Color(0xFF00D09C),
-      colorText: Colors.black,
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 5),
-    );
-
     // Open dedicated In-App NSE Payment WebView directly
     try {
       await Get.to(() => MfPaymentWebView(
         paymentUrl: cleanUrl,
         title: title,
       ));
-    } catch (_) {
-      final uri = Uri.parse(cleanUrl);
-      try {
-        final launched = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-        if (!launched) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      } catch (_) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
+    } catch (e) {
+      debugPrint('[openNsePaymentGateway] In-App WebView failed: $e');
     }
   }
 
@@ -2007,6 +1990,7 @@ class MutualFundsController extends GetxController {
     String? schemeName,
     String frequency = 'MONTHLY',
     DateTime? startDate,
+    DateTime? endDate,
     bool stepUpRequired = false,
     double stepUpAmount = 0,
     String paymentMode = 'NSE_GATEWAY',
@@ -2024,6 +2008,9 @@ class MutualFundsController extends GetxController {
         'stepUpAmount': stepUpAmount,
         'paymentMode': paymentMode,
       };
+      if (endDate != null) {
+        payload['endDate'] = endDate.toIso8601String();
+      }
       if (firstOrderToday != null) {
         payload['firstOrderToday'] = firstOrderToday;
       }
@@ -2425,6 +2412,20 @@ class MutualFundsController extends GetxController {
         return MfSchemeModel.fromJson(res.data['data']);
       }
     } catch (_) {}
+    return null;
+  }
+
+  // ── Fetch Authoritative SIP Options & Supported Frequencies (Daily/Weekly/Monthly) ──
+  Future<Map<String, dynamic>?> fetchSchemeSipOptions(String schemeCode) async {
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.get('/mutual-funds/schemes/$schemeCode/sip-options');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        return res.data['data'] as Map<String, dynamic>?;
+      }
+    } catch (e) {
+      debugPrint('[fetchSchemeSipOptions] error: $e');
+    }
     return null;
   }
 

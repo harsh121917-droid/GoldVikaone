@@ -34,6 +34,8 @@ class MfSchemeModel {
   final String? riskometer;
   final String? investmentObjective;
   final double? minAdditionalPurchaseAmount;
+  final List<String> supportedFrequencies;
+  final List<Map<String, dynamic>>? sipOptions;
 
   MfSchemeModel({
     required this.id,
@@ -71,6 +73,8 @@ class MfSchemeModel {
     this.riskometer,
     this.investmentObjective,
     this.minAdditionalPurchaseAmount,
+    this.supportedFrequencies = const ['MONTHLY'],
+    this.sipOptions,
   });
 
   factory MfSchemeModel.fromJson(Map<String, dynamic> json) {
@@ -113,6 +117,12 @@ class MfSchemeModel {
       riskometer: json['riskometer']?.toString(),
       investmentObjective: json['investmentObjective']?.toString(),
       minAdditionalPurchaseAmount: (json['minAdditionalPurchaseAmount'] as num?)?.toDouble(),
+      supportedFrequencies: (json['supportedFrequencies'] as List<dynamic>?)?.map((e) => e.toString().toUpperCase()).toList() ??
+          (json['investmentRules']?['supportedFrequencies'] as List<dynamic>?)?.map((e) => e.toString().toUpperCase()).toList() ??
+          (json['sipFrequencies'] as List<dynamic>?)?.map((e) => e.toString().toUpperCase()).toList() ??
+          const ['MONTHLY'],
+      sipOptions: (json['investmentRules']?['sipOptions'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ??
+          (json['sipOptions'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
     );
   }
 
@@ -153,6 +163,8 @@ class MfSchemeModel {
       'riskometer': riskometer,
       'investmentObjective': investmentObjective,
       'minAdditionalPurchaseAmount': minAdditionalPurchaseAmount,
+      'supportedFrequencies': supportedFrequencies,
+      'sipOptions': sipOptions,
     };
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -42,11 +43,8 @@ class _MfPaymentWebViewState extends State<MfPaymentWebView> {
   }
 
   void _initWebView() {
-    _webCtrl = WebViewController()
+    final ctrl = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setUserAgent(
-        'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
-      )
       ..setBackgroundColor(darkBg)
       ..setNavigationDelegate(
         NavigationDelegate(
@@ -83,21 +81,72 @@ class _MfPaymentWebViewState extends State<MfPaymentWebView> {
           },
           onNavigationRequest: (request) {
             final uri = Uri.tryParse(request.url);
-            if (uri != null && (uri.scheme == 'upi' || uri.scheme == 'intent')) {
-              launchUrl(uri, mode: LaunchMode.externalApplication);
-              return NavigationDecision.prevent;
+            if (uri != null) {
+              final scheme = uri.scheme.toLowerCase();
+              if (scheme == 'upi' || scheme == 'intent' || scheme == 'gpay' || scheme == 'phonepe' || scheme == 'paytmmp') {
+                launchUrl(uri, mode: LaunchMode.externalApplication);
+                return NavigationDecision.prevent;
+              }
             }
             return NavigationDecision.navigate;
           },
         ),
       );
 
+    _webCtrl = ctrl;
+    _prepareAndLoad(ctrl);
+  }
+
+  Future<void> _prepareAndLoad(WebViewController ctrl) async {
+    try {
+      final cookieManager = WebViewCookieManager();
+      await cookieManager.clearCookies();
+      await ctrl.clearCache();
+      await ctrl.clearLocalStorage();
+    } catch (_) {}
+
     if (_currentUrl.isNotEmpty) {
       final uri = Uri.tryParse(_currentUrl);
       if (uri != null) {
-        _webCtrl.loadRequest(uri);
+        await ctrl.loadRequest(uri);
       }
     }
+  }
+
+  Future<void> _clearSessionAndReload() async {
+    try {
+      final cookieManager = WebViewCookieManager();
+      await cookieManager.clearCookies();
+      await _webCtrl.clearCache();
+      await _webCtrl.clearLocalStorage();
+      Get.snackbar(
+        'Session Reset',
+        'Cookies & cache cleared for fresh payment session. Reloading...',
+        backgroundColor: cardBg,
+        colorText: mintGreen,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 3),
+      );
+      if (_currentUrl.isNotEmpty) {
+        final uri = Uri.tryParse(_currentUrl);
+        if (uri != null) {
+          await _webCtrl.loadRequest(uri);
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _copyLink() {
+    final url = _currentUrl.isNotEmpty ? _currentUrl : widget.paymentUrl;
+    Clipboard.setData(ClipboardData(text: url));
+    Get.snackbar(
+      'Link Copied',
+      'NSE gateway link copied to clipboard.',
+      backgroundColor: cardBg,
+      colorText: mintGreen,
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 2),
+    );
   }
 
   Future<void> _openExternalBrowser() async {
@@ -171,13 +220,18 @@ class _MfPaymentWebViewState extends State<MfPaymentWebView> {
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.refresh_rounded, color: Colors.white70, size: 20),
-              tooltip: 'Refresh',
-              onPressed: () => _webCtrl.reload(),
+              icon: const Icon(Icons.copy_rounded, color: Colors.white70, size: 18),
+              tooltip: 'Copy Link',
+              onPressed: _copyLink,
             ),
             IconButton(
-              icon: const Icon(Icons.open_in_browser_rounded, color: Colors.white70, size: 20),
-              tooltip: 'Open in Chrome / Browser',
+              icon: const Icon(Icons.refresh_rounded, color: Colors.white70, size: 20),
+              tooltip: 'Reset Session & Reload',
+              onPressed: _clearSessionAndReload,
+            ),
+            IconButton(
+              icon: const Icon(Icons.open_in_browser_rounded, color: Colors.white70, size: 19),
+              tooltip: 'Open in Browser',
               onPressed: _openExternalBrowser,
             ),
           ],

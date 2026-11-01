@@ -178,25 +178,43 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
               final rawMap = d['chartData'] as Map<String, dynamic>;
               _chartDataMap = rawMap.map((k, v) => MapEntry(k, v is List ? v : []));
             }
+            _syncSelectedPeriods();
           });
         }
       }
 
-      // Fetch fallback chart points from mfapi.in ONLY if backend chartData was empty
+      // Fetch fallback chart points ONLY if backend chartData was empty
       if (_chartDataMap.isEmpty) {
         final targetCode = _directBenchmarkCodes[widget.scheme.schemeCode] ?? widget.scheme.schemeCode;
         try {
-          final liveRes = await dio.get('https://api.mfapi.in/mf/$targetCode');
-          if (liveRes.statusCode == 200 && liveRes.data is Map && liveRes.data['data'] is List) {
-            final rawList = liveRes.data['data'] as List;
+          // Priority 1: Try TigZig NAV endpoint
+          final tzRes = await dio.get('https://api.tigzig.com/mf/v1/schemes/$targetCode/nav');
+          if (tzRes.statusCode == 200 && tzRes.data is Map && tzRes.data['data'] is List) {
+            final rawList = tzRes.data['data'] as List;
             _applyLiveDirectData(rawList);
           }
         } catch (_) {}
+
+        // Priority 2: Fallback to mfapi.in if TigZig was unavailable or empty
+        if (_chartDataMap.isEmpty) {
+          try {
+            final liveRes = await dio.get('https://api.mfapi.in/mf/$targetCode');
+            if (liveRes.statusCode == 200 && liveRes.data is Map && liveRes.data['data'] is List) {
+              final rawList = liveRes.data['data'] as List;
+              _applyLiveDirectData(rawList);
+            }
+          } catch (_) {}
+        }
       }
     } catch (e) {
       debugPrint('[MfSchemeDetailView] _fetchSchemeDetails error: $e');
     } finally {
-      if (mounted) setState(() => _isLoadingDetail = false);
+      if (mounted) {
+        setState(() {
+          _syncSelectedPeriods();
+          _isLoadingDetail = false;
+        });
+      }
     }
   }
 
@@ -204,16 +222,23 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     if (rawList.isEmpty || !mounted) return;
 
     final chronological = <Map<String, dynamic>>[];
-    for (int i = rawList.length - 1; i >= 0; i--) {
+    for (int i = 0; i < rawList.length; i++) {
       final item = rawList[i];
+      if (item is! Map) continue;
       final navVal = double.tryParse(item['nav']?.toString() ?? '') ?? 0.0;
-      if (navVal > 0) {
-        final parts = (item['date'] ?? '').toString().split('-');
-        final isoDate = parts.length == 3 ? '${parts[2]}-${parts[1]}-${parts[0]}' : item['date'].toString();
+      if (navVal > 0 && item['date'] != null) {
+        final dateStr = item['date'].toString().trim();
+        String isoDate = dateStr;
+        final parts = dateStr.split('-');
+        if (parts.length == 3 && parts[0].length != 4) {
+          isoDate = '${parts[2]}-${parts[1]}-${parts[0]}';
+        }
         chronological.add({'date': isoDate, 'nav': navVal});
       }
     }
     if (chronological.isEmpty) return;
+
+    chronological.sort((a, b) => a['date'].toString().compareTo(b['date'].toString()));
 
     final latestItem = chronological.last;
     final latestNav = (latestItem['nav'] as num).toDouble();
@@ -240,22 +265,35 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     }
 
     List<Map<String, dynamic>> sampleSeriesForMonths(int? monthsBack, int maxPoints) {
-      List<Map<String, dynamic>> subset;
       if (monthsBack == null) {
-        subset = chronological;
-      } else {
-        final cutoff = subtractMonths(latestDate, monthsBack);
-        final cutoffIso = cutoff.toIso8601String().substring(0, 10);
-        int startIdx = 0;
-        for (int i = chronological.length - 1; i >= 0; i--) {
-          if ((chronological[i]['date'] as String).compareTo(cutoffIso) <= 0) {
-            startIdx = i;
-            break;
-          }
+        final subset = chronological;
+        if (subset.length <= maxPoints) return subset;
+        final step = (subset.length - 1) / (maxPoints - 1);
+        final sampled = <Map<String, dynamic>>[];
+        for (int i = 0; i < maxPoints; i++) {
+          final idx = (i * step).round().clamp(0, subset.length - 1);
+          sampled.add(subset[idx]);
         }
-        subset = chronological.sublist(startIdx);
+        return sampled;
       }
-      if (subset.isEmpty) subset = chronological.take(maxPoints).toList();
+
+      final cutoff = subtractMonths(latestDate, monthsBack);
+      final cutoffIso = cutoff.toIso8601String().substring(0, 10);
+
+      // If earliest data point is newer than cutoff, this timeframe has insufficient history
+      if ((chronological.first['date'] as String).compareTo(cutoffIso) > 0) {
+        return [];
+      }
+
+      int startIdx = 0;
+      for (int i = chronological.length - 1; i >= 0; i--) {
+        if ((chronological[i]['date'] as String).compareTo(cutoffIso) <= 0) {
+          startIdx = i;
+          break;
+        }
+      }
+      final subset = chronological.sublist(startIdx);
+      if (subset.length < 2) return [];
       if (subset.length <= maxPoints) return subset;
       final step = (subset.length - 1) / (maxPoints - 1);
       final sampled = <Map<String, dynamic>>[];
@@ -276,7 +314,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
       'All': sampleSeriesForMonths(null, 180),
     };
 
-    double calcCagr(String tf, double fallback) {
+    double? calcCagr(String tf) {
       final pts = newChartData[tf];
       if (pts != null && pts.length >= 2) {
         final s = (pts.first['nav'] as num).toDouble();
@@ -301,16 +339,16 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
           return ((e - s) / s) * 100;
         }
       }
-      return fallback;
+      return null;
     }
 
-    final ret1M = calcCagr('1M', -1.20);
-    final ret3M = calcCagr('3M', 2.80);
-    final ret6M = calcCagr('6M', 5.51);
-    final ret1Y = calcCagr('1Y', widget.scheme.cagr1Y ?? 10.0);
-    final ret3Y = calcCagr('3Y', (widget.scheme.cagr3Y != null && widget.scheme.cagr3Y! > 0) ? widget.scheme.cagr3Y! : 12.75);
-    final ret5Y = calcCagr('5Y', widget.scheme.cagr5Y ?? 15.0);
-    final retAll = calcCagr('All', 32.40);
+    final ret1M = calcCagr('1M');
+    final ret3M = calcCagr('3M');
+    final ret6M = calcCagr('6M');
+    final ret1Y = calcCagr('1Y');
+    final ret3Y = calcCagr('3Y');
+    final ret5Y = calcCagr('5Y');
+    final retAll = calcCagr('All');
 
     setState(() {
       _chartDataMap = newChartData;
@@ -320,13 +358,13 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
       _detailData!['day1Return'] = day1Ret;
       if (_detailData!['periodReturns'] == null) {
         _detailData!['periodReturns'] = {
-          '1M': {'returnPercent': ret1M, 'isPositive': ret1M >= 0},
-          '3M': {'returnPercent': ret3M, 'isPositive': ret3M >= 0},
-          '6M': {'returnPercent': ret6M, 'isPositive': ret6M >= 0},
-          '1Y': {'returnPercent': ret1Y, 'isPositive': ret1Y >= 0},
-          '3Y': {'returnPercent': ret3Y, 'isPositive': ret3Y >= 0},
-          '5Y': {'returnPercent': ret5Y, 'isPositive': ret5Y >= 0},
-          'All': {'returnPercent': retAll, 'isPositive': retAll >= 0},
+          '1M': {'returnPercent': ret1M, 'isPositive': (ret1M ?? 0) >= 0, 'insufficientData': ret1M == null},
+          '3M': {'returnPercent': ret3M, 'isPositive': (ret3M ?? 0) >= 0, 'insufficientData': ret3M == null},
+          '6M': {'returnPercent': ret6M, 'isPositive': (ret6M ?? 0) >= 0, 'insufficientData': ret6M == null},
+          '1Y': {'returnPercent': ret1Y, 'isPositive': (ret1Y ?? 0) >= 0, 'insufficientData': ret1Y == null},
+          '3Y': {'returnPercent': ret3Y, 'isPositive': (ret3Y ?? 0) >= 0, 'insufficientData': ret3Y == null},
+          '5Y': {'returnPercent': ret5Y, 'isPositive': (ret5Y ?? 0) >= 0, 'insufficientData': ret5Y == null},
+          'All': {'returnPercent': retAll, 'isPositive': (retAll ?? 0) >= 0, 'insufficientData': retAll == null},
         };
         _detailData!['return1M'] = ret1M;
         _detailData!['return3M'] = ret3M;
@@ -335,10 +373,88 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
         _detailData!['cagr3Y'] = ret3Y;
         _detailData!['cagr5Y'] = ret5Y;
       }
+      _syncSelectedPeriods();
     });
   }
 
-  
+  bool _hasHistoryForPeriod(String period) {
+    // 1. Check chart points in _chartDataMap
+    final pts = _chartDataMap[period];
+    if (pts != null && pts.length >= 2) return true;
+
+    // 2. Check periodReturns provenance / insufficientData flag
+    final pr = _detailData?['periodReturns'] as Map<String, dynamic>?;
+    if (pr != null && pr.containsKey(period)) {
+      final pData = pr[period];
+      if (pData is Map) {
+        if (pData['insufficientData'] == true) return false;
+        if (pData['returnPercent'] != null) return true;
+      }
+    }
+
+    // 3. If chartDataMap already has loaded data for some periods, but this period is empty:
+    if (_chartDataMap.isNotEmpty && (pts == null || pts.isEmpty)) {
+      return false;
+    }
+
+    return false;
+  }
+
+  List<String> get _availableChartPeriods {
+    const allPeriods = ['1M', '3M', '6M', '1Y', '3Y', '5Y', 'All'];
+    // While initial data is loading and we have no chart map yet, show default
+    if (_isLoadingDetail && _chartDataMap.isEmpty) {
+      return allPeriods;
+    }
+    final available = allPeriods.where(_hasHistoryForPeriod).toList();
+    return available.isNotEmpty ? available : ['All'];
+  }
+
+  List<String> get _availableCalculatorPeriods {
+    const allCalcPeriods = ['6M', '1Y', '3Y', '5Y'];
+    if (_isLoadingDetail && _detailData == null) {
+      return allCalcPeriods;
+    }
+    final available = allCalcPeriods.where((p) {
+      final pr = _detailData?['periodReturns'] as Map<String, dynamic>?;
+      if (pr != null && pr[p] is Map && pr[p]['insufficientData'] == true) {
+        return false;
+      }
+      return _hasHistoryForPeriod(p);
+    }).toList();
+    return available;
+  }
+
+  void _syncSelectedPeriods() {
+    final chartPeriods = _availableChartPeriods;
+    if (!chartPeriods.contains(_selectedPeriod)) {
+      if (chartPeriods.contains('3Y')) {
+        _selectedPeriod = '3Y';
+      } else if (chartPeriods.contains('1Y')) {
+        _selectedPeriod = '1Y';
+      } else if (chartPeriods.contains('6M')) {
+        _selectedPeriod = '6M';
+      } else if (chartPeriods.contains('All')) {
+        _selectedPeriod = 'All';
+      } else if (chartPeriods.isNotEmpty) {
+        _selectedPeriod = chartPeriods.first;
+      }
+    }
+
+    final calcPeriods = _availableCalculatorPeriods;
+    if (!calcPeriods.contains(_calculatorPeriod)) {
+      if (calcPeriods.contains('3Y')) {
+        _calculatorPeriod = '3Y';
+      } else if (calcPeriods.contains('1Y')) {
+        _calculatorPeriod = '1Y';
+      } else if (calcPeriods.contains('6M')) {
+        _calculatorPeriod = '6M';
+      } else if (calcPeriods.isNotEmpty) {
+        _calculatorPeriod = calcPeriods.first;
+      }
+    }
+  }
+
   List<double>? _getPeriodNavValues(String period) {
     final points = _chartDataMap[period];
     if (points != null && points.isNotEmpty) {
@@ -351,6 +467,11 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
   }
 
   double? get _currentReturn {
+    // If selected period has insufficient history, return null
+    if (!_hasHistoryForPeriod(_selectedPeriod)) {
+      return null;
+    }
+
     // 1. Check if backend periodReturns has exact return for this period (official Groww stats)
     if (_detailData != null && _detailData!['periodReturns'] is Map) {
       final pr = _detailData!['periodReturns'] as Map<String, dynamic>;
@@ -505,7 +626,8 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     }
     if (list != null && list.isNotEmpty) {
       return list
-          .whereType<Map<String, dynamic>>()
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
           .map((e) {
             final weightNum = (e['weightPercent'] ?? e['weight'] ?? e['percentage']) as num?;
             final securityName = e['securityName']?.toString() ?? e['name']?.toString() ?? '';
@@ -929,12 +1051,12 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
               ),
             ),
 
-            // Timeframe Selector Pills
+            // Timeframe Selector Pills (only shows periods with verified history)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: ['1M', '3M', '6M', '1Y', '3Y', '5Y', 'All'].map((p) {
+                children: _availableChartPeriods.map((p) {
                   final isSel = _selectedPeriod == p;
                   return GestureDetector(
                     onTap: () => setState(() {
@@ -978,14 +1100,20 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   GestureDetector(
-                    onTap: () => setState(() => _isHoldingsExpanded = true),
+                    onTap: () => setState(() {
+                      _isHoldingsExpanded = true;
+                      _showAllHoldings = true;
+                    }),
                     child: const Text(
                       'See all holdings',
                       style: TextStyle(color: mintGreen, fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => setState(() => _isHoldingsExpanded = true),
+                    onTap: () => setState(() {
+                      _isHoldingsExpanded = true;
+                      _showAllHoldings = true;
+                    }),
                     child: const Row(
                       children: [
                         Text(
@@ -1385,10 +1513,15 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
     final String minSipStr = minSip != null ? '₹${minSip.toInt()}' : '—';
 
     String freqStr = 'Monthly';
-    if (rules?['sipFrequencies'] is List && (rules!['sipFrequencies'] as List).isNotEmpty) {
-      freqStr = (rules['sipFrequencies'] as List).map((f) {
+    final rawFreqList = (rules?['supportedFrequencies'] as List?) ?? (rules?['sipFrequencies'] as List?) ?? widget.scheme.supportedFrequencies;
+    if (rawFreqList.isNotEmpty) {
+      freqStr = rawFreqList.map((f) {
         final s = f.toString().toUpperCase();
-        return s == 'MONTHLY' ? 'Monthly' : s == 'QUARTERLY' ? 'Quarterly' : s;
+        if (s == 'DAILY') return 'Daily';
+        if (s == 'WEEKLY') return 'Weekly';
+        if (s == 'QUARTERLY') return 'Quarterly';
+        if (s == 'FORTNIGHTLY') return 'Fortnightly';
+        return 'Monthly';
       }).join(' / ');
     }
 
@@ -1480,22 +1613,25 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
       return '#$r';
     }
 
+    final bool has3Y = _hasHistoryForPeriod('3Y');
+    final bool has5Y = _hasHistoryForPeriod('5Y');
+
     final y1Fund = formatRet(comp?['1Y']?['fund'], widget.scheme.cagr1Y);
-    final y3Fund = formatRet(comp?['3Y']?['fund'], widget.scheme.cagr3Y);
-    final y5Fund = formatRet(comp?['5Y']?['fund'], widget.scheme.cagr5Y);
+    final y3Fund = has3Y ? formatRet(comp?['3Y']?['fund'], widget.scheme.cagr3Y) : '—';
+    final y5Fund = has5Y ? formatRet(comp?['5Y']?['fund'], widget.scheme.cagr5Y) : '—';
     final allFund = formatRet(comp?['All']?['fund']);
 
     final y1Avg = formatAvg(comp?['1Y']?['categoryAvg']);
-    final y3Avg = formatAvg(comp?['3Y']?['categoryAvg']);
-    final y5Avg = formatAvg(comp?['5Y']?['categoryAvg']);
+    final y3Avg = has3Y ? formatAvg(comp?['3Y']?['categoryAvg']) : '—';
+    final y5Avg = has5Y ? formatAvg(comp?['5Y']?['categoryAvg']) : '—';
     final allAvg = formatAvg(comp?['All']?['categoryAvg']);
 
     final y1Rank = formatRank(comp?['1Y']?['rank'], comp?['1Y']?['totalPeers']);
-    final y3Rank = formatRank(comp?['3Y']?['rank'], comp?['3Y']?['totalPeers']);
-    final y5Rank = formatRank(comp?['5Y']?['rank'], comp?['5Y']?['totalPeers']);
+    final y3Rank = has3Y ? formatRank(comp?['3Y']?['rank'], comp?['3Y']?['totalPeers']) : '—';
+    final y5Rank = has5Y ? formatRank(comp?['5Y']?['rank'], comp?['5Y']?['totalPeers']) : '—';
     final allRank = formatRank(comp?['All']?['rank'], comp?['All']?['totalPeers']);
 
-    final r3Y = comp?['3Y']?['rank'];
+    final r3Y = has3Y ? comp?['3Y']?['rank'] : null;
     final r1Y = comp?['1Y']?['rank'];
     final bool hasTrophy = r3Y != null || r1Y != null;
     final String trophyPeriod = r3Y != null ? '3Y' : '1Y';
@@ -1874,8 +2010,41 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
   }
 
   Widget _buildReturnCalculatorSection(Color mintGreen, Color textSecondary, Color textPrimary, Color surface, Color border) {
+    if (_availableCalculatorPeriods.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F141E),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                'Return Calculator',
+                style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Return calculation is unavailable because this scheme is newly launched and has less than 6 months of verified historical data.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: textSecondary, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (!_availableCalculatorPeriods.contains(_calculatorPeriod)) {
+      _calculatorPeriod = _availableCalculatorPeriods.first;
+    }
+
     double? rate;
-    double years = 3;
+    double years = 1;
     final comp = _detailData?['returnsComparison'] as Map<String, dynamic>?;
     if (_calculatorPeriod == '6M') {
       rate = (_detailData?['return6M'] as num?)?.toDouble() ?? (comp?['6M']?['fund'] as num?)?.toDouble();
@@ -1884,10 +2053,10 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
       rate = ((_detailData?['cagr1Y'] ?? comp?['1Y']?['fund'] ?? widget.scheme.cagr1Y) as num?)?.toDouble();
       years = 1;
     } else if (_calculatorPeriod == '3Y') {
-      rate = ((_detailData?['cagr3Y'] ?? comp?['3Y']?['fund'] ?? widget.scheme.cagr3Y) as num?)?.toDouble();
+      rate = _hasHistoryForPeriod('3Y') ? ((_detailData?['cagr3Y'] ?? comp?['3Y']?['fund'] ?? widget.scheme.cagr3Y) as num?)?.toDouble() : null;
       years = 3;
     } else if (_calculatorPeriod == '5Y') {
-      rate = ((_detailData?['cagr5Y'] ?? comp?['5Y']?['fund'] ?? widget.scheme.cagr5Y) as num?)?.toDouble();
+      rate = _hasHistoryForPeriod('5Y') ? ((_detailData?['cagr5Y'] ?? comp?['5Y']?['fund'] ?? widget.scheme.cagr5Y) as num?)?.toDouble() : null;
       years = 5;
     }
 
@@ -2039,12 +2208,12 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
               ),
             ),
 
-            // Period selector
+            // Period selector (only shows verified periods)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: ['6M', '1Y', '3Y', '5Y'].map((p) {
+                children: _availableCalculatorPeriods.map((p) {
                   final isSel = _calculatorPeriod == p;
                   return GestureDetector(
                     onTap: () => setState(() => _calculatorPeriod = p),

@@ -33,6 +33,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
   late bool _isSip;
   late final TextEditingController _amountController;
 
+  String _selectedFrequency = 'MONTHLY';
   int _selectedDay = 10; // Default 10th of every month
   bool _stepUp = false;
   final double _stepUpAmount = 500;
@@ -44,6 +45,10 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
   void initState() {
     super.initState();
     _isSip = widget.initialIsSip;
+    final initialFreqs = widget.scheme.supportedFrequencies;
+    if (initialFreqs.isNotEmpty) {
+      _selectedFrequency = initialFreqs.contains('MONTHLY') ? 'MONTHLY' : initialFreqs.first;
+    }
     final defaultAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
     _amountController = TextEditingController(
       text: defaultAmount != null ? defaultAmount.toInt().toString() : (_isSip ? '100' : '500'),
@@ -740,13 +745,32 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
 
                               if (_isSip) {
                                 final now = DateTime.now();
-                                final startDate = DateTime(now.year, now.month, _selectedDay);
+                                DateTime sipStartDate;
+                                if (_selectedFrequency == 'DAILY') {
+                                  var d = now.add(const Duration(days: 1));
+                                  if (d.weekday == DateTime.saturday) {
+                                    d = d.add(const Duration(days: 2));
+                                  } else if (d.weekday == DateTime.sunday) {
+                                    d = d.add(const Duration(days: 1));
+                                  }
+                                  sipStartDate = d;
+                                } else if (_selectedFrequency == 'WEEKLY') {
+                                  final targetWd = (_selectedDay >= 1 && _selectedDay <= 5) ? _selectedDay : DateTime.monday;
+                                  var d = now.add(const Duration(days: 7));
+                                  while (d.weekday != targetWd) {
+                                    d = d.add(const Duration(days: 1));
+                                  }
+                                  sipStartDate = d;
+                                } else {
+                                  final candidate = DateTime(now.year, now.month, _selectedDay);
+                                  sipStartDate = candidate.isAfter(now) ? candidate : DateTime(now.year, now.month + 1, _selectedDay);
+                                }
                                 final success = await controller.registerSipOrder(
                                   schemeCode: widget.scheme.schemeCode,
                                   schemeName: widget.scheme.schemeName,
                                   installmentAmount: amount,
-                                  frequency: 'MONTHLY',
-                                  startDate: startDate.isAfter(now) ? startDate : DateTime(now.year, now.month + 1, _selectedDay),
+                                  frequency: _selectedFrequency,
+                                  startDate: sipStartDate,
                                   stepUpRequired: _stepUp,
                                   stepUpAmount: _stepUp ? _stepUpAmount : 0,
                                   paymentMode: _paymentMode,
