@@ -218,49 +218,71 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
   // ══════════════════════════════════════════════════════════════
   Widget _buildDashboardTab(
       dynamic summary, Color surface, Color textPrimary, Color textSecondary, bool dark) {
+    final allOrders = controller.myOrders.isNotEmpty ? controller.myOrders : controller.inProgressOrders;
+    final dashboardTxns = allOrders.where((o) {
+      final isSuccess = o.allotmentStatus == 'ALLOTTED' || o.orderStatus == 'COMPLETED';
+      final isInProcess = o.isProcessing ||
+          o.orderStatus == 'PROCESSING' ||
+          o.orderStatus == 'SUBMITTED' ||
+          o.orderStatus == 'PAYMENT_SUCCESS' ||
+          o.orderStatus == 'PAYMENT_PENDING';
+      final isNotFailed = o.orderStatus != 'CANCELLED' && o.orderStatus != 'REJECTED' && o.orderStatus != 'FAILED';
+      return (isSuccess || isInProcess) && isNotFailed;
+    }).toList();
+
+    const int maxDashboardTxns = 5;
+    final displayTxns = dashboardTxns.take(maxDashboardTxns).toList();
+
     if (controller.holdings.isEmpty) {
-      if (controller.inProgressOrders.isNotEmpty) {
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B).withOpacity(0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.hourglass_top_rounded, color: Color(0xFFF59E0B), size: 40),
+      if (dashboardTxns.isNotEmpty) {
+        return ListView(
+          padding: const EdgeInsets.only(top: 8, bottom: 32),
+          children: [
+            _buildDashboardTransactionsSection(
+                displayTxns, dashboardTxns.length, surface, textPrimary, textSecondary, dark),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF59E0B).withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.hourglass_top_rounded, color: Color(0xFFF59E0B), size: 40),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Orders Awaiting Allotment',
+                      style: TextStyle(color: textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Your mutual fund purchases have been submitted to NSE MFSS. Units will appear here once allotted by the AMC.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: textSecondary, fontSize: 13, height: 1.4),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF59E0B),
+                        foregroundColor: Colors.black,
+                        minimumSize: const Size(0, 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.list_alt_rounded, size: 18),
+                      label: const Text('View All Orders', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: () => _tabController.animateTo(1),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Orders Awaiting Allotment',
-                  style: TextStyle(color: textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Your mutual fund purchases have been submitted to NSE MFSS. Units will appear here once allotted by the AMC.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: textSecondary, fontSize: 13, height: 1.4),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF59E0B),
-                    foregroundColor: Colors.black,
-                    minimumSize: const Size(0, 44),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: const Icon(Icons.list_alt_rounded, size: 18),
-                  label: const Text('View Pending Orders', style: TextStyle(fontWeight: FontWeight.bold)),
-                  onPressed: () => _tabController.animateTo(1),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         );
       }
 
@@ -330,16 +352,21 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
         // 1. Groww Hero Card
         _buildGrowwHeroCard(summary, dark),
 
-        // 2. Sort & Filter Row
+        // 2. Recent Transactions Section (Success & In-Process, top 4-5 + View All button)
+        if (dashboardTxns.isNotEmpty)
+          _buildDashboardTransactionsSection(
+              displayTxns, dashboardTxns.length, surface, textPrimary, textSecondary, dark),
+
+        // 3. Sort & Filter Row
         _buildFilterSortRow(surface, textPrimary, textSecondary, dark),
 
-        // 3. Holdings List
+        // 4. Holdings List
         ...sorted.map((item) => _buildGrowwHoldingItem(item, surface, textPrimary, textSecondary, dark)),
 
-        // 4. MFCentral External Holdings Card
+        // 5. MFCentral External Holdings Card
         _buildMfCentralImportCard(surface, textPrimary, textSecondary, dark),
 
-        // 5. SIP Promotion Banner
+        // 6. SIP Promotion Banner
         _buildSipPromotionBanner(surface, textPrimary, textSecondary, dark),
       ],
     );
@@ -1913,189 +1940,297 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
       itemCount: orders.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final order = orders[index];
-        final bool isAllotted = order.allotmentStatus == 'ALLOTTED';
-        final Color badgeColor = isAllotted ? const Color(0xFF00D09C) : const Color(0xFFF59E0B);
-        final String dateStr =
-            '${order.createdAt.day.toString().padLeft(2, '0')}/${order.createdAt.month.toString().padLeft(2, '0')}/${order.createdAt.year}';
+        return _buildPortfolioOrderCard(orders[index], surface, textPrimary, textSecondary, dark);
+      },
+    );
+  }
 
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: badgeColor.withOpacity(0.3), width: 1.0),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(dark ? 0.2 : 0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+  // ══════════════════════════════════════════════════════════════
+  // Dashboard Recent Transactions Section (Success & In-Process)
+  // ══════════════════════════════════════════════════════════════
+  Widget _buildDashboardTransactionsSection(
+      List<MfOrderModel> txns, int totalCount, Color surface, Color textPrimary, Color textSecondary, bool dark) {
+    if (txns.isEmpty) return const SizedBox.shrink();
+
+    final inProcessCount = txns
+        .where((o) =>
+            o.isProcessing ||
+            (o.orderStatus != 'COMPLETED' && o.allotmentStatus != 'ALLOTTED'))
+        .length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Header: Logo + Scheme Title + Status Pill
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  AmcBrandLogo(
-                    amcName: '',
-                    schemeName: order.schemeName,
-                    size: 32,
-                    borderRadius: 8,
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: inProcessCount > 0 ? const Color(0xFFF59E0B) : const Color(0xFF00D09C),
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      order.schemeName,
-                      style: TextStyle(
-                        color: textPrimary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.5,
-                        height: 1.25,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                  const SizedBox(width: 8),
+                  Text(
+                    'Recent Transactions',
+                    style: TextStyle(
+                      color: textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      color: badgeColor.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: badgeColor.withOpacity(0.35), width: 0.8),
+                      color: dark ? const Color(0xFF1E2638) : const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 5,
-                          height: 5,
-                          decoration: BoxDecoration(color: badgeColor, shape: BoxShape.circle),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          order.badgeLabel.toUpperCase(),
-                          style: TextStyle(
-                            color: badgeColor,
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      '$totalCount',
+                      style: TextStyle(
+                        color: textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-
-              // Responsive Wrapped Info Strip (No squishing/overflow on any screen size)
-              Wrap(
-                spacing: 12,
-                runSpacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  // Amount
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '₹${order.orderAmount.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          color: textPrimary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Sub Status / Allotment Pill
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                    decoration: BoxDecoration(
-                      color: badgeColor.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isAllotted ? Icons.check_circle_rounded : Icons.schedule_rounded,
-                          color: badgeColor,
-                          size: 11,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          isAllotted
-                              ? 'Allotted'
-                              : (order.expectedAllotmentDate.isNotEmpty
-                                  ? '${order.subStatusLabel} • ${order.expectedAllotmentDate}'
-                                  : order.subStatusLabel),
-                          style: TextStyle(
-                            color: badgeColor,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Date & Order Ref
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        dateStr,
-                        style: TextStyle(color: textSecondary, fontSize: 11.5, fontWeight: FontWeight.w500),
-                      ),
-                      if (order.nseTrxnOrderId != null && order.nseTrxnOrderId!.isNotEmpty) ...[
-                        Text(
-                          ' • #${order.nseTrxnOrderId}',
-                          style: TextStyle(color: textSecondary, fontSize: 11.5, fontWeight: FontWeight.w500),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-
-              // Payment Action Button if pending
-              if (!order.isPaymentDone && order.paymentLink != null && order.paymentLink!.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  height: 32,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      controller.openNsePaymentGateway(
-                        order.paymentLink!,
-                        title: 'NSE Gateway Payment',
-                        message: 'Official NSE portal opened for ${order.schemeName}. Complete payment to confirm allotment.',
-                      );
-                    },
-                    icon: const Icon(Icons.payment_rounded, size: 14),
-                    label: const Text('Complete Payment via NSE Gateway', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00D09C),
-                      foregroundColor: const Color(0xFF0F141E),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                    ),
-                  ),
+              TextButton(
+                onPressed: () => _tabController.animateTo(1),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-              ],
+                child: const Text(
+                  'View All',
+                  style: TextStyle(color: Color(0xFF00D09C), fontSize: 12.5, fontWeight: FontWeight.w600),
+                ),
+              ),
             ],
           ),
-        );
-      },
+          const SizedBox(height: 10),
+          ...txns.map((order) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _buildPortfolioOrderCard(order, surface, textPrimary, textSecondary, dark),
+              )),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: double.infinity,
+            height: 42,
+            child: OutlinedButton.icon(
+              onPressed: () => _tabController.animateTo(1),
+              icon: const Icon(Icons.receipt_long_rounded, color: Color(0xFF00D09C), size: 16),
+              label: Text(
+                'View All Orders ($totalCount)',
+                style: const TextStyle(
+                  color: Color(0xFF00D09C),
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF00D09C), width: 1.2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                backgroundColor: const Color(0xFF00D09C).withOpacity(0.06),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPortfolioOrderCard(
+      MfOrderModel order, Color surface, Color textPrimary, Color textSecondary, bool dark) {
+    final bool isAllotted = order.allotmentStatus == 'ALLOTTED';
+    final Color badgeColor = isAllotted ? const Color(0xFF00D09C) : const Color(0xFFF59E0B);
+    final String dateStr =
+        '${order.createdAt.day.toString().padLeft(2, '0')}/${order.createdAt.month.toString().padLeft(2, '0')}/${order.createdAt.year}';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: badgeColor.withOpacity(0.3), width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(dark ? 0.2 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header: Logo + Scheme Title + Status Pill
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              AmcBrandLogo(
+                amcName: '',
+                schemeName: order.schemeName,
+                size: 32,
+                borderRadius: 8,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  order.schemeName,
+                  style: TextStyle(
+                    color: textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                    height: 1.25,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: badgeColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: badgeColor.withOpacity(0.35), width: 0.8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(color: badgeColor, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      order.badgeLabel.toUpperCase(),
+                      style: TextStyle(
+                        color: badgeColor,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Responsive Wrapped Info Strip (No squishing/overflow on any screen size)
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              // Amount
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '₹${order.orderAmount.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      color: textPrimary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+
+              // Sub Status / Allotment Pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                decoration: BoxDecoration(
+                  color: badgeColor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isAllotted ? Icons.check_circle_rounded : Icons.schedule_rounded,
+                      color: badgeColor,
+                      size: 11,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isAllotted
+                          ? 'Allotted'
+                          : (order.expectedAllotmentDate.isNotEmpty
+                              ? '${order.subStatusLabel} • ${order.expectedAllotmentDate}'
+                              : order.subStatusLabel),
+                      style: TextStyle(
+                        color: badgeColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Date & Order Ref
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    dateStr,
+                    style: TextStyle(color: textSecondary, fontSize: 11.5, fontWeight: FontWeight.w500),
+                  ),
+                  if (order.nseTrxnOrderId != null && order.nseTrxnOrderId!.isNotEmpty) ...[
+                    Text(
+                      ' • #${order.nseTrxnOrderId}',
+                      style: TextStyle(color: textSecondary, fontSize: 11.5, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+
+          // Payment Action Button if pending
+          if (!order.isPaymentDone && order.paymentLink != null && order.paymentLink!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 32,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  controller.openNsePaymentGateway(
+                    order.paymentLink!,
+                    title: 'NSE Gateway Payment',
+                    message: 'Official NSE portal opened for ${order.schemeName}. Complete payment to confirm allotment.',
+                  );
+                },
+                icon: const Icon(Icons.payment_rounded, size: 14),
+                label: const Text('Complete Payment via NSE Gateway', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00D09C),
+                  foregroundColor: const Color(0xFF0F141E),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -2297,7 +2432,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                   TextButton.icon(
                     onPressed: () => _showCancelSipDialog(context, sip, surface, textPrimary, textSecondary),
                     icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 14),
-                    label: const Text('Cancel SIP', style: TextStyle(color: Colors.redAccent, fontSize: 11.5, fontWeight: FontWeight.bold)),
+                    label: const Text('Close SIP', style: TextStyle(color: Colors.redAccent, fontSize: 11.5, fontWeight: FontWeight.bold)),
                     style: TextButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -2315,7 +2450,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
   }
 
   // ══════════════════════════════════════════════════════════════
-  // SIP Cancellation Dialog
+  // SIP Cancellation / Close Dialog
   // ══════════════════════════════════════════════════════════════
   void _showCancelSipDialog(BuildContext context, dynamic sip, Color surface, Color textPrimary, Color textSecondary) {
     showDialog(
@@ -2327,11 +2462,11 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
           children: [
             const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24),
             const SizedBox(width: 8),
-            Text('Cancel SIP?', style: TextStyle(color: textPrimary, fontSize: 17, fontWeight: FontWeight.bold)),
+            Text('Close SIP?', style: TextStyle(color: textPrimary, fontSize: 17, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Text(
-          'Are you sure you want to cancel your monthly SIP of ₹${sip.installmentAmount.toInt()} for ${sip.schemeName}?\n\nThis will submit an official cancellation request to the NSE MFSS exchange and stop all future AutoPay deductions from your bank mandate.',
+          'Are you sure you want to close your monthly SIP of ₹${sip.installmentAmount.toInt()} for ${sip.schemeName}?\n\nThis will submit a cancellation request to the NSE MFSS exchange and stop all future AutoPay deductions from your bank mandate. Your already accumulated units will remain safely in your portfolio.',
           style: TextStyle(color: textSecondary, fontSize: 13, height: 1.4),
         ),
         actions: [
@@ -2355,7 +2490,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                 ),
                 child: controller.isCancellingSip.value
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Yes, Cancel SIP', style: TextStyle(fontWeight: FontWeight.bold)),
+                    : const Text('Yes, Close SIP', style: TextStyle(fontWeight: FontWeight.bold)),
               )),
         ],
       ),
@@ -2393,6 +2528,10 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
   void _showRedemptionSheet(BuildContext context, dynamic item, Color surface, Color textPrimary, Color textSecondary) {
     final unitsCtrl = TextEditingController();
     final amountCtrl = TextEditingController();
+    final String initialFolio = (item.folioNo != null && item.folioNo.toString().trim().isNotEmpty)
+        ? item.folioNo.toString().trim()
+        : '';
+    final folioCtrl = TextEditingController(text: initialFolio);
     String redeemMode = 'UNITS';
     bool allUnits = false;
     double enteredUnits = 0.0;
@@ -2423,9 +2562,11 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
             final String rawAcc = ucc?.accountNo ?? '';
             final String maskedAcc = rawAcc.length > 4 ? '•••• ${rawAcc.substring(rawAcc.length - 4)}' : rawAcc;
 
-            final bool isValidInput = redeemMode == 'AMOUNT'
+            final String currentFolio = folioCtrl.text.trim();
+            final bool hasFolio = currentFolio.isNotEmpty;
+            final bool isValidInput = hasFolio && (redeemMode == 'AMOUNT'
                 ? (enteredAmount > 0 && enteredAmount <= maxRedeemableAmount)
-                : (enteredUnits > 0 && enteredUnits <= availableUnits);
+                : (enteredUnits > 0 && enteredUnits <= availableUnits));
 
             return Container(
               padding: EdgeInsets.only(
@@ -2534,6 +2675,51 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                       ),
                     ),
                     const SizedBox(height: 16),
+
+                    // Folio Section (Mandatory for Physical NSE Redemptions)
+                    if (initialFolio.isEmpty) ...[
+                      Text('Folio Number (Mandatory)', style: TextStyle(color: textPrimary, fontWeight: FontWeight.w600, fontSize: 13)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: folioCtrl,
+                        style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                        decoration: InputDecoration(
+                          hintText: 'Enter Folio Number (e.g. 10101010/01)',
+                          hintStyle: TextStyle(color: textSecondary, fontSize: 13),
+                          filled: true,
+                          fillColor: const Color(0xFF181E2C),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF222938))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF222938))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF00D09C))),
+                        ),
+                        onChanged: (_) => setModalState(() {}),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'NSE MFSS requires your allotted folio number for physical redemptions. Found in your AMC allotment SMS/email.',
+                        style: TextStyle(color: textSecondary, fontSize: 11),
+                      ),
+                      const SizedBox(height: 14),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF181E2C),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFF222938)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.verified_user_outlined, color: Color(0xFF00D09C), size: 16),
+                            const SizedBox(width: 8),
+                            Text('Folio Number: ', style: TextStyle(color: textSecondary, fontSize: 12)),
+                            Text(initialFolio, style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
 
                     // Redeem Mode Toggle
                     Row(
@@ -2826,7 +3012,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                                   units: redeemMode == 'UNITS' ? enteredUnits : null,
                                   amount: redeemMode == 'AMOUNT' ? enteredAmount : null,
                                   allUnits: allUnits,
-                                  folioNo: item.folioNo,
+                                  folioNo: currentFolio,
                                 );
 
                                 if (modalCtx.mounted) {

@@ -2098,18 +2098,18 @@ class MutualFundsController extends GetxController {
     }
   }
 
-  // ── Cancel Active SIP on NSE Exchange ──
+  // ── Cancel / Close Active SIP on NSE Exchange ──
   final RxBool isCancellingSip = false.obs;
 
   Future<bool> cancelSip(String sipId) async {
     isCancellingSip.value = true;
     try {
       final dio = ApiClient.instance;
-      final res = await dio.post('/mutual-funds/sips//cancel');
+      final res = await dio.post('/mutual-funds/sips/$sipId/cancel');
       if (res.statusCode == 200 && res.data['success'] == true) {
-        final msg = res.data['message']?.toString() ?? 'SIP cancelled successfully on NSE exchange.';
+        final msg = res.data['message']?.toString() ?? 'SIP closed successfully on NSE exchange.';
         Get.snackbar(
-          'SIP Cancelled',
+          'SIP Closed',
           msg,
           backgroundColor: const Color(0xFF00D09C),
           colorText: Colors.black,
@@ -2119,7 +2119,7 @@ class MutualFundsController extends GetxController {
         await fetchPortfolio();
         return true;
       } else {
-        final msg = extractErrorMessage(res.data, fallback: 'Failed to cancel SIP.');
+        final msg = extractErrorMessage(res.data, fallback: 'Failed to close SIP.');
         Get.snackbar(
           'Cancellation Failed',
           msg,
@@ -2130,7 +2130,7 @@ class MutualFundsController extends GetxController {
         return false;
       }
     } catch (e) {
-      final msg = extractErrorMessage(e, fallback: 'Error cancelling SIP. Please try again.');
+      final msg = extractErrorMessage(e, fallback: 'Error closing SIP. Please try again.');
       Get.snackbar(
         'Cancellation Failed',
         msg,
@@ -2143,6 +2143,8 @@ class MutualFundsController extends GetxController {
       isCancellingSip.value = false;
     }
   }
+
+  Future<bool> closeSip(String sipId) => cancelSip(sipId);
 
   // ── Fetch Portfolio ──
   Future<void> fetchPortfolio() async {
@@ -2351,8 +2353,8 @@ class MutualFundsController extends GetxController {
       } else if (units != null) {
         payload['units'] = units;
       }
-      if (folioNo != null && folioNo.isNotEmpty) {
-        payload['folioNo'] = folioNo;
+      if (folioNo != null && folioNo.trim().isNotEmpty) {
+        payload['folioNo'] = folioNo.trim();
       }
       if (idempotencyKey != null && idempotencyKey.isNotEmpty) {
         payload['idempotencyKey'] = idempotencyKey;
@@ -2375,17 +2377,44 @@ class MutualFundsController extends GetxController {
         return {
           'success': false,
           'message': errMsg,
+          'code': res.data?['code'],
+          'requiresFolio': res.data?['code'] == 'FOLIO_REQUIRED' || res.data?['data']?['requiresFolio'] == true,
+          'data': res.data?['data'],
         };
       }
     } catch (e) {
       debugPrint('[MutualFundsController] redeemHolding error: ' + e.toString());
       final errMsg = extractErrorMessage(e, fallback: 'Redemption failed. Please try again later.');
+      final responseData = (e is DioException) ? e.response?.data : null;
       return {
         'success': false,
         'message': errMsg,
+        'code': responseData is Map ? responseData['code'] : null,
+        'requiresFolio': responseData is Map && (responseData['code'] == 'FOLIO_REQUIRED' || responseData['data']?['requiresFolio'] == true),
       };
     } finally {
       isSubmittingOrder.value = false;
+    }
+  }
+
+  // ── Update / Attach Folio Number to Holding ──
+  Future<Map<String, dynamic>> updateHoldingFolio({
+    required String schemeCode,
+    required String folioNo,
+  }) async {
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.put(
+        '/mutual-funds/portfolio/holdings/$schemeCode/folio',
+        data: {'folioNo': folioNo.trim()},
+      );
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        await fetchPortfolio();
+        return {'success': true, 'message': 'Folio updated successfully'};
+      }
+      return {'success': false, 'message': extractErrorMessage(res.data)};
+    } catch (e) {
+      return {'success': false, 'message': extractErrorMessage(e)};
     }
   }
 

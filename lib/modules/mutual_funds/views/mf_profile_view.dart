@@ -16,6 +16,7 @@ class _MfProfileViewState extends State<MfProfileView> {
   final MutualFundsController controller = Get.find<MutualFundsController>();
   bool _isPersonalDetailsExpanded = false;
   String _orderFilter = 'ALL'; // ALL, PASSED, FAILED, PENDING
+  bool _showAllOrders = false;
 
   @override
   void initState() {
@@ -553,6 +554,9 @@ class _MfProfileViewState extends State<MfProfileView> {
       return true;
     }).toList();
 
+    const int initialOrderLimit = 5;
+    final displayOrders = _showAllOrders ? filtered : filtered.take(initialOrderLimit).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -624,17 +628,50 @@ class _MfProfileViewState extends State<MfProfileView> {
               ),
             ),
           )
-        else
+        else ...[
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: filtered.length,
+            itemCount: displayOrders.length,
             separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
-              final o = filtered[index];
+              final o = displayOrders[index];
               return _buildOrderCard(o);
             },
           ),
+          if (filtered.length > initialOrderLimit) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _showAllOrders = !_showAllOrders;
+                  });
+                },
+                icon: Icon(
+                  _showAllOrders ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                  color: GrowwColors.mintTeal,
+                  size: 18,
+                ),
+                label: Text(
+                  _showAllOrders ? 'Show Less' : 'View All Orders (${filtered.length})',
+                  style: const TextStyle(
+                    color: GrowwColors.mintTeal,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: GrowwColors.mintTeal, width: 1.2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: GrowwColors.mintTeal.withOpacity(0.06),
+                ),
+              ),
+            ),
+          ],
+        ],
       ],
     );
   }
@@ -645,6 +682,7 @@ class _MfProfileViewState extends State<MfProfileView> {
       onTap: () {
         setState(() {
           _orderFilter = code;
+          _showAllOrders = false;
         });
       },
       child: Container(

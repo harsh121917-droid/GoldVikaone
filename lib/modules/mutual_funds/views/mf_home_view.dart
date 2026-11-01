@@ -1621,12 +1621,28 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
       final inProgress = controller.inProgressOrders;
       final summary = controller.portfolioSummary.value;
 
-      if (controller.isPortfolioLoading.value && holdings.isEmpty && inProgress.isEmpty) {
+      // Filter transactions for Success and In-Process
+      final allOrders = controller.myOrders.isNotEmpty ? controller.myOrders : inProgress;
+      final dashboardTxns = allOrders.where((o) {
+        final isSuccess = o.allotmentStatus == 'ALLOTTED' || o.orderStatus == 'COMPLETED';
+        final isInProcess = o.isProcessing ||
+            o.orderStatus == 'PROCESSING' ||
+            o.orderStatus == 'SUBMITTED' ||
+            o.orderStatus == 'PAYMENT_SUCCESS' ||
+            o.orderStatus == 'PAYMENT_PENDING';
+        final isNotFailed = o.orderStatus != 'CANCELLED' && o.orderStatus != 'REJECTED' && o.orderStatus != 'FAILED';
+        return (isSuccess || isInProcess) && isNotFailed;
+      }).toList();
+
+      const int maxDashboardTxns = 5;
+      final displayTxns = dashboardTxns.take(maxDashboardTxns).toList();
+
+      if (controller.isPortfolioLoading.value && holdings.isEmpty && dashboardTxns.isEmpty) {
         return const Center(child: CircularProgressIndicator(color: GrowwColors.mintTeal));
       }
 
       if (holdings.isEmpty) {
-        if (inProgress.isNotEmpty) {
+        if (dashboardTxns.isNotEmpty) {
           return RefreshIndicator(
             color: GrowwColors.mintTeal,
             backgroundColor: GrowwColors.card,
@@ -1637,52 +1653,12 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
               ]);
             },
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.only(top: 8, bottom: 32),
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF59E0B),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Orders in progress (${inProgress.length})',
-                          style: const TextStyle(
-                            color: GrowwColors.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    TextButton(
-                      onPressed: () => _showAllOrdersSheet(context),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Text(
-                        'View All Orders',
-                        style: TextStyle(color: GrowwColors.mintTeal, fontSize: 13, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ...inProgress.map((order) => _buildInProgressOrderCard(order)),
-                const SizedBox(height: 20),
+                _buildDashboardTransactionsSection(displayTxns, dashboardTxns.length),
                 Center(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -1787,72 +1763,124 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
         child: ListView(
           padding: const EdgeInsets.only(top: 8, bottom: 32),
           children: [
-            // In-progress orders banner if any
-            if (inProgress.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF59E0B),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Orders in progress (${inProgress.length})',
-                          style: const TextStyle(
-                            color: GrowwColors.textPrimary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    TextButton(
-                      onPressed: () => _showAllOrdersSheet(context),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Text(
-                        'View All Orders',
-                        style: TextStyle(color: GrowwColors.mintTeal, fontSize: 12.5, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildInProgressOrderCard(inProgress.first),
-              ),
-              const SizedBox(height: 10),
-            ],
-
             // 1. Groww Hero Card (HOLDINGS X, Eye Toggle, 1D & Total Returns in RED/GREEN, Invested, XIRR)
             _buildGrowwHeroCard(summary),
 
-            // 2. Sort & Filter Row (< > Current (Invested))
+            // 2. Recent Transactions Section (Success & In-Process, top 4-5 + View All button)
+            if (dashboardTxns.isNotEmpty)
+              _buildDashboardTransactionsSection(displayTxns, dashboardTxns.length),
+
+            // 3. Sort & Filter Row (< > Current (Invested))
             _buildFilterSortRow(),
 
-            // 3. Holdings List (Scheme Name, Logo, Current Value, Invested, Loss in RED with -, Profit in GREEN with +)
+            // 4. Holdings List (Scheme Name, Logo, Current Value, Invested, Loss in RED with -, Profit in GREEN with +)
             ...sorted.map((item) => _buildGrowwHoldingItem(item)),
 
-            // 4. Promotional SIP Banner
+            // 5. Promotional SIP Banner
             _buildSipPromotionBanner(),
           ],
         ),
       );
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Dashboard Recent Transactions Section (Success & In-Process Orders)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildDashboardTransactionsSection(List<MfOrderModel> txns, int totalCount) {
+    if (txns.isEmpty) return const SizedBox.shrink();
+
+    final inProcessCount = txns.where((o) => o.isProcessing || (o.orderStatus != 'COMPLETED' && o.allotmentStatus != 'ALLOTTED')).length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: inProcessCount > 0 ? const Color(0xFFF59E0B) : const Color(0xFF00D09C),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Recent Transactions',
+                    style: TextStyle(
+                      color: GrowwColors.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: GrowwColors.cardElevated,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$totalCount',
+                      style: const TextStyle(
+                        color: GrowwColors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              TextButton(
+                onPressed: () => _showAllOrdersSheet(context),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  'View All',
+                  style: TextStyle(color: GrowwColors.mintTeal, fontSize: 12.5, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...txns.map((order) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _buildInProgressOrderCard(order),
+              )),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: double.infinity,
+            height: 42,
+            child: OutlinedButton.icon(
+              onPressed: () => _showAllOrdersSheet(context),
+              icon: const Icon(Icons.receipt_long_rounded, color: GrowwColors.mintTeal, size: 16),
+              label: Text(
+                'View All Transactions ($totalCount)',
+                style: const TextStyle(
+                  color: GrowwColors.mintTeal,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: GrowwColors.mintTeal, width: 1.2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                backgroundColor: GrowwColors.mintTeal.withOpacity(0.06),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -2874,6 +2902,10 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
   void _showRedemptionSheet(BuildContext context, dynamic item) {
     final unitsCtrl = TextEditingController();
     final amountCtrl = TextEditingController();
+    final String initialFolio = (item.folioNo != null && item.folioNo!.toString().trim().isNotEmpty)
+        ? item.folioNo!.toString().trim()
+        : '';
+    final folioCtrl = TextEditingController(text: initialFolio);
     String redeemMode = 'UNITS';
     bool allUnits = false;
     double enteredUnits = 0.0;
@@ -2904,9 +2936,11 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
             final String rawAcc = ucc?.accountNo ?? '';
             final String maskedAcc = rawAcc.length > 4 ? '•••• ${rawAcc.substring(rawAcc.length - 4)}' : rawAcc;
 
-            final bool isValidInput = redeemMode == 'AMOUNT'
+            final String currentFolio = folioCtrl.text.trim();
+            final bool hasFolio = currentFolio.isNotEmpty;
+            final bool isValidInput = hasFolio && (redeemMode == 'AMOUNT'
                 ? (enteredAmount > 0 && enteredAmount <= maxRedeemableAmount)
-                : (enteredUnits > 0 && enteredUnits <= availableUnits);
+                : (enteredUnits > 0 && enteredUnits <= availableUnits));
 
             return Container(
               padding: EdgeInsets.only(
@@ -2965,7 +2999,52 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                         ),
                       ],
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
+
+                    // Folio Section (Mandatory for Physical NSE Redemptions)
+                    if (initialFolio.isEmpty) ...[
+                      const Text('Folio Number (Mandatory)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: folioCtrl,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        decoration: InputDecoration(
+                          hintText: 'Enter Folio Number (e.g. 10101010/01)',
+                          hintStyle: const TextStyle(color: Colors.white54, fontSize: 13),
+                          filled: true,
+                          fillColor: const Color(0xFF181E2C),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF222938))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF222938))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF00D09C))),
+                        ),
+                        onChanged: (_) => setModalState(() {}),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'NSE MFSS requires your allotted folio number for physical redemptions. Found in your AMC allotment SMS/email.',
+                        style: TextStyle(color: Colors.white54, fontSize: 11),
+                      ),
+                      const SizedBox(height: 14),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF181E2C),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFF222938)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.verified_user_outlined, color: Color(0xFF00D09C), size: 16),
+                            const SizedBox(width: 8),
+                            const Text('Folio Number: ', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                            Text(initialFolio, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
 
                     // Toggle: By Units vs By Amount
                     Row(
@@ -3202,7 +3281,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                                   units: redeemMode == 'UNITS' ? enteredUnits : null,
                                   amount: redeemMode == 'AMOUNT' ? enteredAmount : null,
                                   allUnits: allUnits,
-                                  folioNo: item.folioNo,
+                                  folioNo: currentFolio,
                                 );
 
                                 if (modalCtx.mounted) {
@@ -3650,12 +3729,95 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                     ),
                   ],
                 ),
+                const Divider(height: 20, color: GrowwColors.border),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (sip.paymentLink != null && sip.paymentLink!.isNotEmpty && sip.status == 'PENDING_PAYMENT') ...[
+                      TextButton.icon(
+                        onPressed: () => controller.openNsePaymentGateway(
+                          sip.paymentLink!,
+                          title: 'NSE SIP Authorization & Payment',
+                          message: 'Official NSE authorization opened. Complete authentication to activate your SIP.',
+                        ),
+                        icon: const Icon(Icons.payment_rounded, color: GrowwColors.mintTeal, size: 14),
+                        label: const Text('Authorize / Pay', style: TextStyle(color: GrowwColors.mintTeal, fontSize: 11.5, fontWeight: FontWeight.bold)),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    TextButton.icon(
+                      onPressed: () => _showCancelSipDialog(context, sip),
+                      icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 14),
+                      label: const Text('Close SIP', style: TextStyle(color: Colors.redAccent, fontSize: 11.5, fontWeight: FontWeight.bold)),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           );
         },
       );
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SIP Close / Cancel Confirmation Dialog
+  // ═══════════════════════════════════════════════════════════════════════════
+  void _showCancelSipDialog(BuildContext context, dynamic sip) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: GrowwColors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24),
+            SizedBox(width: 8),
+            Text('Close SIP?', style: TextStyle(color: GrowwColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to close your monthly SIP of ₹${sip.installmentAmount.toInt()} for ${sip.schemeName}?\n\nThis will submit a cancellation request to the NSE exchange and stop all future auto-debits from your bank. Your already accumulated units will remain safely in your portfolio.',
+          style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Keep Active', style: TextStyle(color: GrowwColors.textSecondary, fontWeight: FontWeight.bold)),
+          ),
+          Obx(() => ElevatedButton(
+                onPressed: controller.isCancellingSip.value
+                    ? null
+                    : () async {
+                        Navigator.pop(ctx);
+                        await controller.cancelSip(sip.id);
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(0, 38),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: controller.isCancellingSip.value
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Yes, Close SIP', style: TextStyle(fontWeight: FontWeight.bold)),
+              )),
+        ],
+      ),
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -4352,104 +4514,202 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
 
   void _showAllOrdersSheet(BuildContext context) {
     controller.fetchMyOrders();
+    String filter = 'ALL'; // ALL, IN_PROCESS, SUCCESS
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return Container(
-          height: MediaQuery.of(ctx).size.height * 0.85,
-          decoration: const BoxDecoration(
-            color: Color(0xFF121B27),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              height: MediaQuery.of(ctx).size.height * 0.85,
+              decoration: const BoxDecoration(
+                color: Color(0xFF121B27),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'All Mutual Fund Orders',
-                      style: TextStyle(color: GrowwColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    width: 44,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, color: GrowwColors.textSecondary),
-                      onPressed: () => Navigator.pop(ctx),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'All Mutual Fund Orders',
+                          style: TextStyle(color: GrowwColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, color: GrowwColors.textSecondary),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-              const Divider(color: GrowwColors.border, height: 1),
-              Expanded(
-                child: Obx(() {
-                  if (controller.isOrdersLoading.value && controller.myOrders.isEmpty && controller.inProgressOrders.isEmpty) {
-                    return const Center(child: CircularProgressIndicator(color: GrowwColors.mintTeal));
-                  }
+                  ),
+                  const Divider(color: GrowwColors.border, height: 1),
+                  Expanded(
+                    child: Obx(() {
+                      if (controller.isOrdersLoading.value && controller.myOrders.isEmpty && controller.inProgressOrders.isEmpty) {
+                        return const Center(child: CircularProgressIndicator(color: GrowwColors.mintTeal));
+                      }
 
-                  final orders = controller.myOrders.isNotEmpty ? controller.myOrders : controller.inProgressOrders;
+                      final allOrders = controller.myOrders.isNotEmpty ? controller.myOrders : controller.inProgressOrders;
+                      final inProcessList = allOrders
+                          .where((o) =>
+                              o.isProcessing ||
+                              (o.allotmentStatus != 'ALLOTTED' &&
+                                  o.orderStatus != 'CANCELLED' &&
+                                  o.orderStatus != 'REJECTED' &&
+                                  o.orderStatus != 'FAILED'))
+                          .toList();
+                      final successList =
+                          allOrders.where((o) => o.allotmentStatus == 'ALLOTTED' || o.orderStatus == 'COMPLETED').toList();
 
-                  if (orders.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      final filteredOrders = filter == 'IN_PROCESS'
+                          ? inProcessList
+                          : filter == 'SUCCESS'
+                              ? successList
+                              : allOrders;
+
+                      return Column(
                         children: [
-                          Icon(Icons.assignment_outlined, color: GrowwColors.textSecondary.withOpacity(0.5), size: 54),
-                          const SizedBox(height: 12),
-                          const Text('No Orders Found', style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 6),
-                          const Text('Your purchase and redemption orders will appear here', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13)),
+                          // Filter Chips Bar
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _buildSheetFilterChip('All', 'ALL', allOrders.length, filter, (v) => setSheetState(() => filter = v)),
+                                  const SizedBox(width: 8),
+                                  _buildSheetFilterChip(
+                                      'In Process', 'IN_PROCESS', inProcessList.length, filter, (v) => setSheetState(() => filter = v)),
+                                  const SizedBox(width: 8),
+                                  _buildSheetFilterChip(
+                                      'Success', 'SUCCESS', successList.length, filter, (v) => setSheetState(() => filter = v)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: filteredOrders.isEmpty
+                                ? Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.assignment_outlined,
+                                            color: GrowwColors.textSecondary.withOpacity(0.5), size: 54),
+                                        const SizedBox(height: 12),
+                                        const Text('No Orders Found',
+                                            style: TextStyle(
+                                                color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+                                        const SizedBox(height: 6),
+                                        const Text('Your purchase and redemption orders will appear here',
+                                            style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13)),
+                                      ],
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                                    itemCount: filteredOrders.length,
+                                    itemBuilder: (context, index) {
+                                      final order = filteredOrders[index];
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 8),
+                                        child: _buildInProgressOrderCard(order),
+                                      );
+                                    },
+                                  ),
+                          ),
                         ],
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: orders.length,
-                    itemBuilder: (context, index) {
-                      final order = orders[index];
-                      return _buildInProgressOrderCard(order);
-                    },
-                  );
-                }),
-              ),
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        Get.to(() => const MfPortfolioView());
-                      },
-                      icon: const Icon(Icons.pie_chart_rounded, size: 18, color: GrowwColors.mintTeal),
-                      label: const Text('Go to Full Portfolio', style: TextStyle(color: GrowwColors.mintTeal, fontWeight: FontWeight.bold)),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: GrowwColors.mintTeal),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      );
+                    }),
+                  ),
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            Get.to(() => const MfPortfolioView());
+                          },
+                          icon: const Icon(Icons.pie_chart_rounded, size: 18, color: GrowwColors.mintTeal),
+                          label: const Text('Go to Full Portfolio',
+                              style: TextStyle(color: GrowwColors.mintTeal, fontWeight: FontWeight.bold)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: GrowwColors.mintTeal),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildSheetFilterChip(String label, String code, int count, String currentCode, ValueChanged<String> onSelect) {
+    final bool isSelected = currentCode == code;
+    return GestureDetector(
+      onTap: () => onSelect(code),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? GrowwColors.mintTeal.withOpacity(0.15) : GrowwColors.cardElevated,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? GrowwColors.mintTeal : GrowwColors.border,
+            width: isSelected ? 1.2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? GrowwColors.mintTeal : GrowwColors.textSecondary,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: isSelected ? GrowwColors.mintTeal : GrowwColors.border,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  color: isSelected ? Colors.black : GrowwColors.textSecondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
