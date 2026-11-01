@@ -6,6 +6,7 @@ import '../views/mf_cart_view.dart';
 import '../views/mf_ucc_auth_webview.dart';
 import '../views/mf_payment_webview.dart';
 import '../views/mf_mandate_auth_webview.dart';
+import '../views/mf_central_cas_webview.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -23,6 +24,12 @@ class MutualFundsController extends GetxController {
   final RxBool isPortfolioLoading = false.obs;
   final RxBool isSubmittingOrder = false.obs;
   final RxBool isUccLoading = false.obs;
+
+  // ── MFCentral CAS Integration State ──
+  final RxBool isCasLoading = false.obs;
+  final RxMap<String, dynamic> consolidatedPortfolio = <String, dynamic>{}.obs;
+  final RxList<dynamic> externalHoldings = <dynamic>[].obs;
+  final RxMap<String, dynamic> casSummary = <String, dynamic>{}.obs;
 
   // Dedicated NSE MF II Gateway (Zero 3rd-party PG)
 
@@ -2183,6 +2190,99 @@ class MutualFundsController extends GetxController {
       debugPrint('[MutualFundsController] fetchPortfolio error: $e');
     } finally {
       isPortfolioLoading.value = false;
+      fetchConsolidatedPortfolio();
+    }
+  }
+
+  // ── Fetch Consolidated Portfolio (In-App + MFCentral CAS) ──
+  Future<void> fetchConsolidatedPortfolio() async {
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.get('/mutual-funds/mfcentral/portfolio/consolidated');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final data = res.data['data'];
+        if (data != null) {
+          consolidatedPortfolio.assignAll(Map<String, dynamic>.from(data));
+          if (data['holdings']?['external'] != null) {
+            externalHoldings.assignAll(data['holdings']['external'] as List<dynamic>);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[MutualFundsController] fetchConsolidatedPortfolio error: $e');
+    }
+  }
+
+  // ── Initiate MFCentral CAS Import Flow ──
+  Future<void> startMfCentralCasImport(BuildContext context) async {
+    isCasLoading.value = true;
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.post('/mutual-funds/mfcentral/cas/initiate', data: {
+        'casType': 'SUMMARY',
+      });
+
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final d = res.data['data'];
+        final authUrl = d?['authUrl']?.toString() ?? '';
+        final clientRefNo = d?['clientRefNo']?.toString() ?? '';
+        final isMock = d?['mode'] == 'MOCK';
+
+        if (context.mounted) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (ctx) => MfCentralCasWebView(
+                authUrl: authUrl,
+                clientRefNo: clientRefNo,
+                isMock: isMock,
+              ),
+            ),
+          );
+        }
+      } else {
+        final msg = extractErrorMessage(res.data, fallback: 'Could not initiate MFCentral CAS request.');
+        Get.snackbar(
+          'Import Request Failed',
+          msg,
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+    } catch (e) {
+      debugPrint('[MutualFundsController] startMfCentralCasImport error: $e');
+      final msg = extractErrorMessage(e, fallback: 'Network error connecting to MFCentral gateway.');
+      Get.snackbar(
+        'Connection Error',
+        msg,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      isCasLoading.value = false;
+    }
+  }
+
+  // ── Trigger Mock CAS Sync (for Sandbox Testing) ──
+  Future<bool> triggerMockCasSync(String clientRefNo) async {
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.post('/mutual-funds/mfcentral/cas/callback', data: {
+        'clientRefNo': clientRefNo,
+        'status': 'success',
+      });
+
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        await fetchConsolidatedPortfolio();
+        await fetchPortfolio();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('[MutualFundsController] triggerMockCasSync error: $e');
+      return false;
     }
   }
 

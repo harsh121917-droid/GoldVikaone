@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:vika1/routes/app_routes.dart';
 import 'package:vika1/modules/digi_gold/controllers/digi_gold_controller.dart';
+import '../bindings/digi_gold_binding.dart';
 import 'package:vika1/modules/silver/controllers/silver_controller.dart';
 import 'package:vika1/modules/copper/controllers/copper_controller.dart';
 import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
@@ -82,6 +83,9 @@ class _DigiGoldViewState extends State<DigiGoldView>
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<GoldController>() || !Get.isRegistered<WalletController>()) {
+      DigiGoldBinding().dependencies();
+    }
     WidgetsBinding.instance.addObserver(this);
     _refreshAll();
   }
@@ -99,10 +103,13 @@ class _DigiGoldViewState extends State<DigiGoldView>
   }
 
   void _refreshAll() async {
+    if (!Get.isRegistered<GoldController>() || !Get.isRegistered<WalletController>()) {
+      DigiGoldBinding().dependencies();
+    }
     await Future.wait([
-      Get.find<GoldController>().loadAll(),
-      Get.find<SilverController>().loadAll(),
-      Get.find<WalletController>().loadAll(),
+      if (Get.isRegistered<GoldController>()) Get.find<GoldController>().loadAll(),
+      if (Get.isRegistered<SilverController>()) Get.find<SilverController>().loadAll(),
+      if (Get.isRegistered<WalletController>()) Get.find<WalletController>().loadAll(),
     ]);
   }
 
@@ -1059,6 +1066,12 @@ class _QuickActionsState extends State<_QuickActions> {
           const Color(0xFF2563EB),
           () => Get.toNamed(AppRoutes.mutualFunds),
       ),
+      // (
+      //   Icons.card_giftcard_rounded,
+      //   'gift'.tr,
+      //   Colors.orange,
+      //   () => Get.toNamed(AppRoutes.gift),
+      // ),
     ];
 
     final row2 = [
@@ -1129,6 +1142,19 @@ class _QuickActionsState extends State<_QuickActions> {
         Colors.orange,
         () => Get.toNamed(AppRoutes.gift),
       ),
+      // (
+      //   Icons.menu_book_outlined,
+      //   'Passbook',
+      //   Colors.brown,
+      //   () {
+      //     Get.snackbar(
+      //       'Coming Soon',
+      //       'Passbook is launching soon!',
+      //       backgroundColor: t.primary,
+      //       colorText: Colors.white,
+      //     );
+      //   },
+      // ),
       (
         Icons.share_outlined,
         'refer_earn'.tr,
@@ -1557,9 +1583,9 @@ class _PromoBanner extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              'coming_soon_badge'.tr,
+                              'LIVE NOW • NSE MFSS',
                               style: TextStyle(
-                                color: Color(0xFFF59E0B),
+                                color: Color(0xFF00D09C),
                                 fontSize: 11,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 0.8,
@@ -1569,7 +1595,7 @@ class _PromoBanner extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'promo_title'.tr,
+                          'Mutual Funds is Live!',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16.5,
@@ -1580,7 +1606,7 @@ class _PromoBanner extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'promo_subtitle'.tr,
+                          'Invest in 1,000+ top mutual funds directly via NSE. Start SIP from ₹100.',
                           style: TextStyle(
                             color: Color(0xFF9FBDB2),
                             fontSize: 11,
@@ -1591,7 +1617,7 @@ class _PromoBanner extends StatelessWidget {
                         GestureDetector(
                           onTap: () {
                             HapticFeedback.selectionClick();
-                            Get.to(() => const WhatsComingView());
+                            Get.toNamed(AppRoutes.mutualFunds);
                           },
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -1600,7 +1626,7 @@ class _PromoBanner extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [Color(0xFFD4A017), Color(0xFFF59E0B)],
+                                colors: [Color(0xFFD4A017), Color(0xFF00D09C)],
                               ),
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
@@ -1615,7 +1641,7 @@ class _PromoBanner extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  'explore_whats_coming'.tr,
+                                  'Explore Mutual Funds',
                                   style: TextStyle(
                                     color: Color(0xFF261800),
                                     fontSize: 11.5,

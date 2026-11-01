@@ -303,6 +303,19 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                 label: const Text('Explore Mutual Funds', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5)),
                 onPressed: () => Get.toNamed(AppRoutes.mutualFunds),
               ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF00D09C),
+                  side: const BorderSide(color: Color(0xFF00D09C)),
+                  minimumSize: const Size(0, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                icon: const Icon(Icons.cloud_download_rounded, size: 18),
+                label: const Text('Import External Funds (MFCentral)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                onPressed: () => controller.startMfCentralCasImport(context),
+              ),
             ],
           ),
         ),
@@ -323,7 +336,10 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
         // 3. Holdings List
         ...sorted.map((item) => _buildGrowwHoldingItem(item, surface, textPrimary, textSecondary, dark)),
 
-        // 4. SIP Promotion Banner
+        // 4. MFCentral External Holdings Card
+        _buildMfCentralImportCard(surface, textPrimary, textSecondary, dark),
+
+        // 5. SIP Promotion Banner
         _buildSipPromotionBanner(surface, textPrimary, textSecondary, dark),
       ],
     );
@@ -801,6 +817,234 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
         ),
       ),
     );
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // MFCentral External CAS Holdings / Import Card
+  // ══════════════════════════════════════════════════════════════
+  Widget _buildMfCentralImportCard(
+      Color surface, Color textPrimary, Color textSecondary, bool dark) {
+    return Obx(() {
+      final extHoldings = controller.externalHoldings;
+      final bool hasExternal = extHoldings.isNotEmpty;
+
+      if (!hasExternal) {
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: dark ? const Color(0xFF131D31) : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFF00D09C).withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00D09C).withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.cloud_download_rounded, color: Color(0xFF00D09C), size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Track External Mutual Funds',
+                          style: TextStyle(
+                            color: textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Powered by official MFCentral CAS (CAMS & KFintech)',
+                          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Invested via Groww, Zerodha, or banks? Import and track all your mutual funds in one unified portfolio.',
+                style: TextStyle(color: textSecondary, fontSize: 12.5, height: 1.35),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00D09C),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: controller.isCasLoading.value
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                        )
+                      : const Icon(Icons.sync_rounded, size: 18),
+                  label: Text(
+                    controller.isCasLoading.value ? 'Initiating MFCentral...' : 'Import Mutual Funds with OTP',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  onPressed: controller.isCasLoading.value
+                      ? null
+                      : () => controller.startMfCentralCasImport(context),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      double extVal = 0.0;
+      double extCost = 0.0;
+      for (final h in extHoldings) {
+        extVal += (h['currentValue'] is num) ? (h['currentValue'] as num).toDouble() : 0.0;
+        extCost += (h['costValue'] is num) ? (h['costValue'] as num).toDouble() : 0.0;
+      }
+      final extPnl = extVal - extCost;
+      final extPnlPct = extCost > 0 ? (extPnl / extCost) * 100 : 0.0;
+
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: dark ? const Color(0xFF222938) : const Color(0xFFE2E8F0),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00D09C).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'MFCentral CAS',
+                        style: TextStyle(
+                          color: Color(0xFF00D09C),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'External Funds (${extHoldings.length})',
+                      style: TextStyle(color: textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                  ),
+                  icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF00D09C)),
+                  label: const Text('Re-sync', style: TextStyle(color: Color(0xFF00D09C), fontSize: 12)),
+                  onPressed: () => controller.startMfCentralCasImport(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Current Value', style: TextStyle(color: textSecondary, fontSize: 11)),
+                    const SizedBox(height: 2),
+                    Text(
+                      '₹${extVal.toStringAsFixed(0)}',
+                      style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('Total Returns', style: TextStyle(color: textSecondary, fontSize: 11)),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${extPnl >= 0 ? '+' : ''}₹${extPnl.toStringAsFixed(0)} (${extPnlPct.toStringAsFixed(1)}%)',
+                      style: TextStyle(
+                        color: extPnl >= 0 ? const Color(0xFF00D09C) : Colors.redAccent,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const Divider(height: 20),
+            ...extHoldings.take(3).map((h) {
+              final sName = h['schemeName']?.toString() ?? 'Mutual Fund';
+              final amc = h['amcName']?.toString() ?? 'AMC';
+              final cur = (h['currentValue'] is num) ? (h['currentValue'] as num).toDouble() : 0.0;
+              final rta = h['rta']?.toString() ?? 'RTA';
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            sName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: textPrimary, fontSize: 12.5, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$amc • $rta',
+                            style: TextStyle(color: textSecondary, fontSize: 10.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '₹${cur.toStringAsFixed(0)}',
+                      style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      );
+    });
   }
 
   // ══════════════════════════════════════════════════════════════
