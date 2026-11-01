@@ -39,7 +39,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     _paymentMethod = 'NSE_GATEWAY';
     final minAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
     _amountStr = minAmount != null ? minAmount.toInt().toString() : '';
-    controller.checkUserUcc();
+    controller.ensureInvestorReadiness();
   }
 
   double get _amount => double.tryParse(_amountStr) ?? 0.0;
@@ -420,6 +420,9 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
 
     if (_isSip) {
       // Pre-check for Bank AutoPay Mandate (Step 2 of Onboarding)
+      if (controller.onboardingStep.value == 2) {
+        await controller.fetchOnboardingStatus();
+      }
       if (controller.onboardingStep.value == 2) {
         controller.showMandateRequiredDialog(
           context,
