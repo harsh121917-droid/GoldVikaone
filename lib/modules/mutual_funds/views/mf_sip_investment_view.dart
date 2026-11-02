@@ -284,74 +284,86 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
   void _openDatePickerSheet(Color bg, Color surface, Color textPrimary, Color mintGreen) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _selectedFrequency == 'WEEKLY'
-                  ? 'Select Weekly SIP Debit Day'
-                  : (_selectedFrequency == 'QUARTERLY'
-                      ? 'Select Quarterly SIP Debit Date'
-                      : 'Select Monthly SIP Debit Date'),
-              style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _selectedFrequency == 'WEEKLY'
-                  ? 'Your investment will be deducted automatically on this day of each week.'
-                  : 'Your investment will be deducted automatically on this date every cycle.',
-              style: const TextStyle(color: Color(0xFF8B949E), fontSize: 12),
-            ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: _currentAllowedDates.map((d) {
-                final isSel = _selectedDay == d;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() => _selectedDay = d);
-                    Navigator.pop(context);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isSel ? mintGreen : const Color(0xFF1E2533),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      _formatDateSelectionLabel(d),
-                      style: TextStyle(
-                        color: isSel ? Colors.black : Colors.white,
-                        fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
-                        fontSize: 13,
-                      ),
-                    ),
+              const SizedBox(height: 16),
+              Text(
+                _selectedFrequency == 'WEEKLY'
+                    ? 'Select Weekly SIP Debit Day'
+                    : (_selectedFrequency == 'QUARTERLY'
+                        ? 'Select Quarterly SIP Debit Date'
+                        : 'Select Monthly SIP Debit Date'),
+                style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _selectedFrequency == 'WEEKLY'
+                    ? 'Your investment will be deducted automatically on this day of each week.'
+                    : 'Your investment will be deducted automatically on this date every cycle.',
+                style: const TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+              ),
+              const SizedBox(height: 20),
+              Flexible(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: _currentAllowedDates.map((d) {
+                      final isSel = _selectedDay == d;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => _selectedDay = d);
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSel ? mintGreen : const Color(0xFF1E2533),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            _formatDateSelectionLabel(d),
+                            style: TextStyle(
+                              color: isSel ? Colors.black : Colors.white,
+                              fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 24),
-          ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -514,17 +526,24 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             Center(
               child: Container(
                 width: 40,
@@ -581,7 +600,9 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
               ),
             ],
             const SizedBox(height: 12),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

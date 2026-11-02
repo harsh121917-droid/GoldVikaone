@@ -1017,6 +1017,25 @@ class MutualFundsController extends GetxController {
                 ),
               ),
               const SizedBox(height: 10),
+            ] else ...[
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Get.back();
+                    openUccAuthWebView(context, clientCode: clientCode);
+                  },
+                  icon: const Icon(Icons.security_rounded, size: 18, color: Colors.black),
+                  label: const Text('Open 2FA Verification Hub', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEAB308),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
             ],
             SizedBox(
               width: double.infinity,
