@@ -1,3 +1,4 @@
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -383,13 +384,25 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
       controller.fetchMfProfile();
 
       final authUrl = res['authUrl']?.toString();
+      final hasRealLink = authUrl != null &&
+          authUrl.trim().isNotEmpty &&
+          authUrl.trim() != 'null' &&
+          !authUrl.contains('nsenmf.com') &&
+          authUrl.trim() != 'https://www.nseinvest.com/mf' &&
+          authUrl.trim() != 'https://www.nseinvest.com/mf/';
 
-      // Open the In-App NSE UCC 2FA Client Authorization WebView
-      await controller.openUccAuthWebView(
-        context,
-        authUrl: authUrl,
-        clientCode: clientCode,
-      );
+      if (!hasRealLink) {
+        // First-time user (like Saloni) where NSE does not provide an instant online web link
+        // Prompt clearly to check mobile SMS & email!
+        await _showFirstTimeSmsDialog(context, clientCode);
+      } else {
+        // Real web authUrl exists - open the in-app WebView
+        await controller.openUccAuthWebView(
+          context,
+          authUrl: authUrl,
+          clientCode: clientCode,
+        );
+      }
 
       if (!mounted) return;
       Navigator.pop(context, true);
@@ -1219,6 +1232,175 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showFirstTimeSmsDialog(BuildContext context, String clientCode) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF1E222B),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: GrowwColors.mintTeal.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.mark_email_read_rounded,
+                      color: GrowwColors.mintTeal,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'NSE Verification SMS Sent',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Client Code: $clientCode',
+                          style: const TextStyle(
+                            color: GrowwColors.textSecondary,
+                            fontSize: 12,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF262C38),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.sms_outlined, color: GrowwColors.mintTeal, size: 20),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'NSE MFSS has sent an official verification link & OTP via SMS to your registered mobile number.',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                    Divider(color: Colors.white10, height: 1),
+                    SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.verified_user_outlined, color: Colors.amberAccent, size: 20),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Because this is your first mutual fund registration, NSE requires this 1-time SMS confirmation to activate your portfolio.',
+                            style: TextStyle(
+                              color: GrowwColors.textSecondary,
+                              fontSize: 12,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final uri = Uri.parse('sms:');
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri);
+                        }
+                      },
+                      icon: const Icon(Icons.sms_rounded, size: 18, color: GrowwColors.mintTeal),
+                      label: const Text('Open SMS', style: TextStyle(color: GrowwColors.mintTeal, fontWeight: FontWeight.w600)),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: GrowwColors.mintTeal),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: GrowwColors.mintTeal,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Got it',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

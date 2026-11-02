@@ -1,3 +1,4 @@
+import 'widgets/mf_support_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/mf_scheme_model.dart';
@@ -153,10 +154,22 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                                 ],
                               );
                             }),
-                            const SizedBox(width: 4),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.headset_mic_rounded,
+                                color: GrowwColors.textPrimary,
+                                size: 22,
+                              ),
+                              tooltip: 'Mutual Fund Support',
+                              onPressed: () {
+                                MfSupportBottomSheet.show(context);
+                              },
+                            ),
+                            const SizedBox(width: 2),
                             GestureDetector(
                               onTap: () {
                                 Get.to(() => const MfProfileView());
+
                               },
                               child: Stack(
                                 children: [

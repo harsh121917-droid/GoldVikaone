@@ -1,3 +1,4 @@
+import 'widgets/mf_support_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -88,6 +89,9 @@ class _MfProfileViewState extends State<MfProfileView> {
 
               // ── 4. Orders History Section ──
               _buildOrdersSection(orders),
+              const SizedBox(height: 20),
+              // ── 5. Mutual Fund Help & Support ──
+              _buildSupportSection(),
               const SizedBox(height: 32),
             ],
           ),
@@ -1069,4 +1073,37 @@ class _MfProfileViewState extends State<MfProfileView> {
       ),
     );
   }
+
+
+  Widget _buildSupportSection() {
+    return Container(
+      decoration: BoxDecoration(
+        color: GrowwColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: GrowwColors.border),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: GrowwColors.mintTeal.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.headset_mic_rounded, color: GrowwColors.mintTeal, size: 22),
+        ),
+        title: const Text(
+          'Mutual Fund Help & Support',
+          style: TextStyle(color: Colors.white, fontSize: 14.5, fontWeight: FontWeight.bold),
+        ),
+        subtitle: const Text(
+          'Raise a query for UCC, Mandates, SIPs or Payments',
+          style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: GrowwColors.textTertiary, size: 14),
+        onTap: () => MfSupportBottomSheet.show(context),
+      ),
+    );
+  }
+
 }

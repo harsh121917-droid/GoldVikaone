@@ -1,3 +1,4 @@
+import 'widgets/mf_support_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -739,6 +740,11 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
         ),
         titleSpacing: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.headset_mic_rounded, color: Colors.white70, size: 21),
+            tooltip: 'MF Support',
+            onPressed: () => MfSupportBottomSheet.show(context, initialCategory: 'FIRST_SIP_NOT_CUT'),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: TextButton.icon(
@@ -1171,34 +1177,78 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
 
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final nextDebitStr = '${nextDebit.day} ${months[nextDebit.month - 1]} ${nextDebit.year}';
+    final marketOpen = _isNseMarketHours();
 
     return Container(
-      margin: const EdgeInsets.only(top: 8, left: 20, right: 20),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      margin: const EdgeInsets.only(top: 10, left: 18, right: 18),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF101726),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFF1E2D4A)),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded, color: mintGreen, size: 16),
-          const SizedBox(width: 8),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: const TextStyle(fontSize: 11.5, height: 1.35, color: Color(0xFF94A3B8)),
-                children: [
-                  const TextSpan(text: 'Installment #1: ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  const TextSpan(text: 'Invest today.\r\n'),
-                  const TextSpan(text: 'Recurring AutoPay: ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  TextSpan(
-                    text: 'Debits start on $nextDebitStr${bufferApplied ? " (7-day exchange mandate buffer applied)" : ""}.',
-                    style: TextStyle(color: mintGreen, fontWeight: FontWeight.w600),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline_rounded, color: mintGreen, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 11.5, height: 1.38, color: Color(0xFF94A3B8)),
+                    children: [
+                      TextSpan(
+                        text: marketOpen ? 'Installment #1: ' : 'First AutoPay Debit: ',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(
+                        text: marketOpen
+                            ? 'Invest today via NSE Gateway.\r\n'
+                            : 'Starting on $nextDebitStr.\r\n',
+                        style: TextStyle(color: marketOpen ? mintGreen : const Color(0xFF38BDF8), fontWeight: FontWeight.w600),
+                      ),
+                      const TextSpan(
+                        text: 'Recurring AutoPay: ',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(
+                        text: 'Deductions on $nextDebitStr (7-day bank mandate setup buffer applies).\r\n',
+                        style: const TextStyle(color: Color(0xFFCBD5E1)),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.mark_email_unread_rounded, color: Color(0xFFEAB308), size: 15),
+                const SizedBox(width: 6),
+                const Expanded(
+                  child: Text(
+                    'Check your SMS/Email for official NSE OTP verification link.',
+                    style: TextStyle(color: Color(0xFFF1F5F9), fontSize: 11, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => MfSupportBottomSheet.show(context, initialCategory: 'FIRST_SIP_NOT_CUT'),
+                  child: Text(
+                    'Help',
+                    style: TextStyle(color: mintGreen, fontSize: 11, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

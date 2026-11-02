@@ -2048,6 +2048,12 @@ class MutualFundsController extends GetxController {
             title: 'NSE SIP Authorization & Payment',
             message: 'Official NSE authorization opened. Please complete authentication to activate your SIP.',
           );
+          final sipId = data?['sipId'] ?? data?['sip']?['_id'];
+          if (sipId != null) {
+            try {
+              await dio.post('/mutual-funds/sip/verify', data: {'sipId': sipId.toString()});
+            } catch (_) {}
+          }
         } else {
           Get.snackbar(
             'SIP Registered Successfully! 🎉',
@@ -2888,6 +2894,199 @@ class MutualFundsController extends GetxController {
     } finally {
       isPopularLoading.value = false;
     }
+  }
+
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ── Mutual Fund Support Request Submission ──
+  // ═══════════════════════════════════════════════════════════════════════════
+  final RxBool isSubmittingSupport = false.obs;
+
+  Future<bool> submitMfSupport({
+    required String category,
+    required String subject,
+    required String message,
+  }) async {
+    isSubmittingSupport.value = true;
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.post('/mutual-funds/support', data: {
+        'category': category,
+        'subject': subject.trim(),
+        'message': message.trim(),
+      });
+      if (res.statusCode == 201 || (res.data is Map && res.data['success'] == true)) {
+        Get.snackbar(
+          'Support Ticket Created 🎉',
+          'Your request has been sent to our operations team. We are reviewing your account on NSE.',
+          backgroundColor: const Color(0xFF00D09C),
+          colorText: Colors.black,
+          duration: const Duration(seconds: 5),
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return true;
+      } else {
+        final msg = extractErrorMessage(res.data, fallback: 'Could not submit support request');
+        Get.snackbar('Submission Failed', msg, backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
+        return false;
+      }
+    } catch (e) {
+      final msg = extractErrorMessage(e, fallback: 'Failed to submit support request. Please try again.');
+      Get.snackbar('Error', msg, backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
+      return false;
+    } finally {
+      isSubmittingSupport.value = false;
+    }
+  }
+
+  // ── Show SIP Registration Success & Mandate Clearance Notice ──
+  void showSipSuccessNoticeDialog(BuildContext context, {
+    required String schemeName,
+    required double amount,
+    required String nextDebitDate,
+    required String frequency,
+  }) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: const Color(0xFF131722),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF00D09C), width: 1.5),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00D09C).withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.check_circle_rounded, color: Color(0xFF00D09C), size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'SIP Registered on NSE! 🎉',
+                          style: TextStyle(color: Colors.white, fontSize: 16.5, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Official Exchange Confirmation',
+                          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF181E2C),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF222938)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      schemeName,
+                      style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Installment: ₹${amount.toInt()} / ${frequency.toLowerCase()}',
+                          style: const TextStyle(color: Color(0xFF00D09C), fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B).withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF334155)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.calendar_month_rounded, color: Color(0xFF38BDF8), size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 12, height: 1.4),
+                              children: [
+                                const TextSpan(text: 'First AutoPay Debit: ', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                                TextSpan(text: nextDebitDate, style: const TextStyle(color: Color(0xFF00D09C), fontWeight: FontWeight.bold)),
+                                const TextSpan(text: '\nPer NPCI rules, bank mandate setup requires 7-10 days buffer. No money is cut today.'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.mark_email_unread_rounded, color: Color(0xFFEAB308), size: 18),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'Please check your SMS inbox & Email: NSE dispatches an official OTP confirmation message to your mobile number and email.',
+                            style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 12, height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: ElevatedButton(
+                  onPressed: () => Get.back(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00D09C),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Understood, Got It', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: true,
+    );
   }
 
 }
