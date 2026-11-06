@@ -698,7 +698,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
         frequency: _selectedFrequency,
         startDate: startDate,
         paymentMode: _paymentMethod,
-        firstOrderToday: _isNseMarketHours(),
+        firstOrderToday: true,
       );
       if (success) {
         if (!mounted) return;
@@ -920,7 +920,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
               subtitle = _isSip
                   ? (marketOpen
                       ? 'First order today on NSE • Recurring debit from $bName (••••$accNo)'
-                      : 'Market closed • Recurring debit starting next trading day')
+                      : 'First order today on NSE (AMO) • Recurring debit from $bName (••••$accNo)')
                   : 'Direct payment via UPI (GPay/PhonePe), NetBanking & NEFT';
 
               return Container(
@@ -1201,14 +1201,14 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                     style: const TextStyle(fontSize: 11.5, height: 1.38, color: Color(0xFF94A3B8)),
                     children: [
                       TextSpan(
-                        text: marketOpen ? 'Installment #1: ' : 'First AutoPay Debit: ',
+                        text: 'Installment #1: ',
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                       TextSpan(
                         text: marketOpen
                             ? 'Invest today via NSE Gateway.\r\n'
-                            : 'Starting on $nextDebitStr.\r\n',
-                        style: TextStyle(color: marketOpen ? mintGreen : const Color(0xFF38BDF8), fontWeight: FontWeight.w600),
+                            : 'Invest today via NSE Gateway (AMO Order).\r\n',
+                        style: TextStyle(color: mintGreen, fontWeight: FontWeight.w600),
                       ),
                       const TextSpan(
                         text: 'Recurring AutoPay: ',
@@ -1224,33 +1224,33 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.mark_email_unread_rounded, color: Color(0xFFEAB308), size: 15),
-                const SizedBox(width: 6),
-                const Expanded(
-                  child: Text(
-                    'Check your SMS/Email for official NSE OTP verification link.',
-                    style: TextStyle(color: Color(0xFFF1F5F9), fontSize: 11, fontWeight: FontWeight.w500),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => MfSupportBottomSheet.show(context, initialCategory: 'FIRST_SIP_NOT_CUT'),
-                  child: Text(
-                    'Help',
-                    style: TextStyle(color: mintGreen, fontSize: 11, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // const SizedBox(height: 6),
+          // Container(
+          //   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          //   decoration: BoxDecoration(
+          //     color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+          //     borderRadius: BorderRadius.circular(8),
+          //   ),
+          //   child: Row(
+          //     children: [
+          //       const Icon(Icons.mark_email_unread_rounded, color: Color(0xFFEAB308), size: 15),
+          //       const SizedBox(width: 6),
+          //       const Expanded(
+          //         child: Text(
+          //           'Check your SMS/Email for official NSE OTP verification link.',
+          //           style: TextStyle(color: Color(0xFFF1F5F9), fontSize: 11, fontWeight: FontWeight.w500),
+          //         ),
+          //       ),
+          //       GestureDetector(
+          //         onTap: () => MfSupportBottomSheet.show(context, initialCategory: 'FIRST_SIP_NOT_CUT'),
+          //         child: Text(
+          //           'Help',
+          //           style: TextStyle(color: mintGreen, fontSize: 11, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ),
         ],
       ),
     );

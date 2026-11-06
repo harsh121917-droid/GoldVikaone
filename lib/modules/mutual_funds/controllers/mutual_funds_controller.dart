@@ -2045,8 +2045,8 @@ class MutualFundsController extends GetxController {
         if (paymentLink != null && paymentLink.isNotEmpty) {
           await openNsePaymentGateway(
             paymentLink,
-            title: 'NSE SIP Authorization & Payment',
-            message: 'Official NSE authorization opened. Please complete authentication to activate your SIP.',
+            title: 'NSE SIP Installment #1 Payment',
+            message: 'Official NSE payment gateway opened. Complete UPI or NetBanking payment to activate your SIP.',
           );
           final sipId = data?['sipId'] ?? data?['sip']?['_id'];
           if (sipId != null) {
