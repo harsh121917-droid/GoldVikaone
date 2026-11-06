@@ -25,6 +25,11 @@ class MutualFundsController extends GetxController {
   final RxBool isSubmittingOrder = false.obs;
   final RxBool isUccLoading = false.obs;
 
+  // ── eKYC State (Official NSE MFSS / CAMS eKYC) ──
+  final RxBool rxRequiresEkyc = false.obs;
+  final RxString rxEkycLink = ''.obs;
+  final RxBool rxIsEkycLoading = false.obs;
+
   // ── MFCentral CAS Integration State ──
   final RxBool isCasLoading = false.obs;
   final RxMap<String, dynamic> consolidatedPortfolio = <String, dynamic>{}.obs;
@@ -1441,6 +1446,7 @@ class MutualFundsController extends GetxController {
         if (d['bankDetails'] != null) {
           rxBankDetails.value = Map<String, dynamic>.from(d['bankDetails'] as Map);
         }
+        rxRequiresEkyc.value = d['requiresEkyc'] == true;
         return d;
       }
       return {
@@ -1463,6 +1469,69 @@ class MutualFundsController extends GetxController {
         'success': false,
         'message': extractErrorMessage(e, fallback: 'Unable to verify PAN with exchange. Please try again.'),
       };
+    }
+  }
+
+  // ── Initiate Official NSE MFSS eKYC (CAMS / KFintech Portal) ──
+  Future<Map<String, dynamic>?> initiateEkyc({
+    required String pan,
+    String? email,
+    String? mobile,
+    String? amcCode,
+  }) async {
+    rxIsEkycLoading.value = true;
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.post('/mutual-funds/kyc/initiate-ekyc', data: {
+        'pan': pan.trim().toUpperCase(),
+        if (email != null && email.isNotEmpty) 'invEmail': email.trim().toLowerCase(),
+        if (mobile != null && mobile.isNotEmpty) 'mobileNo': mobile.trim(),
+        if (amcCode != null && amcCode.isNotEmpty) 'amcCode': amcCode.trim(),
+      });
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final d = res.data['data'] as Map<String, dynamic>? ?? res.data as Map<String, dynamic>;
+        final link = d['link']?.toString() ?? '';
+        rxEkycLink.value = link;
+        return d;
+      }
+      return {
+        'success': false,
+        'message': extractErrorMessage(res.data, fallback: 'Failed to initiate eKYC registration.'),
+      };
+    } catch (e) {
+      if (e is DioException) {
+        dynamic data = e.response?.data;
+        if (data is String) {
+          try { data = jsonDecode(data); } catch (_) {}
+        }
+        if (data is Map<String, dynamic>) return data;
+      }
+      return {
+        'success': false,
+        'message': extractErrorMessage(e, fallback: 'Unable to connect to NSE eKYC gateway.'),
+      };
+    } finally {
+      rxIsEkycLoading.value = false;
+    }
+  }
+
+  // ── Check Official NSE MFSS / KRA KYC Status ──
+  Future<Map<String, dynamic>?> checkEkycStatus({required String pan}) async {
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.get('/mutual-funds/kyc/status', queryParameters: {
+        'pan': pan.trim().toUpperCase(),
+      });
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final d = res.data['data'] as Map<String, dynamic>? ?? res.data as Map<String, dynamic>;
+        if (d['isVerified'] == true) {
+          rxRequiresEkyc.value = false;
+        }
+        return d;
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 

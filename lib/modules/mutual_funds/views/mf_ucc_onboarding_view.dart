@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../controllers/mutual_funds_controller.dart';
 import 'widgets/mf_groww_widgets.dart';
 import 'widgets/mf_bank_verification_card.dart';
+import 'mf_ekyc_webview.dart';
 
 /// Modern Groww-style Paperless Investor KYC (UCC) Onboarding
 /// 
@@ -230,6 +231,56 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
         _panErrorText = 'Unable to verify PAN with exchange. Please try again.';
         _isVerifyingPan = false;
       });
+    }
+  }
+
+  Future<void> _startEkycFlow() async {
+    final pan = _panController.text.trim().toUpperCase();
+    if (pan.length != 10) {
+      Get.snackbar('Valid PAN Required', 'Please enter a valid 10-character PAN to initiate eKYC.',
+          backgroundColor: Colors.amber.shade800, colorText: Colors.black);
+      return;
+    }
+
+    Get.dialog(
+      const Center(child: CircularProgressIndicator(color: GrowwColors.mintTeal)),
+      barrierDismissible: false,
+    );
+
+    try {
+      final res = await controller.initiateEkyc(pan: pan);
+      if (Get.isDialogOpen ?? false) Get.back();
+
+      if (res != null && res['link'] != null && res['link'].toString().isNotEmpty) {
+        final link = res['link'].toString();
+        final verified = await Get.to<bool>(() => MfEkycWebView(ekycUrl: link, pan: pan));
+        if (verified == true) {
+          setState(() {
+            _isFreshInvestor = false;
+            _isPanVerified = true;
+          });
+          controller.rxRequiresEkyc.value = false;
+          // Re-verify PAN to refresh legal name and KRA status
+          _triggerPanVerification(pan);
+        }
+      } else {
+        Get.snackbar(
+          'eKYC Notice',
+          res?['message']?.toString() ?? 'Unable to generate eKYC link from exchange.',
+          backgroundColor: Colors.amber.shade900,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4),
+        );
+      }
+    } catch (e) {
+      if (Get.isDialogOpen ?? false) Get.back();
+      Get.snackbar(
+        'eKYC Service Unavailable',
+        'Could not connect to eKYC service. You can still proceed with standard account setup.',
+        backgroundColor: Colors.blueGrey,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 4),
+      );
     }
   }
 
@@ -822,6 +873,57 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
                 style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12, height: 1.3),
               ),
             ],
+          ],
+          if (_isFreshInvestor && !hasActiveUcc) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF161E2D),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.lightBlueAccent.withOpacity(0.4), width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.verified_user_outlined, color: Colors.lightBlueAccent, size: 18),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          "Paperless eKYC via NSE & CAMS (Recommended)",
+                          style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    "You can complete paperless Aadhaar OTP & Digilocker eKYC on official CAMS gateway for faster approval, or continue with standard account details.",
+                    style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 38,
+                    child: ElevatedButton.icon(
+                      onPressed: _startEkycFlow,
+                      icon: const Icon(Icons.open_in_new, size: 14, color: Colors.black),
+                      label: const Text(
+                        "Complete Paperless eKYC Now",
+                        style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.lightBlueAccent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
           if (!hasActiveUcc) ...[
             const SizedBox(height: 14),
