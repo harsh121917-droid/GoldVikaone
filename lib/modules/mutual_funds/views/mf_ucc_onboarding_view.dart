@@ -242,14 +242,8 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
       return;
     }
 
-    Get.dialog(
-      const Center(child: CircularProgressIndicator(color: GrowwColors.mintTeal)),
-      barrierDismissible: false,
-    );
-
     try {
       final res = await controller.initiateEkyc(pan: pan);
-      if (Get.isDialogOpen ?? false) Get.back();
 
       if (res != null && res['link'] != null && res['link'].toString().isNotEmpty) {
         final link = res['link'].toString();
@@ -273,7 +267,6 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
         );
       }
     } catch (e) {
-      if (Get.isDialogOpen ?? false) Get.back();
       Get.snackbar(
         'eKYC Service Unavailable',
         'Could not connect to eKYC service. You can still proceed with standard account setup.',
@@ -442,8 +435,22 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
           authUrl.trim() != 'https://www.nseinvest.com/mf' &&
           authUrl.trim() != 'https://www.nseinvest.com/mf/';
 
-      if (!hasRealLink) {
-        // First-time user (like Saloni) where NSE does not provide an instant online web link
+      final activationMode = res['activationMode']?.toString() ?? '';
+      final isAlreadyActive = activationMode == 'ALREADY_ACTIVE' ||
+          (res['message']?.toString().toLowerCase().contains('already active') ?? false) ||
+          (res['message']?.toString().toLowerCase().contains('account synced and ready') ?? false);
+
+      if (isAlreadyActive) {
+        Get.snackbar(
+          'Account Ready & Active ✓',
+          res['instructions']?.toString() ?? 'Your NSE investor account is active and verified. You can start investing immediately.',
+          backgroundColor: GrowwColors.mintTeal,
+          colorText: Colors.black,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 4),
+        );
+      } else if (!hasRealLink) {
+        // First-time user (where NSE dispatches authentication via SMS/Email OTP)
         // Prompt clearly to check mobile SMS & email!
         await _showFirstTimeSmsDialog(context, clientCode);
       } else {
@@ -907,20 +914,66 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
                   SizedBox(
                     width: double.infinity,
                     height: 38,
-                    child: ElevatedButton.icon(
-                      onPressed: _startEkycFlow,
-                      icon: const Icon(Icons.open_in_new, size: 14, color: Colors.black),
-                      label: const Text(
-                        "Complete Paperless eKYC Now",
-                        style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.lightBlueAccent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        elevation: 0,
-                      ),
+                    child: Obx(() {
+                      final isEkycLoading = controller.rxIsEkycLoading.value;
+                      return ElevatedButton.icon(
+                        onPressed: isEkycLoading ? null : _startEkycFlow,
+                        icon: isEkycLoading
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                              )
+                            : const Icon(Icons.open_in_new, size: 14, color: Colors.black),
+                        label: Text(
+                          isEkycLoading ? "Connecting to NSE eKYC..." : "Complete Paperless eKYC Now",
+                          style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.lightBlueAccent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          elevation: 0,
+                        ),
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (!hasActiveUcc && _isPanVerified) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: GrowwColors.cardElevated,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: GrowwColors.mintTeal.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle_outline_rounded, color: GrowwColors.mintTeal, size: 16),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'KYC Verified on Central KRA (NDML/CVL)',
+                      style: TextStyle(color: GrowwColors.mintTeal, fontSize: 11.5, fontWeight: FontWeight.w600),
                     ),
                   ),
+                  Obx(() {
+                    final isEkycLoading = controller.rxIsEkycLoading.value;
+                    return TextButton(
+                      onPressed: isEkycLoading ? null : _startEkycFlow,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        isEkycLoading ? 'Connecting...' : 'Test eKYC Link >',
+                        style: const TextStyle(color: Colors.lightBlueAccent, fontSize: 11),
+                      ),
+                    );
+                  }),
                 ],
               ),
             ),

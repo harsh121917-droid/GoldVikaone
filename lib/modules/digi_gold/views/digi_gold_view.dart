@@ -99,7 +99,16 @@ class _DigiGoldViewState extends State<DigiGoldView>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _refreshAll();
+    if (state == AppLifecycleState.resumed) {
+      if (!mounted) return;
+      // Guard: Only refresh if DigiGold is the active top-level route and the active tab
+      final isTopRoute = ModalRoute.of(context)?.isCurrent ?? false;
+      final isDigiGoldTab = !Get.isRegistered<MainShellController>() ||
+          Get.find<MainShellController>().tabIndex.value == 0;
+      if (isTopRoute && isDigiGoldTab) {
+        _refreshAll();
+      }
+    }
   }
 
   void _refreshAll() async {

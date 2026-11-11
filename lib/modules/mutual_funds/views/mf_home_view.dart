@@ -2929,6 +2929,18 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
         ? item.availableUnits
         : item.totalUnits;
     final double maxRedeemableAmount = availableUnits * item.currentNav;
+    final double minRedemptionAmt = (item.minRedemptionAmount != null && item.minRedemptionAmount > 0)
+        ? (item.minRedemptionAmount as num).toDouble()
+        : 500.0;
+    final double minRedemptionUnits = item.currentNav > 0 ? (minRedemptionAmt / item.currentNav) : 0.0;
+
+    if (maxRedeemableAmount < minRedemptionAmt && availableUnits > 0) {
+      allUnits = true;
+      enteredUnits = availableUnits;
+      unitsCtrl.text = availableUnits.toStringAsFixed(3);
+      enteredAmount = maxRedeemableAmount;
+      amountCtrl.text = maxRedeemableAmount.toStringAsFixed(2);
+    }
 
     showModalBottomSheet(
       context: context,
@@ -2949,9 +2961,14 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
             final String rawAcc = ucc?.accountNo ?? '';
             final String maskedAcc = rawAcc.length > 4 ? '•••• ${rawAcc.substring(rawAcc.length - 4)}' : rawAcc;
 
+            final bool isEntireHolding = allUnits ||
+                (redeemMode == 'UNITS' && (availableUnits - enteredUnits).abs() < 0.0005) ||
+                (redeemMode == 'AMOUNT' && (maxRedeemableAmount - enteredAmount).abs() < 1.0);
+            final bool isUnderMinAmount = !isEntireHolding && (estPayout > 0 && estPayout < minRedemptionAmt);
+
             final String currentFolio = folioCtrl.text.trim();
             final bool hasFolio = currentFolio.isNotEmpty;
-            final bool isValidInput = hasFolio && (redeemMode == 'AMOUNT'
+            final bool isValidInput = hasFolio && !isUnderMinAmount && (redeemMode == 'AMOUNT'
                 ? (enteredAmount > 0 && enteredAmount <= maxRedeemableAmount)
                 : (enteredUnits > 0 && enteredUnits <= availableUnits));
 
@@ -3177,6 +3194,22 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                           }, isAccent: true),
                         ],
                       ),
+                      if (isUnderMinAmount) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B), size: 14),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Minimum redemption is ₹${minRedemptionAmt.toStringAsFixed(0)} (approx. ${minRedemptionUnits.toStringAsFixed(3)} units). Tap "ALL" to redeem your entire remaining balance.',
+                                style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ] else ...[
                       TextField(
                         controller: amountCtrl,
@@ -3291,9 +3324,9 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                                 final result = await controller.redeemHolding(
                                   schemeCode: item.schemeCode,
                                   redeemMode: redeemMode,
-                                  units: redeemMode == 'UNITS' ? enteredUnits : null,
-                                  amount: redeemMode == 'AMOUNT' ? enteredAmount : null,
-                                  allUnits: allUnits,
+                                  units: (redeemMode == 'UNITS' && !isEntireHolding) ? enteredUnits : null,
+                                  amount: (redeemMode == 'AMOUNT' && !isEntireHolding) ? enteredAmount : null,
+                                  allUnits: isEntireHolding,
                                   folioNo: currentFolio,
                                 );
 
@@ -3309,11 +3342,27 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                                   snackPosition: SnackPosition.BOTTOM,
                                   duration: const Duration(seconds: 5),
                                 );
+
+                                final authUrl = (result['authLink'] ??
+                                        result['data']?['authLink'] ??
+                                        result['data']?['redemptionAuthLink'] ??
+                                        result['data']?['order']?['paymentLink'])
+                                    ?.toString();
+                                if (authUrl != null && authUrl.startsWith('http')) {
+                                  await controller.openNsePaymentGateway(
+                                    authUrl,
+                                    title: 'NSE Redemption Authorization',
+                                    subtitle: 'NSE MFSS • 2FA Verification',
+                                    message: 'Official NSE authorization opened. Complete OTP / 2FA verification to confirm redemption.',
+                                  );
+                                }
                               },
                         child: isSubmitting
                             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
                             : Text(
-                                'Confirm Redemption (${redeemMode == "AMOUNT" ? "₹" + enteredAmount.toStringAsFixed(0) : enteredUnits.toStringAsFixed(3) + " Units"})',
+                                isUnderMinAmount
+                                    ? 'Min. Redemption is ₹${minRedemptionAmt.toStringAsFixed(0)} (or ALL)'
+                                    : 'Confirm Redemption (${redeemMode == "AMOUNT" ? "₹" + enteredAmount.toStringAsFixed(0) : (isEntireHolding ? "All " : "") + enteredUnits.toStringAsFixed(3) + " Units"})',
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                               ),
                       ),

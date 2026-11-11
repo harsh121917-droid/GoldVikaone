@@ -2203,24 +2203,32 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
             ],
           ),
 
-          // Payment Action Button if pending
-          if (!order.isPaymentDone && order.paymentLink != null && order.paymentLink!.isNotEmpty) ...[
+          // Payment / Redemption Authorization Action Button if pending
+          if ((order.paymentLink != null && order.paymentLink!.isNotEmpty) &&
+              (!order.isPaymentDone || (order.transactionType == 'R' && (order.orderStatus == 'SUBMITTED' || order.orderStatus == 'PENDING')))) ...[
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
               height: 32,
               child: ElevatedButton.icon(
                 onPressed: () {
+                  final isRedemption = order.transactionType == 'R';
                   controller.openNsePaymentGateway(
                     order.paymentLink!,
-                    title: 'NSE Gateway Payment',
-                    message: 'Official NSE portal opened for ${order.schemeName}. Complete payment to confirm allotment.',
+                    title: isRedemption ? 'NSE Redemption Authorization' : 'NSE Gateway Payment',
+                    subtitle: isRedemption ? 'NSE MFSS • 2FA Verification' : null,
+                    message: isRedemption
+                        ? 'Official NSE 2FA portal opened for ${order.schemeName}. Complete verification.'
+                        : 'Official NSE portal opened for ${order.schemeName}. Complete payment to confirm allotment.',
                   );
                 },
-                icon: const Icon(Icons.payment_rounded, size: 14),
-                label: const Text('Complete Payment via NSE Gateway', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
+                icon: Icon(order.transactionType == 'R' ? Icons.verified_user_rounded : Icons.payment_rounded, size: 14),
+                label: Text(
+                  order.transactionType == 'R' ? 'Authorize Redemption via NSE (2FA)' : 'Complete Payment via NSE Gateway',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5),
+                ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00D09C),
+                  backgroundColor: order.transactionType == 'R' ? const Color(0xFFF59E0B) : const Color(0xFF00D09C),
                   foregroundColor: const Color(0xFF0F141E),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   elevation: 0,
@@ -2542,6 +2550,20 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
         ? item.availableUnits
         : item.totalUnits;
     final double maxRedeemableAmount = availableUnits * item.currentNav;
+    final double minRedemptionAmt = (item.minRedemptionAmount != null && item.minRedemptionAmount > 0)
+        ? (item.minRedemptionAmount as num).toDouble()
+        : 500.0;
+    final double minRedemptionUnits = item.currentNav > 0 ? (minRedemptionAmt / item.currentNav) : 0.0;
+
+    // If remaining balance is less than minimum redemption (e.g. 0.025 units = ₹53.19 < ₹500),
+    // auto-default to All Units so user can exit completely without exchange rejection
+    if (maxRedeemableAmount < minRedemptionAmt && availableUnits > 0) {
+      allUnits = true;
+      enteredUnits = availableUnits;
+      unitsCtrl.text = availableUnits.toStringAsFixed(3);
+      enteredAmount = maxRedeemableAmount;
+      amountCtrl.text = maxRedeemableAmount.toStringAsFixed(2);
+    }
 
     showModalBottomSheet(
       context: context,
@@ -2562,9 +2584,14 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
             final String rawAcc = ucc?.accountNo ?? '';
             final String maskedAcc = rawAcc.length > 4 ? '•••• ${rawAcc.substring(rawAcc.length - 4)}' : rawAcc;
 
+            final bool isEntireHolding = allUnits ||
+                (redeemMode == 'UNITS' && (availableUnits - enteredUnits).abs() < 0.0005) ||
+                (redeemMode == 'AMOUNT' && (maxRedeemableAmount - enteredAmount).abs() < 1.0);
+            final bool isUnderMinAmount = !isEntireHolding && (estPayout > 0 && estPayout < minRedemptionAmt);
+
             final String currentFolio = folioCtrl.text.trim();
             final bool hasFolio = currentFolio.isNotEmpty;
-            final bool isValidInput = hasFolio && (redeemMode == 'AMOUNT'
+            final bool isValidInput = hasFolio && !isUnderMinAmount && (redeemMode == 'AMOUNT'
                 ? (enteredAmount > 0 && enteredAmount <= maxRedeemableAmount)
                 : (enteredUnits > 0 && enteredUnits <= availableUnits));
 
@@ -2647,11 +2674,11 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Text('Current NAV', style: TextStyle(color: textSecondary, fontSize: 11)),
+                                  Text('Min. Redemption', style: TextStyle(color: textSecondary, fontSize: 11)),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '₹${item.currentNav.toStringAsFixed(2)}',
-                                    style: const TextStyle(color: Color(0xFF00D09C), fontWeight: FontWeight.bold, fontSize: 14),
+                                    '₹${minRedemptionAmt.toStringAsFixed(0)}',
+                                    style: const TextStyle(color: Color(0xFFF59E0B), fontWeight: FontWeight.bold, fontSize: 14),
                                   ),
                                 ],
                               ),
@@ -2809,8 +2836,8 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                         ),
                         onChanged: (val) {
                           setModalState(() {
-                            allUnits = false;
                             enteredUnits = double.tryParse(val) ?? 0.0;
+                            allUnits = (enteredUnits >= availableUnits - 0.0005);
                           });
                         },
                       ),
@@ -2871,8 +2898,8 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                         ),
                         onChanged: (val) {
                           setModalState(() {
-                            allUnits = false;
                             enteredAmount = double.tryParse(val) ?? 0.0;
+                            allUnits = (enteredAmount >= maxRedeemableAmount - 1.0);
                           });
                         },
                       ),
@@ -2915,6 +2942,30 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                     ],
                     const SizedBox(height: 14),
 
+                    if (isUnderMinAmount) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.35)),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B), size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Order value (₹${estPayout.toStringAsFixed(2)}) is below the minimum redemption of ₹${minRedemptionAmt.toStringAsFixed(0)} (approx. ${minRedemptionUnits.toStringAsFixed(3)} units). Tap "ALL" to redeem your entire remaining balance.',
+                                style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     // Estimated Calculation Banner
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -3009,9 +3060,9 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                                 final result = await controller.redeemHolding(
                                   schemeCode: item.schemeCode,
                                   redeemMode: redeemMode,
-                                  units: redeemMode == 'UNITS' ? enteredUnits : null,
-                                  amount: redeemMode == 'AMOUNT' ? enteredAmount : null,
-                                  allUnits: allUnits,
+                                  units: (redeemMode == 'UNITS' && !isEntireHolding) ? enteredUnits : null,
+                                  amount: (redeemMode == 'AMOUNT' && !isEntireHolding) ? enteredAmount : null,
+                                  allUnits: isEntireHolding,
                                   folioNo: currentFolio,
                                 );
 
@@ -3027,11 +3078,27 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                                   snackPosition: SnackPosition.BOTTOM,
                                   duration: const Duration(seconds: 5),
                                 );
+
+                                final authUrl = (result['authLink'] ??
+                                        result['data']?['authLink'] ??
+                                        result['data']?['redemptionAuthLink'] ??
+                                        result['data']?['order']?['paymentLink'])
+                                    ?.toString();
+                                if (authUrl != null && authUrl.startsWith('http')) {
+                                  await controller.openNsePaymentGateway(
+                                    authUrl,
+                                    title: 'NSE Redemption Authorization',
+                                    subtitle: 'NSE MFSS • 2FA Verification',
+                                    message: 'Official NSE authorization opened. Complete OTP / 2FA verification to confirm redemption.',
+                                  );
+                                }
                               },
                         child: isSubmitting
                             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
                             : Text(
-                                'Confirm Redemption (${redeemMode == "AMOUNT" ? "₹" + enteredAmount.toStringAsFixed(0) : enteredUnits.toStringAsFixed(3) + " Units"})',
+                                isUnderMinAmount
+                                    ? 'Min. Redemption is ₹${minRedemptionAmt.toStringAsFixed(0)} (or ALL)'
+                                    : 'Confirm Redemption (${redeemMode == "AMOUNT" ? "₹" + enteredAmount.toStringAsFixed(0) : (isEntireHolding ? "All " : "") + enteredUnits.toStringAsFixed(3) + " Units"})',
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                               ),
                       ),

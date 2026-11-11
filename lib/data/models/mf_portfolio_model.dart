@@ -57,6 +57,7 @@ class MfHolding {
   final double? pendingUnits;
   final double? day1ChangeAmount;
   final double? day1ChangePct;
+  final double minRedemptionAmount;
 
   MfHolding({
     required this.schemeCode,
@@ -79,6 +80,7 @@ class MfHolding {
     this.pendingUnits,
     this.day1ChangeAmount,
     this.day1ChangePct,
+    this.minRedemptionAmount = 500.0,
   });
 
   factory MfHolding.fromJson(Map<String, dynamic> json) {

@@ -10,11 +10,13 @@ import '../controllers/mutual_funds_controller.dart';
 class MfPaymentWebView extends StatefulWidget {
   final String paymentUrl;
   final String title;
+  final String? subtitle;
 
   const MfPaymentWebView({
     Key? key,
     required this.paymentUrl,
     this.title = 'NSE Payment Gateway',
+    this.subtitle,
   }) : super(key: key);
 
   @override
@@ -45,6 +47,9 @@ class _MfPaymentWebViewState extends State<MfPaymentWebView> {
   void _initWebView() {
     final ctrl = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setUserAgent(
+        'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
+      )
       ..setBackgroundColor(darkBg)
       ..setNavigationDelegate(
         NavigationDelegate(
@@ -212,9 +217,9 @@ class _MfPaymentWebViewState extends State<MfPaymentWebView> {
                 ],
               ),
               const SizedBox(height: 2),
-              const Text(
-                'NSE Clearing Limited • Official Gateway',
-                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+              Text(
+                widget.subtitle ?? 'NSE Clearing Limited • Official Gateway',
+                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
               ),
             ],
           ),

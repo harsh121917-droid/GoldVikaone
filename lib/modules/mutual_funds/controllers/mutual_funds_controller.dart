@@ -1608,15 +1608,21 @@ class MutualFundsController extends GetxController {
     }
   }
 
-  Future<void> openNsePaymentGateway(String paymentUrl, {required String title, required String message}) async {
+  Future<void> openNsePaymentGateway(
+    String paymentUrl, {
+    required String title,
+    String? subtitle,
+    required String message,
+  }) async {
     final cleanUrl = paymentUrl.trim();
     if (cleanUrl.isEmpty) return;
 
-    // Open dedicated In-App NSE Payment WebView directly
+    // Open dedicated In-App NSE Payment / Redemption Authorization WebView directly
     try {
       await Get.to(() => MfPaymentWebView(
         paymentUrl: cleanUrl,
         title: title,
+        subtitle: subtitle,
       ));
     } catch (e) {
       debugPrint('[openNsePaymentGateway] In-App WebView failed: $e');
@@ -2432,6 +2438,7 @@ class MutualFundsController extends GetxController {
     bool allUnits = false,
     String? folioNo,
     String? idempotencyKey,
+    bool autoOpenWebView = false,
   }) async {
     isSubmittingOrder.value = true;
     try {
@@ -2461,10 +2468,25 @@ class MutualFundsController extends GetxController {
 
       if (res.statusCode == 200 && res.data['success'] == true) {
         await fetchPortfolio();
+        final authLink = (res.data['data']?['authLink'] ??
+                res.data['data']?['redemptionAuthLink'] ??
+                res.data['data']?['order']?['paymentLink'])
+            ?.toString();
+
+        if (autoOpenWebView && authLink != null && authLink.startsWith('http')) {
+          await openNsePaymentGateway(
+            authLink,
+            title: 'NSE Redemption Authorization',
+            subtitle: 'NSE MFSS • 2FA Verification',
+            message: 'Official NSE authorization opened. Complete verification to process redemption.',
+          );
+        }
+
         return {
           'success': true,
           'message': res.data['message'] ?? 'Redemption request placed successfully. Payout will be credited to your bank account.',
           'data': res.data['data'],
+          'authLink': authLink,
         };
       } else {
         final errMsg = extractErrorMessage(res.data, fallback: 'Redemption failed. Please try again.');
@@ -2517,11 +2539,14 @@ class MutualFundsController extends GetxController {
     required String schemeCode,
     required double units,
     bool allUnits = false,
-  }) => redeemHolding(
+    bool autoOpenWebView = true,
+  }) =>
+      redeemHolding(
         schemeCode: schemeCode,
         redeemMode: 'UNITS',
         units: units,
         allUnits: allUnits,
+        autoOpenWebView: autoOpenWebView,
       );
 
   // Helper to fetch scheme model for Add Investment
