@@ -2495,6 +2495,8 @@ class MutualFundsController extends GetxController {
           'message': errMsg,
           'code': res.data?['code'],
           'requiresFolio': res.data?['code'] == 'FOLIO_REQUIRED' || res.data?['data']?['requiresFolio'] == true,
+          'authLink': res.data?['data']?['authLink'] ?? res.data?['data']?['redemptionAuthLink'] ?? res.data?['data']?['paymentLink'],
+          'orderId': res.data?['data']?['orderId'] ?? res.data?['data']?['pendingOrder']?['orderId'],
           'data': res.data?['data'],
         };
       }
@@ -2507,6 +2509,9 @@ class MutualFundsController extends GetxController {
         'message': errMsg,
         'code': responseData is Map ? responseData['code'] : null,
         'requiresFolio': responseData is Map && (responseData['code'] == 'FOLIO_REQUIRED' || responseData['data']?['requiresFolio'] == true),
+        'authLink': responseData is Map ? (responseData['data']?['authLink'] ?? responseData['data']?['redemptionAuthLink'] ?? responseData['data']?['paymentLink']) : null,
+        'orderId': responseData is Map ? (responseData['data']?['orderId'] ?? responseData['data']?['pendingOrder']?['orderId']) : null,
+        'data': responseData is Map ? responseData['data'] : null,
       };
     } finally {
       isSubmittingOrder.value = false;
@@ -2548,6 +2553,34 @@ class MutualFundsController extends GetxController {
         allUnits: allUnits,
         autoOpenWebView: autoOpenWebView,
       );
+
+  // ── Cancel Pending Mutual Fund Order (e.g. Unauthenticated Redemption / Purchase) ──
+  Future<Map<String, dynamic>> cancelMfOrder(String orderId) async {
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.post('/mutual-funds/orders/$orderId/cancel');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        await fetchPortfolio();
+        await fetchMyOrders();
+        Get.snackbar(
+          'Order Cancelled',
+          res.data['message'] ?? 'Redemption order cancelled. Units are now available again.',
+          backgroundColor: const Color(0xFF00D09C),
+          colorText: Colors.black,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 4),
+        );
+        return {'success': true, 'data': res.data};
+      }
+      final errMsg = extractErrorMessage(res.data, fallback: 'Failed to cancel order.');
+      Get.snackbar('Cancel Failed', errMsg, backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
+      return {'success': false, 'message': errMsg};
+    } catch (e) {
+      final errMsg = extractErrorMessage(e, fallback: 'Failed to cancel order.');
+      Get.snackbar('Cancel Failed', errMsg, backgroundColor: Colors.redAccent, colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
+      return {'success': false, 'message': errMsg};
+    }
+  }
 
   // Helper to fetch scheme model for Add Investment
   Future<MfSchemeModel?> getSchemeByCode(String code) async {

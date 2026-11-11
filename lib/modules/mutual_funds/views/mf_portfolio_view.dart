@@ -2207,34 +2207,78 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
           if ((order.paymentLink != null && order.paymentLink!.isNotEmpty) &&
               (!order.isPaymentDone || (order.transactionType == 'R' && (order.orderStatus == 'SUBMITTED' || order.orderStatus == 'PENDING')))) ...[
             const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              height: 32,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  final isRedemption = order.transactionType == 'R';
-                  controller.openNsePaymentGateway(
-                    order.paymentLink!,
-                    title: isRedemption ? 'NSE Redemption Authorization' : 'NSE Gateway Payment',
-                    subtitle: isRedemption ? 'NSE MFSS • 2FA Verification' : null,
-                    message: isRedemption
-                        ? 'Official NSE 2FA portal opened for ${order.schemeName}. Complete verification.'
-                        : 'Official NSE portal opened for ${order.schemeName}. Complete payment to confirm allotment.',
-                  );
-                },
-                icon: Icon(order.transactionType == 'R' ? Icons.verified_user_rounded : Icons.payment_rounded, size: 14),
-                label: Text(
-                  order.transactionType == 'R' ? 'Authorize Redemption via NSE (2FA)' : 'Complete Payment via NSE Gateway',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 32,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final isRedemption = order.transactionType == 'R';
+                        controller.openNsePaymentGateway(
+                          order.paymentLink!,
+                          title: isRedemption ? 'NSE Redemption Authorization' : 'NSE Gateway Payment',
+                          subtitle: isRedemption ? 'NSE MFSS • 2FA Verification' : null,
+                          message: isRedemption
+                              ? 'Official NSE 2FA portal opened for ${order.schemeName}. Complete verification.'
+                              : 'Official NSE portal opened for ${order.schemeName}. Complete payment to confirm allotment.',
+                        );
+                      },
+                      icon: Icon(order.transactionType == 'R' ? Icons.verified_user_rounded : Icons.payment_rounded, size: 14),
+                      label: Text(
+                        order.transactionType == 'R' ? 'Authorize 2FA' : 'Complete Payment via NSE Gateway',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: order.transactionType == 'R' ? const Color(0xFFF59E0B) : const Color(0xFF00D09C),
+                        foregroundColor: const Color(0xFF0F141E),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                      ),
+                    ),
+                  ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: order.transactionType == 'R' ? const Color(0xFFF59E0B) : const Color(0xFF00D09C),
-                  foregroundColor: const Color(0xFF0F141E),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                ),
-              ),
+                if (order.transactionType == 'R' && (order.orderStatus == 'SUBMITTED' || order.orderStatus == 'PENDING')) ...[
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 32,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final confirm = await Get.dialog<bool>(
+                          AlertDialog(
+                            backgroundColor: const Color(0xFF161E2D),
+                            title: const Text('Cancel Redemption Order?', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                            content: Text(
+                              'Are you sure you want to cancel order #${order.orderId}? Your units will be released back to your available balance immediately.',
+                              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                            ),
+                            actions: [
+                              TextButton(onPressed: () => Get.back(result: false), child: const Text('No, Keep', style: TextStyle(color: Colors.white60))),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                                onPressed: () => Get.back(result: true),
+                                child: const Text('Yes, Cancel', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          await controller.cancelMfOrder(order.orderId);
+                        }
+                      },
+                      icon: const Icon(Icons.close_rounded, size: 14, color: Colors.redAccent),
+                      label: const Text('Cancel Order', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 11.5)),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.5)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ],
@@ -3070,27 +3114,66 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                                   Navigator.pop(modalCtx);
                                 }
 
-                                Get.snackbar(
-                                  result['success'] == true ? 'Redemption Request Placed' : 'Redemption Error',
-                                  result['message'] ?? '',
-                                  backgroundColor: result['success'] == true ? const Color(0xFF00D09C) : Colors.redAccent,
-                                  colorText: result['success'] == true ? Colors.black : Colors.white,
-                                  snackPosition: SnackPosition.BOTTOM,
-                                  duration: const Duration(seconds: 5),
-                                );
-
-                                final authUrl = (result['authLink'] ??
-                                        result['data']?['authLink'] ??
-                                        result['data']?['redemptionAuthLink'] ??
-                                        result['data']?['order']?['paymentLink'])
-                                    ?.toString();
-                                if (authUrl != null && authUrl.startsWith('http')) {
-                                  await controller.openNsePaymentGateway(
-                                    authUrl,
-                                    title: 'NSE Redemption Authorization',
-                                    subtitle: 'NSE MFSS • 2FA Verification',
-                                    message: 'Official NSE authorization opened. Complete OTP / 2FA verification to confirm redemption.',
+                                if (result['code'] == 'PENDING_REDEMPTION_EXISTS') {
+                                  final pendingOrderId = (result['orderId'] ?? result['data']?['orderId'] ?? result['data']?['pendingOrder']?['orderId'])?.toString();
+                                  final authUrl = (result['authLink'] ?? result['data']?['authLink'] ?? result['data']?['redemptionAuthLink'] ?? result['data']?['order']?['paymentLink'])?.toString();
+                                  Get.dialog(
+                                    AlertDialog(
+                                      backgroundColor: const Color(0xFF161E2D),
+                                      title: const Text('Pending Redemption Order Found', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                      content: Text(
+                                        'You already have order #${pendingOrderId ?? ""} awaiting 2FA authorization. Would you like to complete 2FA now or cancel that order to start fresh?',
+                                        style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                                      ),
+                                      actions: [
+                                        if (pendingOrderId != null)
+                                          TextButton(
+                                            onPressed: () async {
+                                              Get.back();
+                                              await controller.cancelMfOrder(pendingOrderId);
+                                            },
+                                            child: const Text('Cancel Order & Free Units', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                                          ),
+                                        if (authUrl != null && authUrl.startsWith('http'))
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF59E0B)),
+                                            onPressed: () {
+                                              Get.back();
+                                              controller.openNsePaymentGateway(
+                                                authUrl,
+                                                title: 'NSE Redemption Authorization',
+                                                subtitle: 'NSE MFSS • 2FA Verification',
+                                                message: 'Complete 2FA verification to confirm redemption.',
+                                              );
+                                            },
+                                            child: const Text('Complete 2FA Now', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                          ),
+                                      ],
+                                    ),
                                   );
+                                } else {
+                                  Get.snackbar(
+                                    result['success'] == true ? 'Redemption Request Placed' : 'Redemption Error',
+                                    result['message'] ?? '',
+                                    backgroundColor: result['success'] == true ? const Color(0xFF00D09C) : Colors.redAccent,
+                                    colorText: result['success'] == true ? Colors.black : Colors.white,
+                                    snackPosition: SnackPosition.BOTTOM,
+                                    duration: const Duration(seconds: 5),
+                                  );
+
+                                  final authUrl = (result['authLink'] ??
+                                          result['data']?['authLink'] ??
+                                          result['data']?['redemptionAuthLink'] ??
+                                          result['data']?['order']?['paymentLink'])
+                                      ?.toString();
+                                  if (authUrl != null && authUrl.startsWith('http')) {
+                                    await controller.openNsePaymentGateway(
+                                      authUrl,
+                                      title: 'NSE Redemption Authorization',
+                                      subtitle: 'NSE MFSS • 2FA Verification',
+                                      message: 'Official NSE authorization opened. Complete OTP / 2FA verification to confirm redemption.',
+                                    );
+                                  }
                                 }
                               },
                         child: isSubmitting
