@@ -101,11 +101,19 @@ class _DigiGoldViewState extends State<DigiGoldView>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       if (!mounted) return;
-      // Guard: Only refresh if DigiGold is the active top-level route and the active tab
-      final isTopRoute = ModalRoute.of(context)?.isCurrent ?? false;
-      final isDigiGoldTab = !Get.isRegistered<MainShellController>() ||
+      // Strict Guard: Only refresh if user is actively on the DigiGold home screen.
+      // Never refresh if user is in Mutual Funds, KYC, Portfolio, or any other sub-route.
+      final currentRoute = Get.currentRoute;
+      final isHomeRoute = currentRoute == AppRoutes.home ||
+          currentRoute == AppRoutes.digiGold ||
+          currentRoute == '/' ||
+          currentRoute.isEmpty;
+      if (!isHomeRoute) return;
+
+      final isDigiGoldTab = Get.isRegistered<MainShellController>() &&
           Get.find<MainShellController>().tabIndex.value == 0;
-      if (isTopRoute && isDigiGoldTab) {
+      final isModalRouteCurrent = ModalRoute.of(context)?.isCurrent ?? false;
+      if (isDigiGoldTab && isModalRouteCurrent) {
         _refreshAll();
       }
     }

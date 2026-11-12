@@ -243,7 +243,11 @@ class _MfUccOnboardingViewState extends State<MfUccOnboardingView> {
     }
 
     try {
-      final res = await controller.initiateEkyc(pan: pan);
+      final res = await controller.initiateEkyc(
+        pan: pan,
+        email: controller.uccPrefill['email']?.toString() ?? '',
+        mobile: controller.uccPrefill['mobile']?.toString() ?? '',
+      );
 
       if (res != null && res['link'] != null && res['link'].toString().isNotEmpty) {
         final link = res['link'].toString();
