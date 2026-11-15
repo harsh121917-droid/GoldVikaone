@@ -230,7 +230,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
       return (isSuccess || isInProcess) && isNotFailed;
     }).toList();
 
-    const int maxDashboardTxns = 5;
+    const int maxDashboardTxns = 3;
     final displayTxns = dashboardTxns.take(maxDashboardTxns).toList();
 
     if (controller.holdings.isEmpty) {
@@ -349,24 +349,22 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
     return ListView(
       padding: const EdgeInsets.only(top: 8, bottom: 32),
       children: [
-        // 1. Groww Hero Card
+        // 1. First: Portfolio Summary (Groww Hero Card)
         _buildGrowwHeroCard(summary, dark),
 
-        // 2. Recent Transactions Section (Success & In-Process, top 4-5 + View All button)
+        // 2. Then: My Mutual Funds (Sort & Filter Row + Holdings List)
+        _buildFilterSortRow(surface, textPrimary, textSecondary, dark),
+        ...sorted.map((item) => _buildGrowwHoldingItem(item, surface, textPrimary, textSecondary, dark)),
+
+        // 3. MFCentral External Holdings Card
+        _buildMfCentralImportCard(surface, textPrimary, textSecondary, dark),
+
+        // 4. In Last: Recent Transactions (Latest 3 + View All)
         if (dashboardTxns.isNotEmpty)
           _buildDashboardTransactionsSection(
               displayTxns, dashboardTxns.length, surface, textPrimary, textSecondary, dark),
 
-        // 3. Sort & Filter Row
-        _buildFilterSortRow(surface, textPrimary, textSecondary, dark),
-
-        // 4. Holdings List
-        ...sorted.map((item) => _buildGrowwHoldingItem(item, surface, textPrimary, textSecondary, dark)),
-
-        // 5. MFCentral External Holdings Card
-        _buildMfCentralImportCard(surface, textPrimary, textSecondary, dark),
-
-        // 6. SIP Promotion Banner
+        // 5. SIP Promotion Banner
         _buildSipPromotionBanner(surface, textPrimary, textSecondary, dark),
       ],
     );
@@ -1379,7 +1377,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.pop(sheetCtx);
-                          _openAddInvestmentForHolding(context, item, isSip: true);
+                          _openAddInvestmentForHolding(context, item, isSip: false);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF00D09C),

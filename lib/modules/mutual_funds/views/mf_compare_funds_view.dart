@@ -576,7 +576,7 @@ class _MfCompareFundsViewState extends State<MfCompareFundsView> {
                   ),
                   child: ElevatedButton(
                     onPressed: () {
-                      Get.to(() => MfSipInvestmentView(scheme: fund, isSip: true));
+                      Get.to(() => MfSipInvestmentView(scheme: fund, isSip: false));
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: mintGreen,

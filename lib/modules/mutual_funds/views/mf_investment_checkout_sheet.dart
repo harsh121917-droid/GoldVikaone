@@ -30,28 +30,15 @@ class MfInvestmentCheckoutSheet extends StatefulWidget {
 
 class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
   final MutualFundsController controller = Get.find<MutualFundsController>();
-  late bool _isSip;
   late final TextEditingController _amountController;
-
-  String _selectedFrequency = 'MONTHLY';
-  int _selectedDay = 10; // Default 10th of every month
-  bool _stepUp = false;
-  final double _stepUpAmount = 500;
   final String _paymentMode = 'NSE_GATEWAY';
-
-  final List<int> _allowedDates = const [1, 5, 10, 15, 20, 25];
 
   @override
   void initState() {
     super.initState();
-    _isSip = widget.initialIsSip;
-    final initialFreqs = widget.scheme.supportedFrequencies;
-    if (initialFreqs.isNotEmpty) {
-      _selectedFrequency = initialFreqs.contains('MONTHLY') ? 'MONTHLY' : initialFreqs.first;
-    }
-    final defaultAmount = _isSip ? widget.scheme.minSipAmount : widget.scheme.minPurchaseAmount;
+    final defaultAmount = widget.scheme.minPurchaseAmount ?? widget.scheme.minSipAmount ?? 500.0;
     _amountController = TextEditingController(
-      text: defaultAmount != null ? defaultAmount.toInt().toString() : (_isSip ? '100' : '500'),
+      text: defaultAmount.toInt().toString(),
     );
   }
 
@@ -59,13 +46,6 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
   void dispose() {
     _amountController.dispose();
     super.dispose();
-  }
-
-  String _getDaySuffix(int day) {
-    if (day == 1) return 'st';
-    if (day == 2) return 'nd';
-    if (day == 3) return 'rd';
-    return 'th';
   }
 
   @override
@@ -77,9 +57,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
     const textSecondary = Color(0xFF94A3B8);
     const mintTeal = Color(0xFF00D09C);
 
-    final double minAmount = _isSip
-        ? (widget.scheme.minSipAmount ?? 100)
-        : (widget.scheme.minPurchaseAmount ?? 500);
+    final double minAmount = widget.scheme.minPurchaseAmount ?? widget.scheme.minSipAmount ?? 500.0;
 
     return Container(
       padding: EdgeInsets.only(
@@ -186,70 +164,39 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
             ),
             const SizedBox(height: 18),
 
-            // ── Type Switcher (Monthly SIP vs One-Time) ──
+            // ── One-Time Investment Banner ──
             Container(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
               decoration: BoxDecoration(
-                color: cardBg,
+                color: const Color(0xFF10241E),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: border),
+                border: Border.all(color: mintTeal.withOpacity(0.35)),
               ),
               child: Row(
                 children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _isSip = true;
-                          _amountController.text = widget.scheme.minSipAmount != null
-                              ? widget.scheme.minSipAmount!.toInt().toString()
-                              : '100';
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: _isSip ? mintTeal : Colors.transparent,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          'Monthly SIP',
-                          style: TextStyle(
-                            color: _isSip ? const Color(0xFF0F141E) : Colors.white70,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: mintTeal.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    child: const Icon(Icons.bolt_rounded, color: mintTeal, size: 20),
                   ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _isSip = false;
-                          _amountController.text = widget.scheme.minPurchaseAmount != null
-                              ? widget.scheme.minPurchaseAmount!.toInt().toString()
-                              : '500';
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: !_isSip ? mintTeal : Colors.transparent,
-                          borderRadius: BorderRadius.circular(10),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'One-Time (Lumpsum) Investment',
+                          style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                         ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          'One-Time (Lumpsum)',
-                          style: TextStyle(
-                            color: !_isSip ? const Color(0xFF0F141E) : Colors.white70,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
-                          ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Instant UPI / NetBanking • Zero Mandate Required',
+                          style: TextStyle(color: mintTeal, fontSize: 11, fontWeight: FontWeight.w600),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
@@ -364,95 +311,6 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
               }).toList(),
             ),
             const SizedBox(height: 20),
-
-            // ── SIP Specific Options ──
-            if (_isSip) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Monthly Debit Date',
-                    style: TextStyle(color: textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
-                  ),
-                  Text(
-                    '$_selectedDay${_getDaySuffix(_selectedDay)} of every month',
-                    style: const TextStyle(color: mintTeal, fontSize: 12, fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: _allowedDates.map((day) {
-                  final isSel = _selectedDay == day;
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2.5),
-                      child: InkWell(
-                        onTap: () => setState(() => _selectedDay = day),
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSel ? mintTeal : const Color(0xFF1E2538),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isSel ? mintTeal : const Color(0xFF26324D),
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '$day${_getDaySuffix(day)}',
-                              style: TextStyle(
-                                color: isSel ? const Color(0xFF0F141E) : textPrimary,
-                                fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
-                                fontSize: 11.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
-
-              // Step-up option
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: cardBg,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: border),
-                ),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Annual Step-up SIP (Optional)',
-                            style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 13),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Increase SIP by ₹500 every year to beat inflation',
-                            style: TextStyle(color: textSecondary, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Switch(
-                      value: _stepUp,
-                      activeColor: mintTeal,
-                      onChanged: (val) => setState(() => _stepUp = val),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
 
             // ── Payment Mode (Strictly Official NSE Gateway) ──
             const Text(
@@ -743,48 +601,13 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                                 return;
                               }
 
-                              if (_isSip) {
-                                final now = DateTime.now();
-                                DateTime sipStartDate;
-                                if (_selectedFrequency == 'DAILY') {
-                                  var d = now.add(const Duration(days: 1));
-                                  if (d.weekday == DateTime.saturday) {
-                                    d = d.add(const Duration(days: 2));
-                                  } else if (d.weekday == DateTime.sunday) {
-                                    d = d.add(const Duration(days: 1));
-                                  }
-                                  sipStartDate = d;
-                                } else if (_selectedFrequency == 'WEEKLY') {
-                                  final targetWd = (_selectedDay >= 1 && _selectedDay <= 5) ? _selectedDay : DateTime.monday;
-                                  var d = now.add(const Duration(days: 7));
-                                  while (d.weekday != targetWd) {
-                                    d = d.add(const Duration(days: 1));
-                                  }
-                                  sipStartDate = d;
-                                } else {
-                                  final candidate = DateTime(now.year, now.month, _selectedDay);
-                                  sipStartDate = candidate.isAfter(now) ? candidate : DateTime(now.year, now.month + 1, _selectedDay);
-                                }
-                                final success = await controller.registerSipOrder(
-                                  schemeCode: widget.scheme.schemeCode,
-                                  schemeName: widget.scheme.schemeName,
-                                  installmentAmount: amount,
-                                  frequency: _selectedFrequency,
-                                  startDate: sipStartDate,
-                                  stepUpRequired: _stepUp,
-                                  stepUpAmount: _stepUp ? _stepUpAmount : 0,
-                                  paymentMode: _paymentMode,
-                                );
-                                if (success) Get.back();
-                              } else {
-                                final success = await controller.createPurchaseOrder(
-                                  schemeCode: widget.scheme.schemeCode,
-                                  schemeName: widget.scheme.schemeName,
-                                  orderAmount: amount,
-                                  paymentMode: _paymentMode,
-                                );
-                                if (success) Get.back();
-                              }
+                              final success = await controller.createPurchaseOrder(
+                                schemeCode: widget.scheme.schemeCode,
+                                schemeName: widget.scheme.schemeName,
+                                orderAmount: amount,
+                                paymentMode: _paymentMode,
+                              );
+                              if (success) Get.back();
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: mintTeal,
@@ -799,7 +622,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                               child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF0F141E)),
                             )
                           : Text(
-                              _isSip ? 'Start Monthly SIP of ₹${_amountController.text}' : 'Invest ₹${_amountController.text} Now',
+                              'Invest ₹${_amountController.text} Now',
                               style: const TextStyle(color: Color(0xFF0F141E), fontSize: 15.5, fontWeight: FontWeight.w800),
                             ),
                     ),

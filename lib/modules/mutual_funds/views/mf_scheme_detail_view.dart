@@ -1257,7 +1257,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                 child: SizedBox(
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: () => Get.to(() => MfSipInvestmentView(scheme: widget.scheme, isSip: true)),
+                    onPressed: () => Get.to(() => MfSipInvestmentView(scheme: widget.scheme, isSip: false)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: mintGreen,
                       elevation: 0,

@@ -518,7 +518,7 @@ class _MfNfoViewState extends State<MfNfoView> with SingleTickerProviderStateMix
               trailing: const Icon(Icons.chevron_right, color: Colors.white54),
               onTap: () {
                 Navigator.pop(ctx);
-                Get.to(() => MfSipInvestmentView(scheme: nfoScheme, isSip: true));
+                Get.to(() => MfSipInvestmentView(scheme: nfoScheme, isSip: false));
               },
             ),
             const SizedBox(height: 10),
