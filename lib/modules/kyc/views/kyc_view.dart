@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../controllers/kyc_controller.dart';
 import '../../../core/theme/app_colors.dart';
@@ -1446,7 +1447,87 @@ class _QuickPhotoKycCard extends StatelessWidget {
               height: 1.45,
             ),
           ),
-          const SizedBox(height: 18),
+
+          // ⚠️ Highlighted Requirement Notice (Name Match with Bank)
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 14),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2C1E03), Color(0xFF3D2A05)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: const Color(0xFFF59E0B),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Color(0xFFF59E0B),
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'CRITICAL NAME MATCH REQUIREMENT',
+                        style: TextStyle(
+                          color: Color(0xFFF59E0B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      RichText(
+                        text: const TextSpan(
+                          style: TextStyle(color: Colors.white, fontSize: 12, height: 1.45),
+                          children: [
+                            TextSpan(
+                              text: 'Name on your PAN Card & Aadhaar MUST MATCH the Bank Account Holder Name. ',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFFFFD56B),
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'As per banking regulations, gold sales and wallet withdrawals will strictly credit to your own verified account.',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
 
           // Upload 1: PAN Card Photo
           Obx(
@@ -1480,6 +1561,188 @@ class _QuickPhotoKycCard extends StatelessWidget {
               icon: Icons.flip_to_back_rounded,
               file: controller.aadhaarBackImage.value,
               onTap: () => controller.pickImage(controller.aadhaarBackImage),
+            ),
+          ),
+          const SizedBox(height: 22),
+
+          // ── Bank Account Details Section ──
+          Row(
+            children: const [
+              Icon(Icons.account_balance_rounded, color: Color(0xFFD4A017), size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Bank Account Details for Payouts',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Enter your bank account details. This account will be saved to your profile for gold payouts.',
+            style: TextStyle(color: Color(0xFF9EBAAA), fontSize: 11),
+          ),
+          const SizedBox(height: 14),
+
+          _PhotoKycBankField(
+            label: 'Account Holder Name *',
+            hint: 'Must match PAN / Aadhaar card',
+            controller: controller.bankNameCtrl,
+          ),
+          const SizedBox(height: 12),
+
+          _PhotoKycBankField(
+            label: 'Bank Account Number *',
+            hint: 'Enter your 9-18 digit account number',
+            controller: controller.bankAccountCtrl,
+            type: TextInputType.number,
+          ),
+          const SizedBox(height: 12),
+
+          _PhotoKycBankField(
+            label: 'Re-enter Account Number *',
+            hint: 'Confirm bank account number',
+            controller: controller.confirmBankAccountCtrl,
+            type: TextInputType.number,
+          ),
+          const SizedBox(height: 12),
+
+          Obx(() {
+            final isLookingUp = controller.isFetchingIfsc.value;
+            final branch = controller.ifscBranchName.value;
+            final err = controller.ifscError.value;
+            final bankName = controller.bankBankNameCtrl.text.trim();
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _PhotoKycBankField(
+                  label: 'IFSC Code *',
+                  hint: 'e.g. SBIN0001234',
+                  controller: controller.bankIfscCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  maxLength: 11,
+                  suffix: isLookingUp
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFD4A017)),
+                          ),
+                        )
+                      : (bankName.isNotEmpty && err.isEmpty
+                          ? const Icon(Icons.check_circle_rounded, color: Color(0xFF2ECC71), size: 20)
+                          : null),
+                  onChanged: (val) {
+                    final upper = val.toUpperCase();
+                    if (controller.bankIfscCtrl.text != upper) {
+                      controller.bankIfscCtrl.value = controller.bankIfscCtrl.value.copyWith(
+                        text: upper,
+                        selection: TextSelection.collapsed(offset: upper.length),
+                      );
+                    }
+                    if (upper.length == 11) {
+                      controller.lookupIfsc(upper);
+                    }
+                  },
+                ),
+                if (err.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, left: 4),
+                    child: Text(
+                      err,
+                      style: const TextStyle(color: Color(0xFFE53E3E), fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ] else if (bankName.isNotEmpty) ...[
+                  Container(
+                    margin: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2ECC71).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF2ECC71).withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.account_balance, color: Color(0xFF2ECC71), size: 14),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '$bankName ${branch.isNotEmpty ? "• $branch" : ""}',
+                            style: const TextStyle(color: Color(0xFF2ECC71), fontSize: 11.5, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            );
+          }),
+          const SizedBox(height: 12),
+
+          _PhotoKycBankField(
+            label: 'Bank Name *',
+            hint: 'e.g. State Bank of India, HDFC Bank',
+            controller: controller.bankBankNameCtrl,
+          ),
+          const SizedBox(height: 14),
+
+          // Account Type
+          const Text(
+            'Account Type',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Obx(
+            () => Row(
+              children: ['savings', 'current'].map((t) {
+                final active = controller.bankAccountType.value == t;
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        controller.bankAccountType.value = t;
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          gradient: active
+                              ? const LinearGradient(
+                                  colors: [Color(0xFFD4A017), Color(0xFFF59E0B)],
+                                )
+                              : null,
+                          color: active ? null : Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: active ? Colors.transparent : Colors.white.withValues(alpha: 0.15),
+                          ),
+                        ),
+                        child: Text(
+                          t == 'savings' ? 'Savings A/c' : 'Current A/c',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: active ? const Color(0xFF231600) : Colors.white70,
+                            fontSize: 12,
+                            fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
           const SizedBox(height: 18),
@@ -1564,12 +1827,12 @@ class _QuickPhotoKycCard extends StatelessWidget {
                           )
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.cloud_upload_rounded, size: 20),
-                              const SizedBox(width: 8),
+                            children: const [
+                              Icon(Icons.cloud_upload_rounded, size: 20),
+                              SizedBox(width: 8),
                               Text(
-                                'submit_photo_kyc'.tr,
-                                style: const TextStyle(
+                                'Submit KYC & Bank Details',
+                                style: TextStyle(
                                   fontSize: 14.5,
                                   fontWeight: FontWeight.w800,
                                 ),
@@ -1762,6 +2025,78 @@ class _ManualFormDisclosureState extends State<_ManualFormDisclosure> {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _PhotoKycBankField extends StatelessWidget {
+  const _PhotoKycBankField({
+    required this.label,
+    required this.controller,
+    this.hint = '',
+    this.type,
+    this.maxLength,
+    this.textCapitalization = TextCapitalization.none,
+    this.suffix,
+    this.onChanged,
+  });
+
+  final String label, hint;
+  final TextEditingController controller;
+  final TextInputType? type;
+  final int? maxLength;
+  final TextCapitalization textCapitalization;
+  final Widget? suffix;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          keyboardType: type,
+          maxLength: maxLength,
+          textCapitalization: textCapitalization,
+          onChanged: onChanged,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+          ),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+            counterText: '',
+            suffixIcon: suffix,
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.08),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFD4A017), width: 1.5),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

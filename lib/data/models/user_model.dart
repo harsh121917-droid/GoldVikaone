@@ -55,6 +55,7 @@ class UserModel {
   final String kycStatus;
   final bool isSoldierVerified;
   final String soldierKycStatus;
+  final bool showCompanyBankDetails;
   final UserLocationModel? location;
 
   UserModel({
@@ -70,6 +71,7 @@ class UserModel {
     this.kycStatus = 'not_submitted',
     this.isSoldierVerified = false,
     this.soldierKycStatus = 'not_submitted',
+    this.showCompanyBankDetails = false,
     this.location,
   });
 
@@ -99,6 +101,7 @@ class UserModel {
     kycStatus: j['kycStatus']?.toString() ?? 'not_submitted',
     isSoldierVerified: j['isSoldierVerified'] == true,
     soldierKycStatus: j['soldierKycStatus']?.toString() ?? 'not_submitted',
+    showCompanyBankDetails: j['showCompanyBankDetails'] == true,
     location: j['location'] != null && j['location'] is Map<String, dynamic>
         ? UserLocationModel.fromJson(j['location'] as Map<String, dynamic>)
         : null,
@@ -117,6 +120,7 @@ class UserModel {
     'kycStatus': kycStatus,
     'isSoldierVerified': isSoldierVerified,
     'soldierKycStatus': soldierKycStatus,
+    'showCompanyBankDetails': showCompanyBankDetails,
     if (location != null) 'location': location!.toJson(),
   };
 }

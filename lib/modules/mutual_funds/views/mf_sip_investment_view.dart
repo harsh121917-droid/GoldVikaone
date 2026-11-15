@@ -794,6 +794,129 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
       ),
       body: Column(
         children: [
+          // Segmented Investment Type Switcher (Monthly SIP vs One-Time)
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF161E2E),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF22314E)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      if (!_isSip) {
+                        setState(() {
+                          _isSip = true;
+                          _paymentMethod = 'NSE_GATEWAY';
+                          final minAmt = _currentMinSipAmount;
+                          if (_amount < minAmt) {
+                            _amountStr = minAmt.toInt().toString();
+                          }
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _isSip ? mintGreen : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.autorenew_rounded,
+                            size: 16,
+                            color: _isSip ? Colors.black : Colors.white70,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Monthly SIP',
+                            style: TextStyle(
+                              color: _isSip ? Colors.black : Colors.white70,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      if (_isSip) {
+                        setState(() {
+                          _isSip = false;
+                          _paymentMethod = 'NSE_GATEWAY';
+                          final minAmt = widget.scheme.minPurchaseAmount ?? 500.0;
+                          if (_amount < minAmt) {
+                            _amountStr = minAmt.toInt().toString();
+                          }
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: !_isSip ? mintGreen : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.bolt_rounded,
+                            size: 16,
+                            color: !_isSip ? Colors.black : Colors.white70,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'One-Time (Lump Sum)',
+                            style: TextStyle(
+                              color: !_isSip ? Colors.black : Colors.white70,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!_isSip) ...[
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: mintGreen.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: mintGreen.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle_outline_rounded, size: 15, color: mintGreen),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Instant Investment • No Bank Mandate Required • Pay directly via UPI or NetBanking',
+                      style: TextStyle(color: mintGreen, fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           Expanded(
             child: Center(
               child: SingleChildScrollView(

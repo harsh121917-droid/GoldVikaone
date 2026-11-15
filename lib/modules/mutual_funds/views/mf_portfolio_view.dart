@@ -2389,7 +2389,7 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                       ),
                     ),
                     child: Text(
-                      sip.status == 'PENDING_PAYMENT' ? 'PENDING AUTH' : 'ACTIVE SIP',
+                      sip.status == 'PENDING_PAYMENT' ? 'PAYMENT PENDING (DAY 1)' : 'ACTIVE SIP',
                       style: TextStyle(
                         color: sip.status == 'PENDING_PAYMENT' ? const Color(0xFFFFB020) : const Color(0xFF00D09C),
                         fontSize: 10,

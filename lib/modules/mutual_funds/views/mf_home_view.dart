@@ -724,7 +724,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Set Up Bank AutoPay (Step 2 of 2)',
+                          'Set Up AutoPay for Monthly SIPs',
                           style: TextStyle(
                             color: GrowwColors.textPrimary,
                             fontSize: 15,
@@ -762,7 +762,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text(
-                                'AutoPay Mandate Required',
+                                'Only for Monthly Recurring SIP',
                                 style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold),
                               ),
                             ),
@@ -820,7 +820,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                       onPressed: () => _showLumpSumInstantTipDialog(context),
                       icon: const Icon(Icons.bolt_rounded, size: 15, color: GrowwColors.mintTeal),
                       label: const Text(
-                        'Lump Sum (UPI)',
+                        'Invest One-Time (No Mandate)',
                         style: TextStyle(color: GrowwColors.mintTeal, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                       style: OutlinedButton.styleFrom(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:vika1/core/services/auth_service.dart';
 import 'package:vika1/modules/wallet/controllers/wallet_controller.dart';
 import 'package:vika1/routes/app_routes.dart';
 import '../../../core/theme/controllers/theme_controller.dart';
@@ -13,7 +14,28 @@ class BankAccountsView extends StatefulWidget {
 
 class _BankAccountsViewState extends State<BankAccountsView> {
   final _ctrl = WalletController.to;
+  bool _canViewCompanyBankDetails = false;
   bool _showCompanyBankDetails = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initCompanyBankVisibility();
+  }
+
+  void _initCompanyBankVisibility() {
+    final user = AuthService().currentUser;
+    _canViewCompanyBankDetails = user?.showCompanyBankDetails == true;
+
+    // Refresh user profile asynchronously to ensure latest permission from admin
+    AuthService().refreshUser().then((freshUser) {
+      if (mounted && _canViewCompanyBankDetails != freshUser.showCompanyBankDetails) {
+        setState(() {
+          _canViewCompanyBankDetails = freshUser.showCompanyBankDetails;
+        });
+      }
+    }).catchError((_) {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -310,9 +332,10 @@ class _BankAccountsViewState extends State<BankAccountsView> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            // QR Scan & Pay Section
-            Container(
+            if (_canViewCompanyBankDetails) ...[
+              const SizedBox(height: 24),
+              // QR Scan & Pay Section
+              Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: cardBg,
@@ -598,12 +621,13 @@ class _BankAccountsViewState extends State<BankAccountsView> {
                 ],
               ),
             ),
-            const SizedBox(height: 80),
           ],
-        ),
-      );
-    });
-  }
+          const SizedBox(height: 80),
+        ],
+      ),
+    );
+  });
+}
 
   void _copyToClipboard(String text, String label) {
     Clipboard.setData(ClipboardData(text: text));

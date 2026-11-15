@@ -59,6 +59,10 @@ class KycRepository {
     required String panImagePath,
     String? aadhaarFrontPath,
     String? aadhaarBackPath,
+    String? bankAccountHolderName,
+    String? bankAccountNumber,
+    String? bankIfscCode,
+    String? bankName,
   }) async {
     final formData = FormData.fromMap({
       'isPhotoOnly': 'true',
@@ -68,6 +72,14 @@ class KycRepository {
         'aadhaarFront': await MultipartFile.fromFile(aadhaarFrontPath),
       if (aadhaarBackPath != null && aadhaarBackPath.isNotEmpty)
         'aadhaarBack': await MultipartFile.fromFile(aadhaarBackPath),
+      if (bankAccountHolderName != null && bankAccountHolderName.isNotEmpty)
+        'bankDetails.accountHolderName': bankAccountHolderName,
+      if (bankAccountNumber != null && bankAccountNumber.isNotEmpty)
+        'bankDetails.accountNumber': bankAccountNumber,
+      if (bankIfscCode != null && bankIfscCode.isNotEmpty)
+        'bankDetails.ifscCode': bankIfscCode,
+      if (bankName != null && bankName.isNotEmpty)
+        'bankDetails.bankName': bankName,
     });
 
     final res = await _dio.post(ApiConstants.kycSubmit, data: formData);

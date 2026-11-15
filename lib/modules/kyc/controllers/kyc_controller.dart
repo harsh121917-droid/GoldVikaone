@@ -1,11 +1,13 @@
 import '../../../core/services/auth_service.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart' ;
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../core/network/api_client.dart';
 import '../../../data/models/kyc_model.dart';
 import '../../../data/repositories/kyc_repository.dart';
+import '../../wallet/controllers/wallet_controller.dart';
 import '../views/digio_kyc_webview.dart';
 
 class KycController extends GetxController {
@@ -33,8 +35,13 @@ class KycController extends GetxController {
   final aadhaarCtrl = TextEditingController();
   final bankNameCtrl = TextEditingController();
   final bankAccountCtrl = TextEditingController();
+  final confirmBankAccountCtrl = TextEditingController();
   final bankIfscCtrl = TextEditingController();
   final bankBankNameCtrl = TextEditingController();
+  final bankAccountType = 'savings'.obs;
+  final isFetchingIfsc = false.obs;
+  final ifscBranchName = ''.obs;
+  final ifscError = ''.obs;
 
   // Cashfree variables
   final cashfreeAadhaarCtrl = TextEditingController();
@@ -67,17 +74,47 @@ class KycController extends GetxController {
   void onInit() {
     super.onInit();
     try {
-      final cached = AuthService().currentUser?.kycStatus;
+      final user = AuthService().currentUser;
+      final cached = user?.kycStatus;
       if (cached != null && cached.isNotEmpty && cached != 'not_submitted') {
         kycStatus.value = cached;
       }
-      final user = AuthService().currentUser;
       if (user != null) {
         isSoldierVerified.value = user.isSoldierVerified;
         soldierStatus.value = user.soldierKycStatus;
+        if (bankNameCtrl.text.trim().isEmpty && user.name.isNotEmpty) {
+          bankNameCtrl.text = user.name;
+        }
       }
     } catch (_) {}
     loadMyKyc();
+  }
+
+  Future<void> lookupIfsc(String code) async {
+    final cleanCode = code.trim().toUpperCase();
+    if (cleanCode.length != 11) {
+      ifscBranchName.value = '';
+      ifscError.value = '';
+      return;
+    }
+
+    try {
+      isFetchingIfsc.value = true;
+      ifscError.value = '';
+      final res = await ApiClient.instance.get('/bank/ifsc/$cleanCode');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final data = res.data['data'] as Map<String, dynamic>;
+        bankBankNameCtrl.text = data['bank']?.toString() ?? 'Bank';
+        ifscBranchName.value = data['branch']?.toString() ?? '';
+        ifscError.value = '';
+      } else {
+        ifscError.value = 'Invalid IFSC code. Please verify.';
+      }
+    } catch (_) {
+      ifscError.value = 'IFSC not found in RBI directory.';
+    } finally {
+      isFetchingIfsc.value = false;
+    }
   }
 
   @override
@@ -92,6 +129,7 @@ class KycController extends GetxController {
     aadhaarCtrl.dispose();
     bankNameCtrl.dispose();
     bankAccountCtrl.dispose();
+    confirmBankAccountCtrl.dispose();
     bankIfscCtrl.dispose();
     bankBankNameCtrl.dispose();
     cashfreeAadhaarCtrl.dispose();
@@ -256,9 +294,29 @@ class KycController extends GetxController {
 
       if (res['success'] == true) {
         kycStatus.value = 'pending';
+
+        // Hit API 2: Add Standalone Bank Account into user's wallet bank accounts
+        if (bankAccountCtrl.text.trim().isNotEmpty && bankIfscCtrl.text.trim().isNotEmpty) {
+          try {
+            await ApiClient.instance.post(
+              '/bank',
+              data: {
+                'accountHolder': bankNameCtrl.text.trim().toUpperCase(),
+                'accountNumber': bankAccountCtrl.text.trim(),
+                'ifsc': bankIfscCtrl.text.trim().toUpperCase(),
+                'bankName': bankBankNameCtrl.text.trim().isNotEmpty ? bankBankNameCtrl.text.trim() : 'Bank',
+                'accountType': bankAccountType.value,
+              },
+            );
+            if (Get.isRegistered<WalletController>()) {
+              await WalletController.to.loadBanks();
+            }
+          } catch (_) {}
+        }
+
         Get.snackbar(
           'Submitted ✓',
-          'Your KYC is under review',
+          'Your KYC and Bank details are under review',
           backgroundColor: const Color(0xFF2ECC71),
           colorText: const Color(0xFFFFFFFF),
         );
@@ -315,24 +373,97 @@ class KycController extends GetxController {
       return;
     }
 
+    // ── Validate Bank Information ──
+    final holderName = bankNameCtrl.text.trim();
+    final accNum = bankAccountCtrl.text.trim();
+    final confirmAcc = confirmBankAccountCtrl.text.trim();
+    final ifsc = bankIfscCtrl.text.trim().toUpperCase();
+    final bName = bankBankNameCtrl.text.trim();
+
+    if (holderName.isEmpty) {
+      Get.snackbar(
+        'Account Holder Name Required',
+        'Please enter your bank account holder name (must match your PAN & Aadhaar)',
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+      );
+      return;
+    }
+
+    if (accNum.isEmpty || accNum.length < 9) {
+      Get.snackbar(
+        'Invalid Account Number',
+        'Please enter a valid bank account number (at least 9 digits)',
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+      );
+      return;
+    }
+
+    if (confirmAcc.isNotEmpty && confirmAcc != accNum) {
+      Get.snackbar(
+        'Account Numbers Do Not Match',
+        'Please re-check your account number confirmation',
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+      );
+      return;
+    }
+
+    if (ifsc.length != 11) {
+      Get.snackbar(
+        'Invalid IFSC Code',
+        'Please enter an 11-character IFSC code (e.g. SBIN0001234)',
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+      );
+      return;
+    }
+
     try {
       isSubmitting.value = true;
-      final userName = fullNameCtrl.text.trim().isNotEmpty
-          ? fullNameCtrl.text.trim()
-          : (AuthService().currentUser?.name ?? '');
+      final userName = holderName.isNotEmpty
+          ? holderName
+          : (fullNameCtrl.text.trim().isNotEmpty
+              ? fullNameCtrl.text.trim()
+              : (AuthService().currentUser?.name ?? 'Account Holder'));
 
+      // ── API 1: Submit KYC Documents & Details ──
       final res = await _repo.submitPhotoOnlyKyc(
         fullName: userName,
         panImagePath: panImage.value?.path ?? (aadhaarFrontImage.value?.path ?? ''),
         aadhaarFrontPath: aadhaarFrontImage.value?.path,
         aadhaarBackPath: aadhaarBackImage.value?.path,
+        bankAccountHolderName: holderName.toUpperCase(),
+        bankAccountNumber: accNum,
+        bankIfscCode: ifsc,
+        bankName: bName.isNotEmpty ? bName : 'Bank',
       );
+
+      // ── API 2: Add to User Standalone Bank Accounts ──
+      try {
+        await ApiClient.instance.post(
+          '/bank',
+          data: {
+            'accountHolder': holderName.toUpperCase(),
+            'accountNumber': accNum,
+            'ifsc': ifsc,
+            'bankName': bName.isNotEmpty ? bName : 'Bank',
+            'accountType': bankAccountType.value,
+          },
+        );
+        if (Get.isRegistered<WalletController>()) {
+          await WalletController.to.loadBanks();
+        }
+      } catch (bankErr) {
+        // Backend handles already added accounts gracefully
+      }
 
       if (res['success'] == true) {
         kycStatus.value = 'pending';
         Get.snackbar(
-          'Photo KYC Submitted ✓',
-          'Your documents are uploaded and under review by our admin team',
+          'KYC & Bank Details Submitted! ✓',
+          'Your documents and bank account are uploaded and under review by our admin team',
           backgroundColor: const Color(0xFF2ECC71),
           colorText: const Color(0xFFFFFFFF),
           duration: const Duration(seconds: 4),
