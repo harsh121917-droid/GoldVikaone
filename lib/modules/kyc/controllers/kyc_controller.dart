@@ -47,6 +47,8 @@ class KycController extends GetxController {
   final cashfreeAadhaarCtrl = TextEditingController();
   final cashfreeOtpCtrl = TextEditingController();
   final isCashfreeOtpSent = false.obs;
+  final isAadhaarVerified = false.obs;
+  final verifiedAadhaarName = ''.obs;
   final cashfreeRefId = ''.obs;
 
   final cashfreePanCtrl = TextEditingController();
@@ -608,6 +610,11 @@ class KycController extends GetxController {
     }
   }
 
+  void resetAadhaarOtp() {
+    isCashfreeOtpSent.value = false;
+    cashfreeOtpCtrl.clear();
+  }
+
   Future<void> sendCashfreeOtp() async {
     final aadhaarNum = cashfreeAadhaarCtrl.text.trim();
     if (aadhaarNum.length != 12 || int.tryParse(aadhaarNum) == null) {
@@ -627,11 +634,12 @@ class KycController extends GetxController {
         cashfreeRefId.value = res['refId'] as String;
         isCashfreeOtpSent.value = true;
         Get.snackbar(
-          'OTP Sent',
+          'OTP Sent 📩',
           res['message'] ??
               'OTP has been sent to your Aadhaar-registered mobile number.',
           backgroundColor: const Color(0xFF2ECC71),
           colorText: const Color(0xFFFFFFFF),
+          duration: const Duration(seconds: 4),
         );
       } else {
         Get.snackbar(
@@ -642,11 +650,19 @@ class KycController extends GetxController {
         );
       }
     } catch (e) {
+      String errorMessage = 'Failed to send OTP: $e';
+      if (e is DioException && e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data['message'] != null) {
+          errorMessage = data['message'].toString();
+        }
+      }
       Get.snackbar(
-        'Error',
-        'Failed to send OTP: $e',
+        'Failed to Send OTP',
+        errorMessage,
         backgroundColor: const Color(0xFFE53E3E),
         colorText: const Color(0xFFFFFFFF),
+        duration: const Duration(seconds: 6),
       );
     } finally {
       isSubmitting.value = false;
@@ -675,31 +691,44 @@ class KycController extends GetxController {
       );
 
       if (res['success'] == true) {
-        kycStatus.value = 'approved';
+        isAadhaarVerified.value = true;
         isCashfreeOtpSent.value = false;
-        cashfreeAadhaarCtrl.clear();
-        cashfreeOtpCtrl.clear();
+        final aadhaarName = res['name'] ?? res['fullName'] ?? '';
+        if (aadhaarName.toString().isNotEmpty) {
+          verifiedAadhaarName.value = aadhaarName.toString();
+          if (cashfreePanNameCtrl.text.trim().isEmpty) {
+            cashfreePanNameCtrl.text = aadhaarName.toString();
+          }
+        }
         Get.snackbar(
-          'KYC Verified! 🥇',
-          'Your Aadhaar details are verified successfully.',
+          'Aadhaar Verified! 🥇',
+          'Your Aadhaar details are verified successfully. Now verify your PAN.',
           backgroundColor: const Color(0xFF2ECC71),
           colorText: const Color(0xFFFFFFFF),
+          duration: const Duration(seconds: 4),
         );
-        loadMyKyc();
       } else {
         Get.snackbar(
           'Verification Failed',
-          res['message'] ?? 'Could not verify status',
+          res['message'] ?? 'Could not verify Aadhaar OTP',
           backgroundColor: const Color(0xFFE53E3E),
           colorText: const Color(0xFFFFFFFF),
         );
       }
     } catch (e) {
+      String errorMessage = 'Failed to complete verification: $e';
+      if (e is DioException && e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data['message'] != null) {
+          errorMessage = data['message'].toString();
+        }
+      }
       Get.snackbar(
-        'Error',
-        'Failed to complete verification: $e',
+        'Verification Failed',
+        errorMessage,
         backgroundColor: const Color(0xFFE53E3E),
         colorText: const Color(0xFFFFFFFF),
+        duration: const Duration(seconds: 6),
       );
     } finally {
       isSubmitting.value = false;
@@ -760,11 +789,19 @@ class KycController extends GetxController {
         );
       }
     } catch (e) {
+      String errorMessage = 'Failed to complete PAN verification: $e';
+      if (e is DioException && e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data['message'] != null) {
+          errorMessage = data['message'].toString();
+        }
+      }
       Get.snackbar(
-        'Error',
-        'Failed to complete PAN verification: $e',
+        'Verification Failed',
+        errorMessage,
         backgroundColor: const Color(0xFFE53E3E),
         colorText: const Color(0xFFFFFFFF),
+        duration: const Duration(seconds: 6),
       );
     } finally {
       isSubmitting.value = false;
