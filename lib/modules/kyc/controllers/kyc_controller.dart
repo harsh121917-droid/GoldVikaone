@@ -43,7 +43,10 @@ class KycController extends GetxController {
   final ifscBranchName = ''.obs;
   final ifscError = ''.obs;
 
-  // Cashfree variables
+  // KYC Mode: 'digital' (Instant) or 'manual' (Document Photo Upload)
+  final kycMode = 'digital'.obs;
+
+  // Digital verification variables
   final cashfreeAadhaarCtrl = TextEditingController();
   final cashfreeOtpCtrl = TextEditingController();
   final isCashfreeOtpSent = false.obs;
@@ -55,6 +58,11 @@ class KycController extends GetxController {
   final cashfreePanNameCtrl = TextEditingController();
   final isPanVerified = false.obs;
   final verifiedPanName = ''.obs;
+
+  final isBankVerified = false.obs;
+  final verifiedBankHolder = ''.obs;
+  final verifiedBankName = ''.obs;
+  final isVerifyingBank = false.obs;
 
   final panImage = Rx<File?>(null);
   final aadhaarFrontImage = Rx<File?>(null);
@@ -161,6 +169,22 @@ class KycController extends GetxController {
         bankAccountCtrl.text = kyc.bankAccountNumber ?? '';
         bankIfscCtrl.text = kyc.bankIfscCode ?? '';
         bankBankNameCtrl.text = kyc.bankName ?? '';
+
+        if (kyc.panNumber.isNotEmpty && kyc.panNumber != 'PHOTO_SUBMITTED') {
+          cashfreePanCtrl.text = kyc.panNumber;
+          isPanVerified.value = true;
+          verifiedPanName.value = kyc.fullName;
+        }
+        if (kyc.aadhaarNumber != null && kyc.aadhaarNumber!.isNotEmpty && kyc.aadhaarNumber != 'PHOTO_SUBMITTED') {
+          cashfreeAadhaarCtrl.text = kyc.aadhaarNumber!;
+          isAadhaarVerified.value = true;
+          verifiedAadhaarName.value = kyc.fullName;
+        }
+        if (kyc.bankAccountNumber != null && kyc.bankAccountNumber!.isNotEmpty) {
+          isBankVerified.value = true;
+          verifiedBankHolder.value = kyc.bankAccountHolderName ?? kyc.fullName;
+          verifiedBankName.value = kyc.bankName ?? '';
+        }
 
         if (kyc.isSoldier) {
           soldierIdCtrl.text = kyc.soldierIdNumber ?? '';
@@ -696,13 +720,49 @@ class KycController extends GetxController {
         final aadhaarName = res['name'] ?? res['fullName'] ?? '';
         if (aadhaarName.toString().isNotEmpty) {
           verifiedAadhaarName.value = aadhaarName.toString();
+          fullNameCtrl.text = aadhaarName.toString();
           if (cashfreePanNameCtrl.text.trim().isEmpty) {
             cashfreePanNameCtrl.text = aadhaarName.toString();
           }
+          if (bankNameCtrl.text.trim().isEmpty) {
+            bankNameCtrl.text = aadhaarName.toString();
+          }
         }
+        aadhaarCtrl.text = cashfreeAadhaarCtrl.text.trim();
+
+        // Auto-fetch DOB & Address from Aadhaar OKYC
+        final dobVal = (res['dob'] ?? (res['data'] is Map ? (res['data'] as Map)['dob'] : null))?.toString() ?? '';
+        if (dobVal.isNotEmpty) {
+          final cleanDob = dobVal.contains('T') ? dobVal.split('T').first : dobVal;
+          dobCtrl.text = cleanDob;
+          selectedDob.value = cleanDob;
+        }
+
+        Map? addrMap;
+        if (res['address'] is Map) {
+          addrMap = res['address'] as Map;
+        } else if (res['data'] is Map && (res['data'] as Map)['address'] is Map) {
+          addrMap = (res['data'] as Map)['address'] as Map;
+        }
+
+        if (addrMap != null) {
+          if (addrMap['line1'] != null && addrMap['line1'].toString().isNotEmpty) {
+            addressCtrl.text = addrMap['line1'].toString();
+          }
+          if (addrMap['city'] != null && addrMap['city'].toString().isNotEmpty) {
+            cityCtrl.text = addrMap['city'].toString();
+          }
+          if (addrMap['state'] != null && addrMap['state'].toString().isNotEmpty) {
+            stateCtrl.text = addrMap['state'].toString();
+          }
+          if (addrMap['pincode'] != null && addrMap['pincode'].toString().isNotEmpty) {
+            pincodeCtrl.text = addrMap['pincode'].toString();
+          }
+        }
+
         Get.snackbar(
           'Aadhaar Verified! 🥇',
-          'Your Aadhaar details are verified successfully. Now verify your PAN.',
+          'Aadhaar verified & details fetched. Now verify your PAN.',
           backgroundColor: const Color(0xFF2ECC71),
           colorText: const Color(0xFFFFFFFF),
           duration: const Duration(seconds: 4),
@@ -769,11 +829,13 @@ class KycController extends GetxController {
 
         fullNameCtrl.text = verifiedPanName.value;
         panCtrl.text = panVal;
-        kycStatus.value = 'approved';
+        if (bankNameCtrl.text.trim().isEmpty) {
+          bankNameCtrl.text = verifiedPanName.value;
+        }
 
         Get.snackbar(
-          'KYC Verified! 🎉',
-          res['message'] ?? 'PAN verified & KYC approved successfully.',
+          'PAN Verified! 🥈',
+          res['message'] ?? 'PAN verified successfully. Now verify your bank account.',
           backgroundColor: const Color(0xFF2ECC71),
           colorText: const Color(0xFFFFFFFF),
           duration: const Duration(seconds: 4),
@@ -805,6 +867,103 @@ class KycController extends GetxController {
       );
     } finally {
       isSubmitting.value = false;
+    }
+  }
+
+  Future<void> verifyBankFlow() async {
+    final acc = bankAccountCtrl.text.trim();
+    final confirmAcc = confirmBankAccountCtrl.text.trim();
+    final ifsc = bankIfscCtrl.text.trim().toUpperCase();
+    final holder = fullNameCtrl.text.trim().isNotEmpty
+        ? fullNameCtrl.text.trim()
+        : (verifiedPanName.value.isNotEmpty ? verifiedPanName.value : verifiedAadhaarName.value);
+
+    if (acc.length < 9) {
+      Get.snackbar(
+        'Invalid Account',
+        'Please enter a valid bank account number (9-18 digits)',
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+      );
+      return;
+    }
+
+    if (confirmAcc.isNotEmpty && acc != confirmAcc) {
+      Get.snackbar(
+        'Account Mismatch',
+        'Bank account numbers do not match',
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+      );
+      return;
+    }
+
+    if (ifsc.length != 11) {
+      Get.snackbar(
+        'Invalid IFSC',
+        'Please enter a valid 11-character IFSC code',
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+      );
+      return;
+    }
+
+    try {
+      isVerifyingBank.value = true;
+      final res = await _repo.verifyBankAccount(
+        accountNumber: acc,
+        ifsc: ifsc,
+        accountHolder: holder,
+      );
+
+      if (res['success'] == true && res['isVerified'] == true) {
+        isBankVerified.value = true;
+        final data = res['data'] as Map<String, dynamic>?;
+        final returnedHolder = (data?['accountHolder'] ?? holder).toString();
+        verifiedBankHolder.value = returnedHolder;
+        bankNameCtrl.text = returnedHolder;
+        if (data?['bankName'] != null) {
+          bankBankNameCtrl.text = data!['bankName'].toString();
+          verifiedBankName.value = data['bankName'].toString();
+        }
+
+        kycStatus.value = 'approved';
+
+        Get.snackbar(
+          'Bank Verified! 🏦',
+          res['message'] ?? 'Bank account verified successfully.',
+          backgroundColor: const Color(0xFF2ECC71),
+          colorText: const Color(0xFFFFFFFF),
+          duration: const Duration(seconds: 4),
+        );
+
+        await loadMyKyc();
+      } else {
+        Get.snackbar(
+          'Verification Failed',
+          res['message'] ?? 'Bank account verification failed. Please check account details.',
+          backgroundColor: const Color(0xFFE53E3E),
+          colorText: const Color(0xFFFFFFFF),
+          duration: const Duration(seconds: 6),
+        );
+      }
+    } catch (e) {
+      String errorMessage = 'Bank verification failed: $e';
+      if (e is DioException && e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data['message'] != null) {
+          errorMessage = data['message'].toString();
+        }
+      }
+      Get.snackbar(
+        'Verification Failed',
+        errorMessage,
+        backgroundColor: const Color(0xFFE53E3E),
+        colorText: const Color(0xFFFFFFFF),
+        duration: const Duration(seconds: 6),
+      );
+    } finally {
+      isVerifyingBank.value = false;
     }
   }
 }

@@ -136,6 +136,20 @@ class KycRepository {
     return res.data;
   }
 
+  Future<Map<String, dynamic>> verifyBankAccount({
+    required String accountNumber,
+    required String ifsc,
+    String? accountHolder,
+  }) async {
+    final res = await _dio.post('/bank/verify', data: {
+      'accountNumber': accountNumber,
+      'ifsc': ifsc,
+      if (accountHolder != null && accountHolder.isNotEmpty)
+        'accountHolder': accountHolder,
+    });
+    return res.data;
+  }
+
   Future<Map<String, dynamic>> submitSoldierId({
     required String serviceBranch,
     required String soldierIdNumber,

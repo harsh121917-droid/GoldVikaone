@@ -59,27 +59,1030 @@ class KycView extends GetView<KycController> {
             if (status != 'approved') ...[
               const SizedBox(height: 10),
 
-              // ── Cashfree Instant Digital KYC Card (Aadhaar OTP + PAN) ──
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF042116), Color(0xFF0B3A27)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              // ── KYC MODE SWITCHER (Instant Digital vs Manual Photo Upload) ──
+              Obx(() {
+                final isDigital = controller.kycMode.value == 'digital';
+                return Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF07140E),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: const Color(0xFF1E352B),
+                      width: 1.2,
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: const Color(0xFFD4A017).withValues(alpha: 0.35),
-                    width: 1.2,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => controller.kycMode.value = 'digital',
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              gradient: isDigital
+                                  ? const LinearGradient(
+                                      colors: [Color(0xFFD4A017), Color(0xFFF59E0B)],
+                                    )
+                                  : null,
+                              color: isDigital ? null : const Color(0xFF0E2319),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isDigital
+                                    ? const Color(0xFFFFD54F)
+                                    : const Color(0xFFD4A017).withValues(alpha: 0.35),
+                                width: 1.2,
+                              ),
+                              boxShadow: isDigital
+                                  ? [
+                                      BoxShadow(
+                                        color: const Color(0xFFD4A017).withValues(alpha: 0.4),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.bolt_rounded,
+                                    size: 16,
+                                    color: isDigital ? Colors.black : const Color(0xFFD4A017),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Flexible(
+                                    child: Text(
+                                      'Digital KYC',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: isDigital ? Colors.black : Colors.white,
+                                        fontSize: 12.5,
+                                        fontWeight: isDigital ? FontWeight.w900 : FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => controller.kycMode.value = 'manual',
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              gradient: !isDigital
+                                  ? const LinearGradient(
+                                      colors: [Color(0xFFD4A017), Color(0xFFF59E0B)],
+                                    )
+                                  : null,
+                              color: !isDigital ? null : const Color(0xFF0E2319),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: !isDigital
+                                    ? const Color(0xFFFFD54F)
+                                    : const Color(0xFFD4A017).withValues(alpha: 0.35),
+                                width: 1.2,
+                              ),
+                              boxShadow: !isDigital
+                                  ? [
+                                      BoxShadow(
+                                        color: const Color(0xFFD4A017).withValues(alpha: 0.4),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.camera_alt_rounded,
+                                    size: 16,
+                                    color: !isDigital ? Colors.black : const Color(0xFFD4A017),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Flexible(
+                                    child: Text(
+                                      'Manual Upload',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: !isDigital ? Colors.black : Colors.white,
+                                        fontSize: 12.5,
+                                        fontWeight: !isDigital ? FontWeight.w900 : FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF042116).withValues(alpha: 0.35),
-                      blurRadius: 14,
-                      offset: const Offset(0, 5),
+                );
+              }),
+              const SizedBox(height: 16),
+
+              // ── Active Mode Body ──
+              Obx(() {
+                if (controller.kycMode.value == 'manual') {
+                  return Column(
+                    children: [
+                      _QuickPhotoKycCard(controller: controller),
+                      const SizedBox(height: 14),
+                      _ManualFormDisclosure(controller: controller),
+                    ],
+                  );
+                }
+
+                return _DigitalKycStepFlow(controller: controller);
+              }),
+            ],
+          ],
+        );
+      }),
+    );
+  }
+}
+
+// ─── Digital KYC Step-by-Step Flow (Aadhaar OTP + PAN + Bank Verification) ───────
+class _DigitalKycStepFlow extends StatelessWidget {
+  const _DigitalKycStepFlow({required this.controller});
+  final KycController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final isAadhaarDone = controller.isAadhaarVerified.value;
+      final isPanDone = controller.isPanVerified.value;
+      final isBankDone = controller.isBankVerified.value;
+      final isOtpSent = controller.isCashfreeOtpSent.value;
+
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF042116), Color(0xFF0B3A27)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: const Color(0xFFD4A017).withValues(alpha: 0.35),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF042116).withValues(alpha: 0.35),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: const [
+                      Icon(
+                        Icons.verified_user_rounded,
+                        color: Color(0xFFD4A017),
+                        size: 20,
+                      ),
+                      SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'Instant Digital KYC',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.lock_rounded, size: 10, color: Color(0xFF10B981)),
+                      SizedBox(width: 3),
+                      Text(
+                        'Paperless & Secure',
+                        style: TextStyle(
+                          color: Color(0xFF10B981),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Complete your KYC in 3 simple steps: Aadhaar OTP, PAN & Bank Account Verification.',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ══════════════════════════════════════════════════════
+            // STEP 1: AADHAAR VERIFICATION (AADHAAR + OTP)
+            // ══════════════════════════════════════════════════════
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isAadhaarDone
+                      ? const Color(0xFF2ECC71).withValues(alpha: 0.4)
+                      : Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                color: isAadhaarDone
+                                    ? const Color(0xFF2ECC71)
+                                    : const Color(0xFFD4A017),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: isAadhaarDone
+                                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                                    : const Text(
+                                        '1',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Flexible(
+                              child: Text(
+                                'Step 1: Aadhaar OTP Verification',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isAadhaarDone) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2ECC71).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'VERIFIED ✓',
+                            style: TextStyle(
+                              color: Color(0xFF2ECC71),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  if (!isAadhaarDone) ...[
+                    TextField(
+                      controller: controller.cashfreeAadhaarCtrl,
+                      keyboardType: TextInputType.number,
+                      maxLength: 12,
+                      enabled: !isOtpSent,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Enter 12-digit Aadhaar Number',
+                        hintStyle: const TextStyle(color: Colors.white38, letterSpacing: 0, fontWeight: FontWeight.normal),
+                        counterText: '',
+                        prefixIcon: const Icon(Icons.fingerprint_rounded, color: Color(0xFFD4A017), size: 20),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.08),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD4A017), width: 1.5)),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    if (!isOtpSent)
+                      GestureDetector(
+                        onTap: () => controller.isSubmitting.value ? null : controller.sendCashfreeOtp(),
+                        child: Container(
+                          height: 42,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFFD4A017), Color(0xFFF59E0B)]),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: controller.isSubmitting.value
+                                ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                                : const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.sms_rounded, color: Colors.black, size: 16),
+                                      SizedBox(width: 6),
+                                      Text('Get Aadhaar OTP', style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ),
+
+                    if (isOtpSent) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2ECC71).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF2ECC71).withValues(alpha: 0.3)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.mark_email_read_rounded, color: Color(0xFF2ECC71), size: 15),
+                            SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'OTP sent to your Aadhaar-registered mobile number.',
+                                style: TextStyle(color: Color(0xFF2ECC71), fontSize: 11),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      TextField(
+                        controller: controller.cashfreeOtpCtrl,
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 4.0,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Enter 6-digit OTP',
+                          hintStyle: const TextStyle(color: Colors.white38, letterSpacing: 0, fontWeight: FontWeight.normal),
+                          counterText: '',
+                          prefixIcon: const Icon(Icons.lock_clock_rounded, color: Color(0xFFD4A017), size: 20),
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: 0.08),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD4A017), width: 1.5)),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => controller.isSubmitting.value ? null : controller.verifyCashfreeOtp(),
+                              child: Container(
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(colors: [Color(0xFF2ECC71), Color(0xFF27AE60)]),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Center(
+                                  child: controller.isSubmitting.value
+                                      ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                      : const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.check_circle_outline, color: Colors.white, size: 16),
+                                            SizedBox(width: 6),
+                                            Text('Verify Aadhaar OTP', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                          ],
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton(
+                            onPressed: () => controller.resetAadhaarOtp(),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            child: const Text('Change', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ] else ...[
+                    // Aadhaar Verified Box
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2ECC71).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF2ECC71).withValues(alpha: 0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.check_circle_rounded, color: Color(0xFF2ECC71), size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  controller.verifiedAadhaarName.value.isNotEmpty
+                                      ? 'Name: ${controller.verifiedAadhaarName.value}'
+                                      : 'Aadhaar OKYC verified successfully.',
+                                  style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (controller.dobCtrl.text.isNotEmpty || controller.cityCtrl.text.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              'DOB: ${controller.dobCtrl.text}  •  ${controller.cityCtrl.text}, ${controller.stateCtrl.text} (${controller.pincodeCtrl.text})',
+                              style: const TextStyle(color: Colors.white70, fontSize: 11),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ],
+                ],
+              ),
+            ),
+
+            // ══════════════════════════════════════════════════════
+            // STEP 2: PAN VERIFICATION (Only visible after Step 1 verified)
+            // ══════════════════════════════════════════════════════
+            if (isAadhaarDone) ...[
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isPanDone
+                        ? const Color(0xFF2ECC71).withValues(alpha: 0.4)
+                        : Colors.white.withValues(alpha: 0.1),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                color: isPanDone
+                                    ? const Color(0xFF2ECC71)
+                                    : (isAadhaarDone ? const Color(0xFFD4A017) : Colors.grey.shade700),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: isPanDone
+                                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                                    : const Text(
+                                        '2',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Flexible(
+                              child: Text(
+                                'Step 2: Instant PAN Verification',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isPanDone) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2ECC71).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'VERIFIED ✓',
+                            style: TextStyle(
+                              color: Color(0xFF2ECC71),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  if (!isPanDone) ...[
+                    // Highlight Note: PAN and Aadhaar name must match with bank account holder name
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD4A017).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFD4A017).withValues(alpha: 0.35)),
+                      ),
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.info_outline_rounded, color: Color(0xFFD4A017), size: 16),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Important: Name on PAN and Aadhaar must match with the bank account holder name.',
+                              style: TextStyle(
+                                color: Color(0xFFFFD54F),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    TextField(
+                      controller: controller.cashfreePanCtrl,
+                      textCapitalization: TextCapitalization.characters,
+                      maxLength: 10,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                      decoration: InputDecoration(
+                        hintText: 'Enter 10-character PAN (e.g. ABCDE1234F)',
+                        hintStyle: const TextStyle(color: Colors.white38, letterSpacing: 0, fontWeight: FontWeight.normal),
+                        counterText: '',
+                        prefixIcon: const Icon(Icons.credit_card_rounded, color: Color(0xFFD4A017), size: 20),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.08),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD4A017), width: 1.5)),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    TextField(
+                      controller: controller.cashfreePanNameCtrl,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Enter Full Name as per PAN Card',
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        prefixIcon: const Icon(Icons.person_outline_rounded, color: Color(0xFFD4A017), size: 20),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.08),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD4A017), width: 1.5)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    GestureDetector(
+                      onTap: () => controller.isSubmitting.value ? null : controller.verifyPanFlow(),
+                      child: Container(
+                        height: 44,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFFD4A017), Color(0xFFF59E0B)]),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFD4A017).withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: controller.isSubmitting.value
+                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
+                              : const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.verified_user_rounded, color: Colors.black, size: 18),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Verify PAN Card',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    // PAN Verified Box
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2ECC71).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF2ECC71).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: Color(0xFF2ECC71), size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'PAN: ${controller.panCtrl.text}  •  ${controller.verifiedPanName.value}',
+                              style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+
+          // ══════════════════════════════════════════════════════
+          // STEP 3: BANK ACCOUNT VERIFICATION (Only visible after Step 2 verified)
+          // ══════════════════════════════════════════════════════
+          if (isPanDone) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isBankDone
+                      ? const Color(0xFF2ECC71).withValues(alpha: 0.4)
+                      : Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                color: isBankDone
+                                    ? const Color(0xFF2ECC71)
+                                    : (isPanDone ? const Color(0xFFD4A017) : Colors.grey.shade700),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: isBankDone
+                                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                                    : const Text(
+                                        '3',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Flexible(
+                              child: Text(
+                                'Step 3: Instant Bank Verification',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isBankDone) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2ECC71).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'VERIFIED ✓',
+                            style: TextStyle(
+                              color: Color(0xFF2ECC71),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  if (!isBankDone) ...[
+                    // Highlight Note
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD4A017).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFD4A017).withValues(alpha: 0.35)),
+                      ),
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.account_balance_rounded, color: Color(0xFFD4A017), size: 16),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '₹1 test deposit will be initiated to verify your bank account holder name against your PAN & Aadhaar.',
+                              style: TextStyle(
+                                color: Color(0xFFFFD54F),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Bank Account Number
+                    TextField(
+                      controller: controller.bankAccountCtrl,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        hintText: 'Enter Bank Account Number',
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        prefixIcon: const Icon(Icons.numbers_rounded, color: Color(0xFFD4A017), size: 20),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.08),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD4A017), width: 1.5)),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Confirm Bank Account Number
+                    TextField(
+                      controller: controller.confirmBankAccountCtrl,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        hintText: 'Re-enter Bank Account Number',
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        prefixIcon: const Icon(Icons.check_rounded, color: Color(0xFFD4A017), size: 20),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.08),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD4A017), width: 1.5)),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // IFSC Code
+                    TextField(
+                      controller: controller.bankIfscCtrl,
+                      textCapitalization: TextCapitalization.characters,
+                      maxLength: 11,
+                      onChanged: (val) {
+                        if (val.trim().length == 11) {
+                          controller.lookupIfsc(val.trim());
+                        }
+                      },
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                      decoration: InputDecoration(
+                        hintText: 'Enter 11-character IFSC Code',
+                        hintStyle: const TextStyle(color: Colors.white38, letterSpacing: 0, fontWeight: FontWeight.normal),
+                        counterText: '',
+                        prefixIcon: const Icon(Icons.account_balance_rounded, color: Color(0xFFD4A017), size: 20),
+                        suffixIcon: controller.isFetchingIfsc.value
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFD4A017))),
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.08),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD4A017), width: 1.5)),
+                      ),
+                    ),
+
+                    if (controller.ifscBranchName.value.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        '${controller.bankBankNameCtrl.text}  •  ${controller.ifscBranchName.value}',
+                        style: const TextStyle(color: Color(0xFF2ECC71), fontSize: 11.5, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+
+                    const SizedBox(height: 14),
+
+                    GestureDetector(
+                      onTap: () => controller.isVerifyingBank.value ? null : controller.verifyBankFlow(),
+                      child: Container(
+                        height: 44,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFFD4A017), Color(0xFFF59E0B)]),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFD4A017).withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: controller.isVerifyingBank.value
+                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
+                              : const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.verified_rounded, color: Colors.black, size: 18),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Verify Bank Account',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    // Bank Verified Box
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2ECC71).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF2ECC71).withValues(alpha: 0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.check_circle_rounded, color: Color(0xFF2ECC71), size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Bank Verified: ${controller.bankBankNameCtrl.text.isNotEmpty ? controller.bankBankNameCtrl.text : "Linked Bank"}',
+                                  style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Holder: ${controller.verifiedBankHolder.value}  •  A/C: ****${controller.bankAccountCtrl.text.length >= 4 ? controller.bankAccountCtrl.text.substring(controller.bankAccountCtrl.text.length - 4) : controller.bankAccountCtrl.text}',
+                            style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+
+          // ══════════════════════════════════════════════════════
+          // STEP 4: FETCHED IDENTITY & PROFILE DETAILS SUMMARY
+          // ══════════════════════════════════════════════════════
+          if (isBankDone) ...[
+            const SizedBox(height: 16),
+            Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: (isAadhaarDone && isPanDone && isBankDone)
+                        ? const Color(0xFF2ECC71).withValues(alpha: 0.5)
+                        : Colors.white.withValues(alpha: 0.15),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,459 +1090,84 @@ class KycView extends GetView<KycController> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: const [
-                            Icon(
-                              Icons.verified_user_rounded,
-                              color: Color(0xFFD4A017),
-                              size: 22,
-                            ),
-                            SizedBox(width: 8),
+                        const Row(
+                          children: [
+                            Icon(Icons.badge_rounded, color: Color(0xFFD4A017), size: 18),
+                            SizedBox(width: 6),
                             Text(
-                              'Instant Digital KYC',
+                              'Identity & Address Information',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: 13.5,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD4A017).withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text(
-                            'Powered by Cashfree',
-                            style: TextStyle(
-                              color: Color(0xFFD4A017),
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.bold,
+                        if (isAadhaarDone && isPanDone && isBankDone)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2ECC71).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'ALL VERIFIED ✓',
+                              style: TextStyle(
+                                color: Color(0xFF2ECC71),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Complete your KYC instantly in 2 simple steps via Aadhaar OTP and PAN verification.',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
 
-                    // ══════════════════════════════════════════════════════
-                    // STEP 1: AADHAAR OKYC (AADHAAR + OTP)
-                    // ══════════════════════════════════════════════════════
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.04),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      child: Obx(() {
-                        final isAadhaarDone = controller.isAadhaarVerified.value;
-                        final isOtpSent = controller.isCashfreeOtpSent.value;
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 20,
-                                      height: 20,
-                                      decoration: BoxDecoration(
-                                        color: isAadhaarDone
-                                            ? const Color(0xFF2ECC71)
-                                            : const Color(0xFFD4A017),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Center(
-                                        child: isAadhaarDone
-                                            ? const Icon(Icons.check, size: 13, color: Colors.white)
-                                            : const Text(
-                                                '1',
-                                                style: TextStyle(
-                                                  color: Colors.black,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      'Step 1: Aadhaar Verification',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (isAadhaarDone)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF2ECC71).withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Text(
-                                      'VERIFIED ✓',
-                                      style: TextStyle(
-                                        color: Color(0xFF2ECC71),
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-
-                            if (!isAadhaarDone) ...[
-                              TextField(
-                                controller: controller.cashfreeAadhaarCtrl,
-                                keyboardType: TextInputType.number,
-                                maxLength: 12,
-                                enabled: !isOtpSent,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.5,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: 'Enter 12-digit Aadhaar Number',
-                                  hintStyle: const TextStyle(color: Colors.white38, letterSpacing: 0, fontWeight: FontWeight.normal),
-                                  counterText: '',
-                                  prefixIcon: const Icon(Icons.fingerprint_rounded, color: Color(0xFFD4A017), size: 20),
-                                  filled: true,
-                                  fillColor: Colors.white.withValues(alpha: 0.08),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
-                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD4A017), width: 1.5)),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-
-                              if (!isOtpSent)
-                                GestureDetector(
-                                  onTap: () => controller.isSubmitting.value ? null : controller.sendCashfreeOtp(),
-                                  child: Container(
-                                    height: 42,
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(colors: [Color(0xFFD4A017), Color(0xFFF59E0B)]),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Center(
-                                      child: controller.isSubmitting.value
-                                          ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                                          : Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: const [
-                                                Icon(Icons.sms_rounded, color: Colors.black, size: 16),
-                                                SizedBox(width: 6),
-                                                Text('Get Aadhaar OTP', style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
-                                              ],
-                                            ),
-                                    ),
-                                  ),
-                                ),
-
-                              if (isOtpSent) ...[
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF2ECC71).withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: const Color(0xFF2ECC71).withValues(alpha: 0.3)),
-                                  ),
-                                  child: Row(
-                                    children: const [
-                                      Icon(Icons.mark_email_read_rounded, color: Color(0xFF2ECC71), size: 15),
-                                      SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          'OTP sent to your Aadhaar-registered mobile number.',
-                                          style: TextStyle(color: Color(0xFF2ECC71), fontSize: 11),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-
-                                TextField(
-                                  controller: controller.cashfreeOtpCtrl,
-                                  keyboardType: TextInputType.number,
-                                  maxLength: 6,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 4.0,
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: 'Enter 6-digit OTP',
-                                    hintStyle: const TextStyle(color: Colors.white38, letterSpacing: 0, fontWeight: FontWeight.normal),
-                                    counterText: '',
-                                    prefixIcon: const Icon(Icons.lock_clock_rounded, color: Color(0xFFD4A017), size: 20),
-                                    filled: true,
-                                    fillColor: Colors.white.withValues(alpha: 0.08),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
-                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
-                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD4A017), width: 1.5)),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () => controller.isSubmitting.value ? null : controller.verifyCashfreeOtp(),
-                                        child: Container(
-                                          height: 42,
-                                          decoration: BoxDecoration(
-                                            gradient: const LinearGradient(colors: [Color(0xFF2ECC71), Color(0xFF27AE60)]),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Center(
-                                            child: controller.isSubmitting.value
-                                                ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                                : Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: const [
-                                                      Icon(Icons.check_circle_outline, color: Colors.white, size: 16),
-                                                      SizedBox(width: 6),
-                                                      Text('Verify Aadhaar OTP', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                                    ],
-                                                  ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    TextButton(
-                                      onPressed: () => controller.resetAadhaarOtp(),
-                                      style: TextButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                      child: const Text('Change', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ] else ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2ECC71).withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: const Color(0xFF2ECC71).withValues(alpha: 0.3)),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.check_circle_rounded, color: Color(0xFF2ECC71), size: 18),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        controller.verifiedAadhaarName.value.isNotEmpty
-                                            ? 'Verified Name: ${controller.verifiedAadhaarName.value}'
-                                            : 'Aadhaar OKYC verified successfully.',
-                                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        );
-                      }),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // ══════════════════════════════════════════════════════
-                    // STEP 2: PAN VERIFICATION
-                    // ══════════════════════════════════════════════════════
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.04),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 20,
-                                height: 20,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFD4A017),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    '2',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Step 2: Instant PAN Verification',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-
-                          TextField(
-                            controller: controller.cashfreePanCtrl,
-                            textCapitalization: TextCapitalization.characters,
-                            maxLength: 10,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2),
-                            decoration: InputDecoration(
-                              hintText: 'Enter 10-character PAN (e.g. ABCDE1234F)',
-                              hintStyle: const TextStyle(color: Colors.white38, letterSpacing: 0, fontWeight: FontWeight.normal),
-                              counterText: '',
-                              prefixIcon: const Icon(Icons.credit_card_rounded, color: Color(0xFFD4A017), size: 20),
-                              filled: true,
-                              fillColor: Colors.white.withValues(alpha: 0.08),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD4A017), width: 1.5)),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-
-                          TextField(
-                            controller: controller.cashfreePanNameCtrl,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: 'Enter Full Name as per PAN Card',
-                              hintStyle: const TextStyle(color: Colors.white38),
-                              prefixIcon: const Icon(Icons.person_outline_rounded, color: Color(0xFFD4A017), size: 20),
-                              filled: true,
-                              fillColor: Colors.white.withValues(alpha: 0.08),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15))),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD4A017), width: 1.5)),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          Obx(
-                            () => GestureDetector(
-                              onTap: () => controller.isSubmitting.value ? null : controller.verifyPanFlow(),
-                              child: Container(
-                                height: 46,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(colors: [Color(0xFFD4A017), Color(0xFFF59E0B)]),
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFFD4A017).withValues(alpha: 0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: Center(
-                                  child: controller.isSubmitting.value
-                                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
-                                      : Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: const [
-                                            Icon(Icons.verified_user_rounded, color: Colors.black, size: 18),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              'Verify PAN with Cashfree',
-                                              style: TextStyle(
-                                                color: Colors.black,
-                                                fontSize: 13.5,
-                                                fontWeight: FontWeight.w900,
-                                                letterSpacing: 0.2,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    _infoRow('Full Name', controller.fullNameCtrl.text.isNotEmpty ? controller.fullNameCtrl.text : controller.verifiedAadhaarName.value),
+                    if (controller.dobCtrl.text.isNotEmpty)
+                      _infoRow('Date of Birth', controller.dobCtrl.text),
+                    if (controller.cashfreeAadhaarCtrl.text.isNotEmpty)
+                      _infoRow('Aadhaar Number', controller.cashfreeAadhaarCtrl.text.length == 12 ? 'XXXX-XXXX-${controller.cashfreeAadhaarCtrl.text.substring(8)}' : controller.cashfreeAadhaarCtrl.text),
+                    if (controller.panCtrl.text.isNotEmpty)
+                      _infoRow('PAN Number', controller.panCtrl.text),
+                    if (controller.addressCtrl.text.isNotEmpty || controller.cityCtrl.text.isNotEmpty)
+                      _infoRow('Address', '${controller.addressCtrl.text}, ${controller.cityCtrl.text}, ${controller.stateCtrl.text} - ${controller.pincodeCtrl.text}'.replaceAll(RegExp(r'^,\s*'), '')),
+                    if (controller.bankAccountCtrl.text.isNotEmpty)
+                      _infoRow('Bank Account', '${controller.bankBankNameCtrl.text} (A/C: ****${controller.bankAccountCtrl.text.length >= 4 ? controller.bankAccountCtrl.text.substring(controller.bankAccountCtrl.text.length - 4) : controller.bankAccountCtrl.text})'),
                   ],
                 ),
               ),
-
-              // ── End Cashfree Instant Digital KYC Card ──
-
-              /* ── Manual Photo KYC & Bank Form (Commented out in favor of Cashfree) ──
-              const SizedBox(height: 24),
-              Row(
-                children: const [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      'OR VERIFY MANUALLY',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ),
-                  Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _QuickPhotoKycCard(controller: controller),
-              const SizedBox(height: 14),
-              _ManualFormDisclosure(controller: controller),
-              ── End Manual Photo KYC ── */
             ],
           ],
-        );
-      }),
+        ),
+      );
+    });
+  }
+
+  Widget _infoRow(String label, String value) {
+    if (value.trim().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white54, fontSize: 11.5),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

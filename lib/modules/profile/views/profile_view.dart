@@ -55,7 +55,7 @@ class ProfileView extends StatelessWidget {
 
       final authCtrl = Get.find<AuthController>();
       final user = authCtrl.user.value;
-      final initial = (user?.name?.isNotEmpty == true ? user!.name[0] : '?')
+      final initial = (user?.name.isNotEmpty == true ? user!.name[0] : '?')
           .toUpperCase();
       final name = user?.name ?? 'Guest';
       final phone = user?.phone ?? '—';
@@ -66,8 +66,6 @@ class ProfileView extends StatelessWidget {
           GoldController.to.balance.value?.currentValue ?? 0.0;
       final totalInvested = GoldController.to.balance.value?.investedAmt ?? 0.0;
       final totalReturns = GoldController.to.balance.value?.gainLoss ?? 0.0;
-
-      final walletBal = walletCtrl.wallet.value?.balance ?? 0.0;
 
       return Container(
         color: bg,
@@ -253,12 +251,16 @@ class ProfileView extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Text(
-                                  name,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w900,
+                                Flexible(
+                                  child: Text(
+                                    name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 4),
