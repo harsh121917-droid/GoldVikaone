@@ -33,6 +33,10 @@ class ProfileView extends StatelessWidget {
         ? Get.find<KycController>()
         : Get.put(KycController());
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      kycCtrl.loadMyKyc();
+    });
+
     final walletCtrl = Get.isRegistered<WalletController>()
         ? Get.find<WalletController>()
         : Get.put(WalletController());
@@ -784,7 +788,11 @@ class ProfileView extends StatelessWidget {
                           label: 'kyc_verification'.tr,
                           textPrimary: textPrimary,
                           borderSide: borderSideColor,
-                          onTap: () => Get.toNamed(AppRoutes.kyc),
+                          onTap: () async {
+                            kycCtrl.loadMyKyc();
+                            await Get.toNamed(AppRoutes.kyc);
+                            kycCtrl.loadMyKyc();
+                          },
                           trailing: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,

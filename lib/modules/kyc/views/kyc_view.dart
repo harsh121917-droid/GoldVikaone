@@ -7,8 +7,26 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/kyc_model.dart';
 import '../../../core/localization/localization_service.dart';
 
-class KycView extends GetView<KycController> {
+class KycView extends StatefulWidget {
   const KycView({super.key});
+
+  @override
+  State<KycView> createState() => _KycViewState();
+}
+
+class _KycViewState extends State<KycView> {
+  late final KycController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.isRegistered<KycController>()
+        ? Get.find<KycController>()
+        : Get.put(KycController());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.loadMyKyc();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,29 +52,44 @@ class KycView extends GetView<KycController> {
           ),
           onPressed: () => Get.back(),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
+            tooltip: 'refresh'.tr,
+            onPressed: () => controller.loadMyKyc(),
+          ),
+        ],
       ),
-      body: Obx(() {
-        LocalizationService.to.currentLangCode.value;
-        if (controller.isLoading.value) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.accent),
-          );
-        }
+      body: RefreshIndicator(
+        color: AppColors.accent,
+        onRefresh: () => controller.loadMyKyc(),
+        child: Obx(() {
+          LocalizationService.to.currentLangCode.value;
+          if (controller.isLoading.value) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.accent),
+            );
+          }
 
-        final status = controller.kycStatus.value;
+          final status = controller.kycStatus.value;
+          final hasBank = controller.isBankVerified.value ||
+              (controller.existingKyc.value?.bankAccountNumber != null &&
+                  controller.existingKyc.value!.bankAccountNumber!.isNotEmpty);
+          final isFullyApproved = status == 'approved' && hasBank;
 
-        return ListView(
-          padding: const EdgeInsets.all(20),
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(20),
           children: [
             if (status != 'not_submitted')
               _StatusBanner(status: status, kyc: controller.existingKyc.value),
             _SoldierVerificationCard(controller: controller),
-            if (status == 'approved' &&
+            if (isFullyApproved &&
                 controller.existingKyc.value != null) ...[
               const SizedBox(height: 20),
               _VerifiedDetailsCard(kyc: controller.existingKyc.value!),
             ],
-            if (status != 'approved') ...[
+            if (!isFullyApproved) ...[
               const SizedBox(height: 10),
 
               // ── KYC MODE SWITCHER (Instant Digital vs Manual Photo Upload) ──
@@ -215,8 +248,9 @@ class KycView extends GetView<KycController> {
           ],
         );
       }),
-    );
-  }
+    ),
+  );
+}
 }
 
 // ─── Digital KYC Step-by-Step Flow (Aadhaar OTP + PAN + Bank Verification) ───────
@@ -799,10 +833,68 @@ class _DigitalKycStepFlow extends StatelessWidget {
           ],
 
           // ══════════════════════════════════════════════════════
-          // STEP 3: BANK ACCOUNT VERIFICATION (Only visible after Step 2 verified)
+          // STEP 3: BANK ACCOUNT VERIFICATION
           // ══════════════════════════════════════════════════════
-          if (isPanDone) ...[
-            const SizedBox(height: 14),
+          const SizedBox(height: 14),
+          if (!isPanDone) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: Text(
+                        '3',
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Step 3: Instant Bank Verification',
+                          style: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Unlocks automatically once PAN is verified',
+                          style: TextStyle(
+                            color: Colors.white38,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.lock_outline_rounded, size: 16, color: Colors.white38),
+                ],
+              ),
+            ),
+          ] else ...[
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -1104,22 +1196,22 @@ class _DigitalKycStepFlow extends StatelessWidget {
                             ),
                           ],
                         ),
-                        if (isAadhaarDone && isPanDone && isBankDone)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2ECC71).withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              'ALL VERIFIED ✓',
-                              style: TextStyle(
-                                color: Color(0xFF2ECC71),
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                        // if (isAadhaarDone && isPanDone && isBankDone)
+                        //   Container(
+                        //     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        //     decoration: BoxDecoration(
+                        //       color: const Color(0xFF2ECC71).withValues(alpha: 0.2),
+                        //       borderRadius: BorderRadius.circular(6),
+                        //     ),
+                        //     child: const Text(
+                        //       'ALL VERIFIED ✓',
+                        //       style: TextStyle(
+                        //         color: Color(0xFF2ECC71),
+                        //         fontSize: 9.5,
+                        //         fontWeight: FontWeight.bold,
+                        //       ),
+                        //     ),
+                        //   ),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -1804,6 +1896,30 @@ class _VerifiedDetailsCard extends StatelessWidget {
             _detailRow('Account Number', kyc.bankAccountNumber ?? '—'),
             const SizedBox(height: 12),
             _detailRow('IFSC Code', kyc.bankIfscCode ?? '—'),
+          ] else ...[
+            const SizedBox(height: 16),
+            const Divider(color: Color(0xFF1E3D30), height: 1),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4A017).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFD4A017).withValues(alpha: 0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: Color(0xFFD4A017), size: 18),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'No bank account linked yet. Please complete bank verification below for instant payouts.',
+                      style: TextStyle(color: Color(0xFFFFD54F), fontSize: 11.5, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ],
       ),

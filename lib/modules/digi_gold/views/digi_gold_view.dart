@@ -1,9 +1,6 @@
 import 'package:vika1/modules/notifications/controllers/notification_inbox_controller.dart';
 import '../../whats_coming/views/whats_coming_view.dart';
 import 'package:vika1/core/network/api_client.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:vika1/core/constants/api_constants.dart';
 import '../../coupons/widgets/coupon_ticket_card.dart';
 import '../../coupons/views/select_coupon_view.dart';
 import 'dart:async';
@@ -198,10 +195,10 @@ class _DigiGoldViewState extends State<DigiGoldView>
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 14),
+                  _ContinuousLiveMarketTicker(t: t),
+                  const SizedBox(height: 16),
                   _QuickActions(t: t),
-                  const SizedBox(height: 20),
-                  _LiveRates(t: t),
                   const SizedBox(height: 20),
                   _PromoBanner(t: t),
                   const SizedBox(height: 20),
@@ -1023,10 +1020,10 @@ class _QuickActionsState extends State<_QuickActions> {
         () => Get.toNamed(AppRoutes.buySilver),
       ),
       (
-        Icons.history_rounded,
-        'transactions'.tr,
-        Colors.blue,
-        () => Get.toNamed(AppRoutes.transactions),
+        Icons.wallet_outlined,
+        'add_money'.tr,
+        const Color(0xFFD4A017),
+        () => Get.toNamed(AppRoutes.wallet),
       ),
       (
         Icons.calendar_month_outlined,
@@ -1093,10 +1090,10 @@ class _QuickActionsState extends State<_QuickActions> {
 
     final row2 = [
       (
-        Icons.wallet_outlined,
-        'add_money'.tr,
-        const Color(0xFFD4A017),
-        () => Get.toNamed(AppRoutes.wallet),
+        Icons.history_rounded,
+        'transactions'.tr,
+        Colors.blue,
+        () => Get.toNamed(AppRoutes.transactions),
       ),
       (
         Icons.swap_horizontal_circle_outlined,
@@ -1289,169 +1286,87 @@ class _QuickActionsState extends State<_QuickActions> {
   }
 }
 
-// ─── Live Market Rates ────────────────────────────────────────────────────────
-class _LiveRates extends StatefulWidget {
-  const _LiveRates({required this.t});
+// ─── Continuous Live Market Rates Ticker Bar ─────────────────────────────────
+class _ContinuousLiveMarketTicker extends StatefulWidget {
+  const _ContinuousLiveMarketTicker({required this.t});
   final _T t;
 
   @override
-  State<_LiveRates> createState() => _LiveRatesState();
+  State<_ContinuousLiveMarketTicker> createState() => _ContinuousLiveMarketTickerState();
 }
 
-class _LiveRatesState extends State<_LiveRates> {
+class _ContinuousLiveMarketTickerState extends State<_ContinuousLiveMarketTicker> {
   final ScrollController _scrollController = ScrollController();
-  Timer? _timer;
+  Timer? _tickerTimer;
+  bool _isUserInteracting = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startAutoScroll();
+      _startContinuousScroll();
     });
   }
 
-  void _startAutoScroll() {
-    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (_scrollController.hasClients) {
-        final maxScroll = _scrollController.position.maxScrollExtent;
-        final currentScroll = _scrollController.position.pixels;
-        // Each card is 150 width + 10 padding = 160 step
-        var targetScroll = currentScroll + 160.0;
-        if (targetScroll >= maxScroll + 20.0) {
-          targetScroll = 0.0;
-        }
-        _scrollController.animateTo(
-          targetScroll,
-          duration: const Duration(milliseconds: 800),
-          curve: Curves.easeInOut,
-        );
+  void _startContinuousScroll() {
+    _tickerTimer?.cancel();
+    // 30ms step timer for silky-smooth 60fps continuous horizontal scrolling (~33 px/sec)
+    _tickerTimer = Timer.periodic(const Duration(milliseconds: 30), (_) {
+      if (!mounted || !_scrollController.hasClients || _isUserInteracting) return;
+      final max = _scrollController.position.maxScrollExtent;
+      if (max <= 0) return;
+
+      final current = _scrollController.offset;
+      final half = max / 2;
+      if (current >= half) {
+        _scrollController.jumpTo(current - half);
+      } else {
+        _scrollController.jumpTo(current + 1.0);
       }
     });
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _tickerTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildLiveBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF031E15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFF0F4733)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'live_market_rates'.tr,
-                style: TextStyle(
-                  color: widget.t.ink,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  Get.find<GoldController>().loadRate();
-                  Get.find<SilverController>().loadRate();
-                },
-                child: Obx(() {
-                  final updated = GoldController.to.rate.value?.updatedAt;
-                  return Row(
-                    children: [
-                      Text(
-                        updated != null
-                            ? '${'updated'.tr} ${updated.day}/${updated.month}, ${updated.hour}:${updated.minute.toString().padLeft(2, '0')}'
-                            : 'tap_to_refresh'.tr,
-                        style: TextStyle(
-                          color: widget.t.inkMuted,
-                          fontSize: 10.5,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.refresh_rounded,
-                        color: widget.t.inkMuted,
-                        size: 14,
-                      ),
-                    ],
-                  );
-                }),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 90,
-            child: ListView(
-              controller: _scrollController,
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              children: [
-                SizedBox(
-                  width: 150,
-                  child: _rateCard(
-                    'gold_24k'.tr,
-                    () => GoldController.to.buyRate,
-                    () => GoldController.to.goldPct,
-                    _gold,
-                    Icons.workspace_premium_rounded,
-                    widget.t,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 150,
-                  child: _rateCard(
-                    'silver_999'.tr,
-                    () => GoldController.to.silverRate,
-                    () => GoldController.to.silverPct,
-                    _silver,
-                    Icons.circle_outlined,
-                    widget.t,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 150,
-                  child: _rateCard(
-                    'platinum_950'.tr,
-                    () => GoldController.to.platinumRate,
-                    () => GoldController.to.platinumPct,
-                    const Color(0xFFE5E8EB),
-                    Icons.stars_rounded,
-                    widget.t,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 150,
-                  child: _rateCard(
-                    'Palladium',
-                    () => GoldController.to.palladiumRate,
-                    () => GoldController.to.palladiumPct,
-                    const Color(0xFF8A95A5),
-                    Icons.blur_on_rounded,
-                    widget.t,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 150,
-                  child: _rateCard(
-                    'copper'.tr,
-                    () => GoldController.to.copperRate,
-                    () => GoldController.to.copperPct,
-                    const Color(0xFFD35400),
-                    Icons.radio_button_checked_rounded,
-                    widget.t,
-                  ),
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2ECC71),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2ECC71).withValues(alpha: 0.8),
+                  blurRadius: 5,
+                  spreadRadius: 1,
                 ),
               ],
+            ),
+          ),
+          const SizedBox(width: 5),
+          const Text(
+            'LIVE',
+            style: TextStyle(
+              color: Color(0xFFFFB703),
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.1,
             ),
           ),
         ],
@@ -1459,83 +1374,160 @@ class _LiveRatesState extends State<_LiveRates> {
     );
   }
 
-  Widget _rateCard(
-    String label,
-    double Function() rate,
-    double Function() pct,
-    Color accent,
-    IconData icon,
-    _T t,
-  ) => Obx(() {
-    final p = pct();
-    final isUp = p >= 0;
-    final c = isUp ? _success : _danger;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: t.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: t.cardBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: accent, size: 15),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: t.ink,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Icon(
-                isUp ? Icons.trending_up_rounded : Icons.trending_down_rounded,
-                color: c,
-                size: 13,
-              ),
-            ],
+  Widget _buildTickerItem({
+    required String label,
+    required double rate,
+    required double pct,
+  }) {
+    final isUp = pct >= 0;
+    final trendColor = isUp ? const Color(0xFF2ECC71) : const Color(0xFFE74C3C);
+    final arrow = isUp ? '↗' : '↘';
+    final sign = isUp ? '+' : '';
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFFCBD5E1),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
           ),
-          const SizedBox(height: 1),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Text(
-                  '₹${rate().toStringAsFixed(2)}${'per_gram'.tr}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: t.ink,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '${isUp ? '+' : ''}${p.abs().toStringAsFixed(2)}%',
-                style: TextStyle(
-                  color: c,
-                  fontSize: 10.0,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '₹${rate.toStringAsFixed(2)}/gm',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w900,
           ),
-        ],
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '$arrow $sign${pct.abs().toStringAsFixed(2)}%',
+          style: TextStyle(
+            color: trendColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSeparator() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Icon(
+        Icons.circle,
+        size: 3.5,
+        color: const Color(0xFFD4A017).withValues(alpha: 0.55),
       ),
     );
-  });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final items = [
+        _buildTickerItem(
+          label: 'Gold 24K (999)',
+          rate: GoldController.to.buyRate,
+          pct: GoldController.to.goldPct,
+        ),
+        _buildSeparator(),
+        _buildTickerItem(
+          label: 'Silver (999)',
+          rate: GoldController.to.silverRate,
+          pct: GoldController.to.silverPct,
+        ),
+        _buildSeparator(),
+        _buildTickerItem(
+          label: 'Platinum 950',
+          rate: GoldController.to.platinumRate,
+          pct: GoldController.to.platinumPct,
+        ),
+        _buildSeparator(),
+        _buildTickerItem(
+          label: 'Palladium',
+          rate: GoldController.to.palladiumRate,
+          pct: GoldController.to.palladiumPct,
+        ),
+        _buildSeparator(),
+        _buildTickerItem(
+          label: 'Copper',
+          rate: GoldController.to.copperRate,
+          pct: GoldController.to.copperPct,
+        ),
+      ];
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          height: 38,
+          decoration: BoxDecoration(
+            color: const Color(0xFF042017),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: const Color(0xFF0F4733),
+              width: 1.1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 6, right: 2),
+                child: _buildLiveBadge(),
+              ),
+              Container(
+                width: 1,
+                height: 18,
+                color: const Color(0xFF0F4733),
+                margin: const EdgeInsets.symmetric(horizontal: 6),
+              ),
+              Expanded(
+                child: Listener(
+                  onPointerDown: (_) => _isUserInteracting = true,
+                  onPointerUp: (_) => _isUserInteracting = false,
+                  onPointerCancel: (_) => _isUserInteracting = false,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(9),
+                      bottomRight: Radius.circular(9),
+                    ),
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 4),
+                          ...items,
+                          _buildSeparator(),
+                          ...items,
+                          _buildSeparator(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
 }
 
 // ─── Promo banner: More ways to grow your wealth (Coming Soon) ───────────────

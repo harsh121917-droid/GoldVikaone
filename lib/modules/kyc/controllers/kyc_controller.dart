@@ -150,6 +150,40 @@ class KycController extends GetxController {
     super.onClose();
   }
 
+  void resetLocalState() {
+    fullNameCtrl.clear();
+    dobCtrl.clear();
+    addressCtrl.clear();
+    cityCtrl.clear();
+    stateCtrl.clear();
+    pincodeCtrl.clear();
+    panCtrl.clear();
+    bankNameCtrl.clear();
+    bankAccountCtrl.clear();
+    bankIfscCtrl.clear();
+    bankBankNameCtrl.clear();
+    cashfreePanCtrl.clear();
+    cashfreeAadhaarCtrl.clear();
+    cashfreeOtpCtrl.clear();
+    isPanVerified.value = false;
+    isAadhaarVerified.value = false;
+    isBankVerified.value = false;
+    verifiedPanName.value = '';
+    verifiedAadhaarName.value = '';
+    verifiedBankHolder.value = '';
+    verifiedBankName.value = '';
+    isCashfreeOtpSent.value = false;
+    cashfreeRefId.value = '';
+    isSoldierVerified.value = false;
+    soldierStatus.value = 'not_submitted';
+    soldierIdCtrl.clear();
+    panImage.value = null;
+    aadhaarFrontImage.value = null;
+    aadhaarBackImage.value = null;
+    soldierIdCardImage.value = null;
+    errorMsg.value = '';
+  }
+
   Future<void> loadMyKyc() async {
     try {
       isLoading.value = true;
@@ -157,7 +191,9 @@ class KycController extends GetxController {
       existingKyc.value = kyc;
       kycStatus.value = kyc?.status ?? 'not_submitted';
 
-      if (kyc != null) {
+      if (kyc == null || kyc.status == 'not_submitted') {
+        resetLocalState();
+      } else {
         fullNameCtrl.text = kyc.fullName;
         dobCtrl.text = kyc.dob.split('T').first;
         addressCtrl.text = kyc.addressLine1;
@@ -170,20 +206,36 @@ class KycController extends GetxController {
         bankIfscCtrl.text = kyc.bankIfscCode ?? '';
         bankBankNameCtrl.text = kyc.bankName ?? '';
 
-        if (kyc.panNumber.isNotEmpty && kyc.panNumber != 'PHOTO_SUBMITTED') {
+        final hasPan = kyc.panNumber.isNotEmpty && kyc.panNumber != 'PHOTO_SUBMITTED';
+        isPanVerified.value = hasPan;
+        if (hasPan) {
           cashfreePanCtrl.text = kyc.panNumber;
-          isPanVerified.value = true;
           verifiedPanName.value = kyc.fullName;
+        } else {
+          cashfreePanCtrl.clear();
+          verifiedPanName.value = '';
         }
-        if (kyc.aadhaarNumber != null && kyc.aadhaarNumber!.isNotEmpty && kyc.aadhaarNumber != 'PHOTO_SUBMITTED') {
+
+        final hasAadhaar = kyc.aadhaarNumber != null &&
+            kyc.aadhaarNumber!.isNotEmpty &&
+            kyc.aadhaarNumber != 'PHOTO_SUBMITTED';
+        isAadhaarVerified.value = hasAadhaar;
+        if (hasAadhaar) {
           cashfreeAadhaarCtrl.text = kyc.aadhaarNumber!;
-          isAadhaarVerified.value = true;
           verifiedAadhaarName.value = kyc.fullName;
+        } else {
+          cashfreeAadhaarCtrl.clear();
+          verifiedAadhaarName.value = '';
         }
-        if (kyc.bankAccountNumber != null && kyc.bankAccountNumber!.isNotEmpty) {
-          isBankVerified.value = true;
+
+        final hasBank = kyc.bankAccountNumber != null && kyc.bankAccountNumber!.isNotEmpty;
+        isBankVerified.value = hasBank;
+        if (hasBank) {
           verifiedBankHolder.value = kyc.bankAccountHolderName ?? kyc.fullName;
           verifiedBankName.value = kyc.bankName ?? '';
+        } else {
+          verifiedBankHolder.value = '';
+          verifiedBankName.value = '';
         }
 
         if (kyc.isSoldier) {
@@ -195,10 +247,16 @@ class KycController extends GetxController {
           isSoldierVerified.value = kyc.isSoldierApproved;
           soldierRejectionReason.value = kyc.soldierRejectionReason ?? '';
           soldierIdCardUrl.value = kyc.soldierIdCardUrl ?? '';
+        } else {
+          isSoldierVerified.value = false;
+          soldierStatus.value = 'not_submitted';
         }
       }
     } on DioException catch (_) {
       // 404 / no kyc yet is fine — stays not_submitted
+      resetLocalState();
+      existingKyc.value = null;
+      kycStatus.value = 'not_submitted';
     } catch (e) {
       errorMsg.value = 'Failed to load KYC status';
     } finally {
