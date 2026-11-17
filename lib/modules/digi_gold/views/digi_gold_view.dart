@@ -1377,13 +1377,7 @@ class _ContinuousLiveMarketTickerState extends State<_ContinuousLiveMarketTicker
   Widget _buildTickerItem({
     required String label,
     required double rate,
-    required double pct,
   }) {
-    final isUp = pct >= 0;
-    final trendColor = isUp ? const Color(0xFF2ECC71) : const Color(0xFFE74C3C);
-    final arrow = isUp ? '↗' : '↘';
-    final sign = isUp ? '+' : '';
-
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1396,22 +1390,13 @@ class _ContinuousLiveMarketTickerState extends State<_ContinuousLiveMarketTicker
             letterSpacing: 0.2,
           ),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 5),
         Text(
           '₹${rate.toStringAsFixed(2)}/gm',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 12.5,
             fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '$arrow $sign${pct.abs().toStringAsFixed(2)}%',
-          style: TextStyle(
-            color: trendColor,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
           ),
         ),
       ],
@@ -1436,31 +1421,26 @@ class _ContinuousLiveMarketTickerState extends State<_ContinuousLiveMarketTicker
         _buildTickerItem(
           label: 'Gold 24K (999)',
           rate: GoldController.to.buyRate,
-          pct: GoldController.to.goldPct,
         ),
         _buildSeparator(),
         _buildTickerItem(
           label: 'Silver (999)',
           rate: GoldController.to.silverRate,
-          pct: GoldController.to.silverPct,
         ),
         _buildSeparator(),
         _buildTickerItem(
           label: 'Platinum 950',
           rate: GoldController.to.platinumRate,
-          pct: GoldController.to.platinumPct,
         ),
         _buildSeparator(),
         _buildTickerItem(
           label: 'Palladium',
           rate: GoldController.to.palladiumRate,
-          pct: GoldController.to.palladiumPct,
         ),
         _buildSeparator(),
         _buildTickerItem(
           label: 'Copper',
           rate: GoldController.to.copperRate,
-          pct: GoldController.to.copperPct,
         ),
       ];
 
