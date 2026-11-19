@@ -1,6 +1,10 @@
 import '../modules/mutual_funds/views/mf_home_view.dart';
 import '../modules/mutual_funds/views/mf_portfolio_view.dart';
 import '../modules/mutual_funds/views/mf_ucc_onboarding_view.dart';
+import '../modules/fixed_deposits/views/fixed_deposits_home_view.dart';
+import '../modules/fixed_deposits/views/fd_application_form_view.dart';
+import '../modules/fixed_deposits/views/my_fd_applications_view.dart';
+import '../modules/bonds/views/bonds_view.dart';
 import 'package:vika1/modules/notifications/bindings/notification_binding.dart';
 import 'package:vika1/modules/notifications/views/notification_history_view.dart';
 import 'package:get/get.dart';
@@ -113,6 +117,10 @@ abstract class AppRoutes {
   static const mutualFunds = '/mutual-funds';
   static const mfPortfolio = '/mutual-funds/portfolio';
   static const mfUcc = '/mutual-funds/ucc';
+  static const fixedDeposits = '/fixed-deposits';
+  static const fdApply = '/fixed-deposits/apply';
+  static const myFdApplications = '/fixed-deposits/my-applications';
+  static const bonds = '/bonds';
 
 }
 
@@ -304,5 +312,21 @@ final appPages = [
   GetPage(
     name: AppRoutes.mfUcc,
     page: () => const MfUccOnboardingView(),
+  ),
+  GetPage(
+    name: AppRoutes.fixedDeposits,
+    page: () => const FixedDepositsHomeView(),
+  ),
+  GetPage(
+    name: AppRoutes.fdApply,
+    page: () => const FdApplicationFormView(),
+  ),
+  GetPage(
+    name: AppRoutes.myFdApplications,
+    page: () => const MyFdApplicationsView(),
+  ),
+  GetPage(
+    name: AppRoutes.bonds,
+    page: () => const BondsView(),
   ),
 ];

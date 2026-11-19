@@ -42,4 +42,5 @@ flutter:
   assets:
     - assets/images/
     - assets/images/Mutual_Funds/
+    - assets/images/fd/
     - assets/icons/

@@ -74,16 +74,32 @@ class DigiGoldView extends StatefulWidget {
 
 class _DigiGoldViewState extends State<DigiGoldView>
     with WidgetsBindingObserver {
-  final _heroCtrl = PageController();
+  late final PageController _heroCtrl;
   int _heroIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    int initialPage = 0;
+    if (Get.arguments is Map && Get.arguments['initialMetalIndex'] != null) {
+      initialPage = (Get.arguments['initialMetalIndex'] as num).toInt();
+      _heroIndex = initialPage;
+    }
+    _heroCtrl = PageController(initialPage: initialPage);
+
     if (!Get.isRegistered<GoldController>() || !Get.isRegistered<WalletController>()) {
       DigiGoldBinding().dependencies();
     }
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.arguments is Map && Get.arguments['initialMetalIndex'] != null) {
+        final target = (Get.arguments['initialMetalIndex'] as num).toInt();
+        if (_heroCtrl.hasClients && _heroIndex != target) {
+          _heroCtrl.jumpToPage(target);
+          setState(() => _heroIndex = target);
+        }
+      }
+    });
     _refreshAll();
   }
 
@@ -353,6 +369,99 @@ class _TopBar extends StatelessWidget {
   }
 }
 
+// ─── Shared Gain/Loss Badge for Hero Balance Cards ───────────────────────────
+Widget _buildHeroGainLossBadge({
+  required double gain,
+  required double gainPct,
+  required bool isDarkCard,
+}) {
+  final isUp = gain >= 0;
+  final isZero = gain.abs() < 0.001;
+
+  final Color textColor;
+  final Color iconColor;
+  final Color borderColor;
+  final Color bgColor;
+
+  if (isDarkCard) {
+    // For Gold (emerald green + gold banner) & Copper (bronze + copper banner)
+    if (isZero) {
+      textColor = const Color(0xFF94A3B8);
+      iconColor = const Color(0xFF94A3B8);
+      borderColor = const Color(0xFF475569).withValues(alpha: 0.5);
+      bgColor = const Color(0xFF0F172A).withValues(alpha: 0.88);
+    } else if (isUp) {
+      textColor = const Color(0xFF34D399); // Luminous mint green
+      iconColor = const Color(0xFF34D399);
+      borderColor = const Color(0xFF10B981).withValues(alpha: 0.65);
+      bgColor = const Color(0xFF042115).withValues(alpha: 0.90);
+    } else {
+      textColor = const Color(0xFFF87171); // Luminous coral red
+      iconColor = const Color(0xFFF87171);
+      borderColor = const Color(0xFFEF4444).withValues(alpha: 0.65);
+      bgColor = const Color(0xFF260A0A).withValues(alpha: 0.90);
+    }
+  } else {
+    // For Silver (light silvery/mint background + silver banner)
+    if (isZero) {
+      textColor = const Color(0xFF64748B);
+      iconColor = const Color(0xFF64748B);
+      borderColor = const Color(0xFFCBD5E1);
+      bgColor = Colors.white.withValues(alpha: 0.95);
+    } else if (isUp) {
+      textColor = const Color(0xFF047857); // Deep crisp emerald green
+      iconColor = const Color(0xFF047857);
+      borderColor = const Color(0xFF059669).withValues(alpha: 0.65);
+      bgColor = Colors.white.withValues(alpha: 0.95);
+    } else {
+      textColor = const Color(0xFFB91C1C); // Deep crisp ruby red
+      iconColor = const Color(0xFFB91C1C);
+      borderColor = const Color(0xFFDC2626).withValues(alpha: 0.65);
+      bgColor = Colors.white.withValues(alpha: 0.95);
+    }
+  }
+
+  final icon = isZero
+      ? Icons.trending_flat_rounded
+      : (isUp ? Icons.trending_up_rounded : Icons.trending_down_rounded);
+
+  final sign = isZero ? '' : (isUp ? '+' : '-');
+  final pctSign = isZero ? '' : (isUp ? '+' : '-');
+
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+    decoration: BoxDecoration(
+      color: bgColor,
+      borderRadius: BorderRadius.circular(9),
+      border: Border.all(color: borderColor, width: 1.1),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: isDarkCard ? 0.35 : 0.08),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(icon, color: iconColor, size: 13.5),
+        const SizedBox(width: 4.5),
+        Text(
+          '$sign₹${gain.abs().toStringAsFixed(2)} ($pctSign${gainPct.abs().toStringAsFixed(2)}%)',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 // ─── Gold hero card ───────────────────────────────────────────────────────────
 class _GoldHeroCard extends StatelessWidget {
   const _GoldHeroCard({required this.t});
@@ -362,7 +471,10 @@ class _GoldHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       final grams = GoldController.to.totalGrams;
-      final value = GoldController.to.balance.value?.currentValue ?? 0;
+      final bal = GoldController.to.balance.value;
+      final value = bal?.currentValue ?? 0;
+      final gain = bal?.gainLoss ?? 0.0;
+      final gainPct = bal?.gainLossPct ?? 0.0;
       return Container(
         // clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
@@ -461,17 +573,33 @@ class _GoldHeroCard extends StatelessWidget {
               const SizedBox(height: 10),
               Container(height: 1, color: Colors.white24),
               const SizedBox(height: 10),
-              Text(
-                '₹ ${value.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                'current_value'.tr,
-                style: TextStyle(color: Colors.white70, fontSize: 11),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '₹ ${value.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        'current_value'.tr,
+                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  _buildHeroGainLossBadge(
+                    gain: gain,
+                    gainPct: gainPct,
+                    isDarkCard: true,
+                  ),
+                ],
               ),
               const SizedBox(height: 14),
               Row(
@@ -570,7 +698,10 @@ class _SilverHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       final grams = SilverController.to.totalGrams;
-      final value = SilverController.to.balance.value?.currentValue ?? 0;
+      final bal = SilverController.to.balance.value;
+      final value = bal?.currentValue ?? 0;
+      final gain = bal?.gainLoss ?? 0.0;
+      final gainPct = bal?.gainLossPct ?? 0.0;
       const darkInk = Color(0xFF1A2B22);
       const darkMuted = Color(0xFF6B7A72);
       return Container(
@@ -670,17 +801,33 @@ class _SilverHeroCard extends StatelessWidget {
               const SizedBox(height: 10),
               Container(height: 1, color: Colors.black12),
               const SizedBox(height: 10),
-              Text(
-                '₹ ${value.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  color: darkInk,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                'current_value'.tr,
-                style: TextStyle(color: darkMuted, fontSize: 11),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '₹ ${value.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: darkInk,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        'current_value'.tr,
+                        style: TextStyle(color: darkMuted, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  _buildHeroGainLossBadge(
+                    gain: gain,
+                    gainPct: gainPct,
+                    isDarkCard: false,
+                  ),
+                ],
               ),
               const SizedBox(height: 14),
               Row(
@@ -783,7 +930,10 @@ class _CopperHeroCard extends StatelessWidget {
     }
     return Obx(() {
       final grams = CopperController.to.totalGrams;
-      final value = CopperController.to.balance.value?.currentValue ?? 0;
+      final bal = CopperController.to.balance.value;
+      final value = bal?.currentValue ?? 0;
+      final gain = bal?.gainLoss ?? 0.0;
+      final gainPct = bal?.gainLossPct ?? 0.0;
       return Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
@@ -887,17 +1037,33 @@ class _CopperHeroCard extends StatelessWidget {
               const SizedBox(height: 10),
               Container(height: 1, color: Colors.white12),
               const SizedBox(height: 10),
-              Text(
-                '₹ ${value.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                'current_value'.tr,
-                style: TextStyle(color: Colors.white70, fontSize: 11),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '₹ ${value.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        'current_value'.tr,
+                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  _buildHeroGainLossBadge(
+                    gain: gain,
+                    gainPct: gainPct,
+                    isDarkCard: true,
+                  ),
+                ],
               ),
               const SizedBox(height: 14),
               Row(
@@ -1145,16 +1311,22 @@ class _QuickActionsState extends State<_QuickActions> {
         },
       ),
       (
+        Icons.account_balance_rounded,
+        'Fixed Deposits',
+        const Color(0xFFD4A017),
+        () => Get.toNamed(AppRoutes.fixedDeposits),
+      ),
+      (
+        Icons.savings_outlined,
+        'Bonds',
+        const Color(0xFF00D09C),
+        () => Get.toNamed(AppRoutes.bonds),
+      ),
+      (
         Icons.trending_up_rounded,
         'price_chart'.tr,
         const Color(0xFFD4A017),
         () => Get.toNamed(AppRoutes.myGold),
-      ),
-      (
-        Icons.card_giftcard_rounded,
-        'gift'.tr,
-        Colors.orange,
-        () => Get.toNamed(AppRoutes.gift),
       ),
       // (
       //   Icons.menu_book_outlined,
@@ -1572,10 +1744,10 @@ class _PromoBanner extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              'LIVE NOW • NSE MFSS',
+                              'LIVE NOW • NSE MFSS & IRIS',
                               style: TextStyle(
                                 color: Color(0xFF00D09C),
-                                fontSize: 11,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 0.8,
                               ),
@@ -1584,7 +1756,7 @@ class _PromoBanner extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Mutual Funds is Live!',
+                          'Invest & Grow Wealth',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16.5,
@@ -1593,59 +1765,111 @@ class _PromoBanner extends StatelessWidget {
                             height: 1.2,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 5),
                         Text(
-                          'Invest in 1,000+ top mutual funds directly via NSE. Start SIP from ₹100.',
+                          '1,000+ top Mutual Funds via NSE and AAA Corporate FDs up to 8.85% p.a.',
                           style: TextStyle(
                             color: Color(0xFF9FBDB2),
                             fontSize: 11,
                             height: 1.35,
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        GestureDetector(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            Get.toNamed(AppRoutes.mutualFunds);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFD4A017), Color(0xFF00D09C)],
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFD4A017).withOpacity(0.35),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                Get.toNamed(AppRoutes.mutualFunds);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6.5,
                                 ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Explore Mutual Funds',
-                                  style: TextStyle(
-                                    color: Color(0xFF261800),
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w900,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFFD4A017), Color(0xFF00D09C)],
                                   ),
+                                  borderRadius: BorderRadius.circular(18),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF00D09C).withOpacity(0.35),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                                SizedBox(width: 4),
-                                const Icon(
-                                  Icons.arrow_forward_rounded,
-                                  color: Color(0xFF261800),
-                                  size: 13,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.show_chart_rounded,
+                                      color: Color(0xFF261800),
+                                      size: 13,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Text(
+                                      'Mutual Funds',
+                                      style: TextStyle(
+                                        color: Color(0xFF261800),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
+                            GestureDetector(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                Get.toNamed(AppRoutes.fixedDeposits);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: const Color(0xFFD4A017),
+                                    width: 1.3,
+                                  ),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x1AD4A017),
+                                      blurRadius: 6,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.account_balance_rounded,
+                                      color: Color(0xFFD4A017),
+                                      size: 13,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Fixed Deposits',
+                                      style: TextStyle(
+                                        color: Color(0xFF1A2340),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
