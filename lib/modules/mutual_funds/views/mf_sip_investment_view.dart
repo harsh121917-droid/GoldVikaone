@@ -411,7 +411,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     }
 
     final isUpi = _paymentMethod == 'UPI';
-    if (isUpi && _vpa.isNotEmpty && (!_vpa.contains('@') || _vpa.length < 4)) {
+    if (isUpi && (_vpa.isEmpty || !_vpa.contains('@') || _vpa.length < 4)) {
       _openVpaInputDialog(thenSubmit: true);
       return;
     }

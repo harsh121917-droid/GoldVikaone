@@ -433,12 +433,30 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
 
                     if (_selectedPaymentMode == 'UPI') ...[
                       const SizedBox(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'ENTER UPI ID FOR COLLECT REQUEST',
+                            style: TextStyle(color: textSecondary, fontSize: 10.5, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                          ),
+                          if (_vpaController.text.isNotEmpty)
+                            GestureDetector(
+                              onTap: () {
+                                _vpaController.clear();
+                                setState(() {});
+                              },
+                              child: const Text('Clear', style: TextStyle(color: mintTeal, fontSize: 11, fontWeight: FontWeight.bold)),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
                           color: surface,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: border),
+                          border: Border.all(color: _vpaController.text.isNotEmpty ? mintTeal.withValues(alpha: 0.5) : border),
                         ),
                         child: Row(
                           children: [
@@ -449,7 +467,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                                 controller: _vpaController,
                                 style: const TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                                 decoration: InputDecoration(
-                                  hintText: 'Enter UPI ID (optional - e.g. mobile@okaxis)',
+                                  hintText: 'e.g. 9876543210@paytm or user@okaxis',
                                   hintStyle: const TextStyle(color: textSecondary, fontSize: 12),
                                   border: InputBorder.none,
                                   isDense: true,
@@ -501,12 +519,12 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.shield_outlined, color: textSecondary.withValues(alpha: 0.7), size: 13),
+                          Icon(Icons.touch_app_rounded, color: mintTeal.withValues(alpha: 0.8), size: 13),
                           const SizedBox(width: 5),
-                          Expanded(
+                          const Expanded(
                             child: Text(
-                              'SEBI rule: UPI account must belong to your linked verified bank account.',
-                              style: TextStyle(color: textSecondary.withValues(alpha: 0.7), fontSize: 10),
+                              'NSE will send a payment notification to this UPI ID. You can approve it from any phone or device.',
+                              style: TextStyle(color: textSecondary, fontSize: 10.5, height: 1.3),
                             ),
                           ),
                         ],
@@ -825,11 +843,11 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
 
                               final isUpi = _selectedPaymentMode == 'UPI';
                               final vpa = _vpaController.text.trim();
-                              if (isUpi && vpa.isNotEmpty) {
-                                if (!vpa.contains('@') || vpa.length < 4) {
+                              if (isUpi) {
+                                if (vpa.isEmpty || !vpa.contains('@') || vpa.length < 4) {
                                   Get.snackbar(
-                                    'Invalid UPI ID',
-                                    'Please enter a valid UPI ID (e.g. mobile@okhdfcbank or yourname@okaxis), or leave it empty to select your UPI app directly.',
+                                    'UPI ID Required',
+                                    'Please enter your UPI ID (e.g. mobile@okhdfcbank or yourname@okaxis) to receive the payment collect request.',
                                     backgroundColor: Colors.redAccent,
                                     colorText: Colors.white,
                                     snackPosition: SnackPosition.BOTTOM,
@@ -846,9 +864,11 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                                 schemeName: widget.scheme.schemeName,
                                 orderAmount: amount,
                                 paymentMode: isUpi ? 'UPI' : 'NSE_GATEWAY',
-                                vpa: (isUpi && vpa.isNotEmpty) ? vpa : null,
+                                vpa: isUpi ? vpa : null,
                               );
-                              if (success) Get.back();
+                              if (success) {
+                                Get.back();
+                              }
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: mintTeal,
