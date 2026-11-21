@@ -507,27 +507,33 @@ class MutualFundsController extends GetxController {
         fetchPortfolio();
         fetchMyOrders();
 
-        if (serverPaymentMode == 'UPI' && vpa != null && vpa.isNotEmpty) {
-          await showUpiApprovalModal(
-            orderId: 'Cart-${totalFunds}-funds',
-            orderAmount: totalAmount,
-            vpa: vpa,
-            schemeName: '${totalFunds} Mutual Funds (Basket)',
-            paymentLink: primaryPaymentLink,
-            nseTrxnOrderId: data?['nsePaymentRefNo']?.toString(),
-          );
-        } else if (distinctLinks.isNotEmpty) {
+        if (distinctLinks.isNotEmpty) {
           final linkList = distinctLinks.toList();
           for (int i = 0; i < linkList.length; i++) {
             final isMulti = linkList.length > 1;
+            final isUpi = (serverPaymentMode == 'UPI');
             await openNsePaymentGateway(
               linkList[i],
-              title: isMulti ? 'NSE Gateway (Fund ${i + 1} of ${linkList.length})' : 'NSE Exchange Basket Payment',
-              message: isMulti
-                  ? 'Official NSE gateway opened for fund ${i + 1}. Complete UPI or NetBanking payment to proceed.'
-                  : 'Official NSE gateway opened for $totalFunds mutual funds. Select UPI or NetBanking to complete payment.',
+              title: isUpi
+                  ? (isMulti ? 'UPI Payment (Fund ${i + 1} of ${linkList.length})' : 'NSE UPI Payment (GPay / PhonePe / Paytm)')
+                  : (isMulti ? 'NSE Gateway (Fund ${i + 1} of ${linkList.length})' : 'NSE Exchange Basket Payment'),
+              subtitle: 'NSE Clearing Limited • Official Gateway',
+              message: isUpi
+                  ? 'Official NSE gateway opened. Select Google Pay, PhonePe, or Paytm to complete payment.'
+                  : (isMulti
+                      ? 'Official NSE gateway opened for fund ${i + 1}. Complete UPI or NetBanking payment to proceed.'
+                      : 'Official NSE gateway opened for $totalFunds mutual funds. Select UPI or NetBanking to complete payment.'),
             );
           }
+        } else if (serverPaymentMode == 'UPI' && vpa != null && vpa.isNotEmpty) {
+          await showUpiApprovalModal(
+            orderId: 'Cart-$totalFunds-funds',
+            orderAmount: totalAmount,
+            vpa: vpa,
+            schemeName: '$totalFunds Mutual Funds (Basket)',
+            paymentLink: primaryPaymentLink,
+            nseTrxnOrderId: data?['nsePaymentRefNo']?.toString(),
+          );
         }
 
         return data;
@@ -1832,11 +1838,14 @@ class MutualFundsController extends GetxController {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Collect sent to', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                              const Text('Payment Method', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(vpa, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  Text(
+                                    vpa.isNotEmpty && vpa.contains('@') ? vpa : 'UPI (Google Pay / PhonePe)',
+                                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                  ),
                                   const SizedBox(width: 8),
                                   GestureDetector(
                                     onTap: () {
@@ -1890,7 +1899,7 @@ class MutualFundsController extends GetxController {
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Tap "Pay via UPI App" to open Google Pay/PhonePe, or approve the notification in your UPI app. If no request appears, tap "Pay via NSE Gateway" to complete payment.',
+                            'Tap "Pay via UPI Now" to launch Google Pay, PhonePe, or Paytm and complete payment directly to NSE Clearing Limited.',
                             style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, height: 1.4),
                           ),
                         ),
@@ -1925,7 +1934,7 @@ class MutualFundsController extends GetxController {
                                 if (paymentLink != null && paymentLink.isNotEmpty) {
                                   await openNsePaymentGateway(
                                     paymentLink,
-                                    title: 'NSE Clearing Gateway',
+                                    title: 'NSE UPI Payment (GPay / PhonePe / Paytm)',
                                     message: 'Official NSE portal opened. Select UPI (GPay/PhonePe/Paytm) or NetBanking to complete payment.',
                                   );
                                 } else {
@@ -1935,7 +1944,7 @@ class MutualFundsController extends GetxController {
                                 }
                               },
                               icon: const Icon(Icons.flash_on_rounded, color: Colors.black, size: 16),
-                              label: const Text('Open UPI / Pay Now', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                              label: const Text('Pay via UPI Now', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: mintGreen,
                                 elevation: 0,
@@ -2016,7 +2025,20 @@ class MutualFundsController extends GetxController {
 
         fetchPortfolio();
 
-        if (serverPaymentMode == 'UPI' && orderId != null && orderId.isNotEmpty) {
+        if (paymentLink != null && paymentLink.isNotEmpty) {
+          final isUpi = (serverPaymentMode == 'UPI');
+          await openNsePaymentGateway(
+            paymentLink,
+            title: isUpi ? 'NSE UPI Payment (GPay / PhonePe / Paytm)' : 'NSE Exchange Payment (UPI / NetBanking)',
+            subtitle: 'NSE Clearing Limited • Official Gateway',
+            message: isUpi
+                ? 'Official NSE gateway opened. Select Google Pay, PhonePe, or Paytm to complete payment.'
+                : 'Official NSE gateway opened. Select UPI (GPay/PhonePe/Paytm) or NetBanking to pay directly to NSE Clearing Ltd.',
+          );
+          if (orderId != null && orderId.isNotEmpty) {
+            Future.delayed(const Duration(seconds: 4), () => syncOrderStatus(orderId));
+          }
+        } else if (serverPaymentMode == 'UPI' && orderId != null && orderId.isNotEmpty) {
           await showUpiApprovalModal(
             orderId: orderId,
             orderAmount: orderAmount,
@@ -2025,15 +2047,6 @@ class MutualFundsController extends GetxController {
             paymentLink: paymentLink,
             nseTrxnOrderId: (data?['nsePaymentRefNo'] ?? data?['nseTrxnOrderId'] ?? data?['order']?['nseTrxnOrderId'] ?? data?['order']?['nsePaymentRefNo'])?.toString(),
           );
-        } else if (paymentLink != null && paymentLink.isNotEmpty) {
-          await openNsePaymentGateway(
-            paymentLink,
-            title: 'NSE Exchange Payment (UPI / NetBanking)',
-            message: 'Official NSE gateway opened. Select UPI (GPay/PhonePe/Paytm) or NetBanking to pay directly to NSE Clearing Ltd.',
-          );
-          if (orderId != null && orderId.isNotEmpty) {
-            Future.delayed(const Duration(seconds: 4), () => syncOrderStatus(orderId));
-          }
         }
 
         return true;

@@ -188,11 +188,11 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
 
     final isUpi = _selectedPaymentMode == 'UPI';
     final vpa = _vpaController.text.trim();
-    if (isUpi) {
-      if (vpa.isEmpty || !vpa.contains('@') || vpa.length < 4) {
+    if (isUpi && vpa.isNotEmpty) {
+      if (!vpa.contains('@') || vpa.length < 4) {
         Get.snackbar(
           'Invalid UPI ID',
-          'Please enter a valid UPI ID (e.g. mobile@okhdfcbank or yourname@okaxis)',
+          'Please enter a valid UPI ID (e.g. mobile@okhdfcbank or yourname@okaxis), or leave it empty to select your UPI app directly.',
           backgroundColor: Colors.redAccent,
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
@@ -224,7 +224,7 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
         selectedItemIds: selectedIds.toList(),
         customItems: customItems,
         paymentMode: isUpi ? 'UPI' : 'NSE_PAYMENT_LINK',
-        vpa: isUpi ? vpa : null,
+        vpa: (isUpi && vpa.isNotEmpty) ? vpa : null,
       );
 
       if (result != null && mounted) {
@@ -520,7 +520,7 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
                                   Row(
                                     children: [
                                       const Text(
-                                        'Direct UPI (Instant Collect)',
+                                        'UPI (Google Pay, PhonePe, Paytm)',
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 13.5,
@@ -548,7 +548,7 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
-                                    'Approve request in GPay, PhonePe, or Paytm without portal redirect',
+                                    'Instant 1-tap payment via UPI apps (GPay, PhonePe, Paytm, QR)',
                                     style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 11),
                                   ),
                                 ],
@@ -582,7 +582,7 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
                                     controller: _vpaController,
                                     style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                                     decoration: const InputDecoration(
-                                      hintText: 'Enter UPI ID (e.g. mobile@okhdfcbank)',
+                                      hintText: 'Enter UPI ID (optional - e.g. mobile@okaxis)',
                                       hintStyle: TextStyle(color: Colors.white38, fontSize: 12),
                                       border: InputBorder.none,
                                       isDense: true,

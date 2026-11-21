@@ -411,7 +411,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     }
 
     final isUpi = _paymentMethod == 'UPI';
-    if (isUpi && (_vpa.isEmpty || !_vpa.contains('@') || _vpa.length < 4)) {
+    if (isUpi && _vpa.isNotEmpty && (!_vpa.contains('@') || _vpa.length < 4)) {
       _openVpaInputDialog(thenSubmit: true);
       return;
     }
@@ -421,7 +421,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
       schemeName: widget.scheme.schemeName,
       orderAmount: _amount,
       paymentMode: isUpi ? 'UPI' : 'NSE_GATEWAY',
-      vpa: isUpi ? _vpa.trim() : null,
+      vpa: (isUpi && _vpa.isNotEmpty) ? _vpa.trim() : null,
     );
     if (success) {
       if (!mounted) return;
@@ -587,10 +587,10 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
               final isUpi = _paymentMethod == 'UPI';
               final icon = isUpi ? Icons.bolt_rounded : Icons.account_balance_rounded;
               final iconColor = isUpi ? mintGreen : const Color(0xFF3B82F6);
-              final title = isUpi ? 'Direct UPI' : 'Official NSE Gateway';
+              final title = isUpi ? 'UPI (Google Pay / PhonePe / Paytm)' : 'Official NSE Gateway';
               final badgeText = isUpi ? 'FASTEST' : 'NSE MFSS';
               final subtitle = isUpi
-                  ? (_vpa.isNotEmpty ? 'UPI ID: $_vpa' : 'Tap to enter UPI ID (GPay / PhonePe)')
+                  ? (_vpa.isNotEmpty ? 'UPI ID: $_vpa' : 'Tap to enter UPI ID or pay directly via app')
                   : 'NetBanking, NEFT & official NSE portal';
 
               return Container(
