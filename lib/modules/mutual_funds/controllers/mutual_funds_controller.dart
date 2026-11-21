@@ -1833,7 +1833,36 @@ class MutualFundsController extends GetxController {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text('Collect sent to', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
-                              Text(vpa, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(vpa, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: () {
+                                      countdownTimer?.cancel();
+                                      pollTimer?.cancel();
+                                      Navigator.pop(sheetContext, false);
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: mintGreen.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: mintGreen.withValues(alpha: 0.3)),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.edit_rounded, color: mintGreen, size: 10),
+                                          SizedBox(width: 2),
+                                          Text('Edit', style: TextStyle(color: mintGreen, fontSize: 10.5, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                           const Divider(color: Color(0xFF222B3D), height: 16),

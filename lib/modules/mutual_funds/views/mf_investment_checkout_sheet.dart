@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import '../../../data/models/mf_scheme_model.dart';
 import '../controllers/mutual_funds_controller.dart';
 import 'mf_ucc_onboarding_view.dart';
@@ -42,6 +43,12 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
     _amountController = TextEditingController(
       text: defaultAmount.toInt().toString(),
     );
+    try {
+      final savedVpa = GetStorage().read('mf_saved_vpa')?.toString();
+      if (savedVpa != null && savedVpa.isNotEmpty) {
+        _vpaController.text = savedVpa;
+      }
+    } catch (_) {}
   }
 
   void _onHandleChipTap(String handle) {
@@ -441,12 +448,22 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                               child: TextField(
                                 controller: _vpaController,
                                 style: const TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   hintText: 'Enter UPI ID (e.g. mobile@okhdfcbank)',
-                                  hintStyle: TextStyle(color: textSecondary, fontSize: 12),
+                                  hintStyle: const TextStyle(color: textSecondary, fontSize: 12),
                                   border: InputBorder.none,
                                   isDense: true,
+                                  suffixIcon: _vpaController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(Icons.clear_rounded, color: textSecondary, size: 16),
+                                          onPressed: () {
+                                            _vpaController.clear();
+                                            setState(() {});
+                                          },
+                                        )
+                                      : null,
                                 ),
+                                onChanged: (_) => setState(() {}),
                               ),
                             ),
                           ],
@@ -819,6 +836,12 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                                   );
                                   return;
                                 }
+                              }
+
+                              if (isUpi) {
+                                try {
+                                  GetStorage().write('mf_saved_vpa', vpa);
+                                } catch (_) {}
                               }
 
                               final success = await controller.createPurchaseOrder(

@@ -146,13 +146,13 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                       child: const Icon(Icons.flash_on_rounded, color: mintGreen, size: 22),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Enter UPI ID', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 2),
-                          Text('Google Pay / PhonePe / Paytm / BHIM', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                          Text(_vpa.isNotEmpty ? 'Edit UPI ID' : 'Enter UPI ID', style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 2),
+                          const Text('Google Pay / PhonePe / Paytm / BHIM', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
                         ],
                       ),
                     ),
@@ -174,6 +174,15 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                     filled: true,
                     fillColor: surface,
                     prefixIcon: const Icon(Icons.alternate_email_rounded, color: mintGreen, size: 20),
+                    suffixIcon: vpaCtrl.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, color: Color(0xFF94A3B8), size: 18),
+                            onPressed: () {
+                              vpaCtrl.clear();
+                              setSheetState(() {});
+                            },
+                          )
+                        : null,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF222B3D))),
                     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF222B3D))),
@@ -233,7 +242,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Text(
-                      thenSubmit ? 'Confirm & Send Request' : 'Save UPI ID',
+                      thenSubmit ? 'Confirm & Send Request' : (_vpa.isNotEmpty ? 'Update UPI ID' : 'Save UPI ID'),
                       style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -308,10 +317,39 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                     ],
                   ),
                   subtitle: Text(
-                    _vpa.isNotEmpty ? 'UPI ID: $_vpa (Tap to edit)' : 'Google Pay, PhonePe, Paytm • No portal redirect',
+                    _vpa.isNotEmpty ? 'UPI ID: $_vpa' : 'Google Pay, PhonePe, Paytm • No portal redirect',
                     style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.w500),
                   ),
-                  trailing: _paymentMethod == 'UPI' ? Icon(Icons.check_circle_rounded, color: mintGreen) : const Icon(Icons.radio_button_unchecked, color: Colors.white24),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_vpa.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+                            _openVpaInputDialog();
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: mintGreen.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: mintGreen.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.edit_rounded, color: mintGreen, size: 12),
+                                const SizedBox(width: 4),
+                                Text('Edit', style: TextStyle(color: mintGreen, fontSize: 11, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      _paymentMethod == 'UPI' ? Icon(Icons.check_circle_rounded, color: mintGreen) : const Icon(Icons.radio_button_unchecked, color: Colors.white24),
+                    ],
+                  ),
                   onTap: () {
                     setState(() => _paymentMethod = 'UPI');
                     Navigator.pop(context);
@@ -579,7 +617,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                     Expanded(
                       child: GestureDetector(
                         onTap: () {
-                          if (isUpi && _vpa.isEmpty) {
+                          if (isUpi) {
                             _openVpaInputDialog();
                           } else {
                             _openBankSelector(surface, textPrimary, mintGreen);
@@ -618,15 +656,43 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                               ],
                             ),
                             const SizedBox(height: 2),
-                            Text(
-                              subtitle,
-                              style: TextStyle(
-                                color: isUpi && _vpa.isNotEmpty ? mintGreen : const Color(0xFF94A3B8),
-                                fontSize: 11,
-                                fontWeight: isUpi && _vpa.isNotEmpty ? FontWeight.w600 : FontWeight.normal,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    subtitle,
+                                    style: TextStyle(
+                                      color: isUpi && _vpa.isNotEmpty ? mintGreen : const Color(0xFF94A3B8),
+                                      fontSize: 11,
+                                      fontWeight: isUpi && _vpa.isNotEmpty ? FontWeight.w600 : FontWeight.normal,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (isUpi && _vpa.isNotEmpty) ...[
+                                  const SizedBox(width: 6),
+                                  GestureDetector(
+                                    onTap: () => _openVpaInputDialog(),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: mintGreen.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: mintGreen.withValues(alpha: 0.3)),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.edit_rounded, color: mintGreen, size: 10),
+                                          SizedBox(width: 2),
+                                          Text('Edit', style: TextStyle(color: mintGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
                         ),
