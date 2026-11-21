@@ -621,8 +621,8 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
       final clientCode = controller.onboardingData['clientCode']?.toString() ?? controller.userUcc.value?.clientCode ?? 'VK143005';
       final isLoading = controller.isOnboardingLoading.value;
 
-      // ── Step 2+: UCC Approved / Ready for Investment ──
-      if (step >= 2) {
+      // ── Step 3: Fully Verified / SIP & Mandate Ready (Compact Reassurance Badge) ──
+      if (step == 3) {
         return Container(
           margin: const EdgeInsets.only(bottom: 4),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -649,7 +649,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                     Row(
                       children: [
                         const Text(
-                          'Ready to Invest',
+                          'SIP & Lump Sum Ready',
                           style: TextStyle(color: GrowwColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(width: 6),
@@ -668,7 +668,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                     ),
                     const SizedBox(height: 2),
                     const Text(
-                      'UCC approved • Instant UPI & NetBanking • Zero Mandate Required',
+                      'UCC approved • Bank AutoPay active for automated debits',
                       style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11),
                     ),
                   ],
@@ -678,6 +678,208 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                 icon: const Icon(Icons.refresh_rounded, size: 16, color: GrowwColors.textSecondary),
                 tooltip: 'Check Status',
                 onPressed: () => controller.fetchOnboardingStatus(),
+              ),
+            ],
+          ),
+        );
+      }
+
+      // ── Step 2: UCC Approved, Bank AutoPay Mandate Setup ──
+      if (step == 2) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 4),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0D2224), Color(0xFF131722)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: GrowwColors.mintTeal.withOpacity(0.5), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: GrowwColors.mintTeal.withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Row: Icon + Title + Status Pill
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: GrowwColors.mintTeal.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.account_balance_rounded, color: GrowwColors.mintTeal, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Set Up AutoPay (Bank Mandate)',
+                          style: TextStyle(
+                            color: GrowwColors.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.check_rounded, color: Color(0xFF10B981), size: 10),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    'UCC: $clientCode',
+                                    style: const TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.18),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'eNACH / NetBanking Mandate',
+                                style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: isLoading
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: GrowwColors.mintTeal),
+                          )
+                        : const Icon(Icons.refresh_rounded, size: 18, color: GrowwColors.textSecondary),
+                    tooltip: 'Refresh Status',
+                    onPressed: () => controller.fetchOnboardingStatus(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Clarifying Explanation
+              const Text(
+                'Authorize your bank mandate once (₹50,000 limit) to enable automated monthly SIP debits and seamless investments on NSE MFSS without manual approval each time.',
+                style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12, height: 1.4),
+              ),
+              const SizedBox(height: 14),
+
+              // Action Buttons Row
+              Row(
+                children: [
+                  Expanded(
+                    flex: 6,
+                    child: ElevatedButton.icon(
+                      onPressed: () => controller.initiateMandateSetup(context),
+                      icon: const Icon(Icons.flash_on_rounded, size: 16, color: Colors.black),
+                      label: const Text(
+                        'Set Up AutoPay Mandate',
+                        style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: GrowwColors.mintTeal,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 5,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showLumpSumInstantTipDialog(context),
+                      icon: const Icon(Icons.bolt_rounded, size: 15, color: GrowwColors.mintTeal),
+                      label: const Text(
+                        'Invest (No Mandate)',
+                        style: TextStyle(color: GrowwColors.mintTeal, fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        side: BorderSide(color: GrowwColors.mintTeal.withOpacity(0.6)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => controller.openMandateAuthWebView(context),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.account_balance_wallet_outlined, size: 13, color: GrowwColors.mintTeal),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Authorize Mandate In-App',
+                            style: TextStyle(
+                              color: GrowwColors.mintTeal.withOpacity(0.9),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    GestureDetector(
+                      onTap: () => controller.openUccAuthWebView(context, clientCode: clientCode),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.security_rounded, size: 13, color: GrowwColors.mintTeal),
+                          const SizedBox(width: 4),
+                          Text(
+                            '2FA UCC Status',
+                            style: TextStyle(
+                              color: GrowwColors.mintTeal.withOpacity(0.9),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

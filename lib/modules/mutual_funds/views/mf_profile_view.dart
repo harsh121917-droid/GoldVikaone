@@ -23,6 +23,7 @@ class _MfProfileViewState extends State<MfProfileView> {
   void initState() {
     super.initState();
     controller.fetchMfProfile();
+    controller.fetchOnboardingStatus();
   }
 
   @override
@@ -71,7 +72,12 @@ class _MfProfileViewState extends State<MfProfileView> {
         return RefreshIndicator(
           color: GrowwColors.mintTeal,
           backgroundColor: GrowwColors.cardElevated,
-          onRefresh: () => controller.fetchMfProfile(),
+          onRefresh: () async {
+            await Future.wait([
+              controller.fetchMfProfile(),
+              controller.fetchOnboardingStatus(),
+            ]);
+          },
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             children: [
@@ -85,6 +91,10 @@ class _MfProfileViewState extends State<MfProfileView> {
 
               // ── 3. Bank Accounts Section ──
               _buildBankAccountsSection(banks),
+              const SizedBox(height: 20),
+
+              // ── 3b. Bank AutoPay & Mandate Section ──
+              _buildMandateSection(),
               const SizedBox(height: 20),
 
               // ── 4. Orders History Section ──
@@ -546,6 +556,147 @@ class _MfProfileViewState extends State<MfProfileView> {
           ),
       ],
     );
+  }
+
+  // ── AutoPay / Mandate Section ──
+  Widget _buildMandateSection() {
+    return Obx(() {
+      final onboardingData = controller.onboardingData;
+      final mandateStatus = (onboardingData['mandateStatus']?.toString() ?? 'NONE').toUpperCase();
+      final hasActiveMandate = controller.onboardingStep.value >= 3 ||
+          ['APPROVED', 'ACCEPTED_BY_BANK', 'ACTIVE', 'AUTHORIZED'].contains(mandateStatus);
+      final mandateId = onboardingData['mandateId']?.toString() ?? '';
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Bank AutoPay & Mandate',
+                style: TextStyle(
+                  color: GrowwColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (hasActiveMandate)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: GrowwColors.mintTeal.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: GrowwColors.mintTeal.withOpacity(0.3)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle_rounded, color: GrowwColors.mintTeal, size: 12),
+                      SizedBox(width: 4),
+                      Text(
+                        'Active',
+                        style: TextStyle(color: GrowwColors.mintTeal, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: GrowwColors.card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: hasActiveMandate ? GrowwColors.mintTeal.withOpacity(0.3) : GrowwColors.border,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: hasActiveMandate
+                            ? GrowwColors.mintTeal.withOpacity(0.15)
+                            : Colors.amber.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        hasActiveMandate ? Icons.verified_user_rounded : Icons.pending_actions_rounded,
+                        color: hasActiveMandate ? GrowwColors.mintTeal : Colors.amber,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            hasActiveMandate ? 'eNACH Mandate Active' : 'AutoPay Mandate Not Set Up',
+                            style: const TextStyle(
+                              color: GrowwColors.textPrimary,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            hasActiveMandate
+                                ? (mandateId.isNotEmpty ? 'Mandate ID: $mandateId • Limit: ₹50,000' : 'Limit: ₹50,000 • Automated SIP Debits Enabled')
+                                : 'Set up a one-time eNACH mandate (₹50,000 limit) for monthly SIPs and fast 1-click investments.',
+                            style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12, height: 1.3),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (!hasActiveMandate) ...[
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => controller.initiateMandateSetup(context),
+                          icon: const Icon(Icons.flash_on_rounded, size: 16, color: Colors.black),
+                          label: const Text(
+                            'Set Up AutoPay Mandate',
+                            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: GrowwColors.mintTeal,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            elevation: 0,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: () => controller.openMandateAuthWebView(context),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: GrowwColors.border),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                        ),
+                        child: const Text('In-App Link', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      );
+    });
   }
 
   // ── Orders History Section ──
