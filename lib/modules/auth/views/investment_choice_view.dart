@@ -357,10 +357,10 @@ class _InvestmentChoiceViewState extends State<InvestmentChoiceView>
     );
   }
 
-  // ── Card 2: NSE MF (Mutual Funds) ──
+  // ── Card 2: NSE Mutual Fund (Mutual Funds) ──
   Widget _buildMutualFundsCard() {
     return _buildGatewayCard(
-      title: 'NSE MF',
+      title: 'NSE Mutual Fund',
       badgeText: 'NSE Direct',
       tagline: 'Top AMCs • SIP from ₹500',
       features: const [
@@ -373,7 +373,7 @@ class _InvestmentChoiceViewState extends State<InvestmentChoiceView>
       iconBgColor: Colors.white,
       icon: Icons.auto_graph_rounded,
       iconImage: 'assets/images/Mutual_Funds/NSE.png',
-      buttonLabel: 'Explore NSE MF',
+      buttonLabel: 'Explore Mutual Funds',
       onTap: _openMutualFunds,
     );
   }
@@ -628,6 +628,7 @@ class _InvestmentChoiceViewState extends State<InvestmentChoiceView>
                       Container(
                         width: double.infinity,
                         height: 38,
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
@@ -646,25 +647,32 @@ class _InvestmentChoiceViewState extends State<InvestmentChoiceView>
                             ),
                           ],
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              buttonLabel,
-                              style: const TextStyle(
-                                color: Color(0xFF09130E),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.2,
-                              ),
+                        child: Center(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  buttonLabel,
+                                  style: const TextStyle(
+                                    color: Color(0xFF09130E),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.2,
+                                  ),
+                                  maxLines: 1,
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Color(0xFF09130E),
+                                  size: 14,
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.arrow_forward_rounded,
-                              color: Color(0xFF09130E),
-                              size: 14,
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ],

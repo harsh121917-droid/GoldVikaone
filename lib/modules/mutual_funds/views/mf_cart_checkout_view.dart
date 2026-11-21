@@ -28,7 +28,9 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
   // Map of custom amounts for each item ID
   late final RxMap<String, double> itemAmounts;
 
-  static const String _paymentMode = 'NSE_PAYMENT_LINK';
+  String _selectedPaymentMode = 'UPI'; // 'UPI' or 'NSE_PAYMENT_LINK'
+  final TextEditingController _vpaController = TextEditingController();
+  final List<String> _upiHandles = ['@okaxis', '@okhdfcbank', '@ybl', '@paytm', '@ibl'];
   bool _isSubmitting = false;
 
   static const Color darkBg = Color(0xFF0F141E);
@@ -48,8 +50,25 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
     controller.ensureInvestorReadiness();
   }
 
+  void _onHandleChipTap(String handle) {
+    final current = _vpaController.text.trim();
+    if (current.isEmpty) {
+      _vpaController.text = handle;
+    } else if (current.contains('@')) {
+      final prefix = current.split('@')[0];
+      _vpaController.text = '$prefix$handle';
+    } else {
+      _vpaController.text = '$current$handle';
+    }
+    _vpaController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _vpaController.text.length),
+    );
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    _vpaController.dispose();
     super.dispose();
   }
 
@@ -167,6 +186,21 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
       return;
     }
 
+    final isUpi = _selectedPaymentMode == 'UPI';
+    final vpa = _vpaController.text.trim();
+    if (isUpi) {
+      if (vpa.isEmpty || !vpa.contains('@') || vpa.length < 4) {
+        Get.snackbar(
+          'Invalid UPI ID',
+          'Please enter a valid UPI ID (e.g. mobile@okhdfcbank or yourname@okaxis)',
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
@@ -189,7 +223,8 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
       final result = await controller.checkoutCart(
         selectedItemIds: selectedIds.toList(),
         customItems: customItems,
-        paymentMode: _paymentMode,
+        paymentMode: isUpi ? 'UPI' : 'NSE_PAYMENT_LINK',
+        vpa: isUpi ? vpa : null,
       );
 
       if (result != null && mounted) {
@@ -436,78 +471,252 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
 
                 const SizedBox(height: 16),
 
-                // ── Section 2: Payment Method (Official NSE Gateway) ──
+                // ── Section 2: Payment Method (Option 1: Direct UPI Collect, Option 2: Official NSE Gateway) ──
                 const Text(
                   'PAYMENT METHOD',
                   style: TextStyle(color: Colors.white54, fontSize: 11.5, fontWeight: FontWeight.bold, letterSpacing: 0.6),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
 
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: mintGreen.withValues(alpha: 0.45),
-                      width: 1.2,
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: mintGreen.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.account_balance_rounded,
-                          color: mintGreen,
-                          size: 20,
-                        ),
+                // Option 1: Direct UPI Collect (Without NSE Portal)
+                InkWell(
+                  onTap: () => setState(() => _selectedPaymentMode = 'UPI'),
+                  borderRadius: BorderRadius.circular(14),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: _selectedPaymentMode == 'UPI' ? mintGreen : borderColor,
+                        width: _selectedPaymentMode == 'UPI' ? 1.6 : 1.0,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                const Text(
-                                  'NSE Exchange Gateway',
-                                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: mintGreen.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(4),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: _selectedPaymentMode == 'UPI'
+                                    ? mintGreen.withValues(alpha: 0.15)
+                                    : Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.bolt_rounded,
+                                color: _selectedPaymentMode == 'UPI' ? mintGreen : Colors.white60,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Text(
+                                        'Direct UPI (Instant Collect)',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: mintGreen.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text(
+                                          'FASTEST',
+                                          style: TextStyle(
+                                            color: mintGreen,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  child: const Text(
-                                    'OFFICIAL',
-                                    style: TextStyle(color: mintGreen, fontSize: 9.5, fontWeight: FontWeight.w800),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    'Approve request in GPay, PhonePe, or Paytm without portal redirect',
+                                    style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              _selectedPaymentMode == 'UPI'
+                                  ? Icons.radio_button_checked_rounded
+                                  : Icons.radio_button_off_rounded,
+                              color: _selectedPaymentMode == 'UPI' ? mintGreen : Colors.white38,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+
+                        if (_selectedPaymentMode == 'UPI') ...[
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: darkBg,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.alternate_email_rounded, color: mintGreen, size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _vpaController,
+                                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                                    decoration: const InputDecoration(
+                                      hintText: 'Enter UPI ID (e.g. mobile@okhdfcbank)',
+                                      hintStyle: TextStyle(color: Colors.white38, fontSize: 12),
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Official NSE portal with UPI (GPay/PhonePe/Paytm), NetBanking, and Debit Cards directly to NSE Clearing Ltd.',
-                              style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 11.5, height: 1.3),
+                          ),
+                          const SizedBox(height: 8),
+                          // Quick handle chips
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: _upiHandles.map((h) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: InkWell(
+                                    onTap: () => _onHandleChipTap(h),
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.05),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: borderColor),
+                                      ),
+                                      child: Text(
+                                        h,
+                                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                             ),
-                          ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.shield_outlined, color: Colors.white38, size: 13),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  'SEBI rule: UPI account must belong to your linked verified bank account.',
+                                  style: TextStyle(color: Colors.white38, fontSize: 10),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Option 2: Official NSE Gateway (As-is)
+                InkWell(
+                  onTap: () => setState(() => _selectedPaymentMode = 'NSE_PAYMENT_LINK'),
+                  borderRadius: BorderRadius.circular(14),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: _selectedPaymentMode == 'NSE_PAYMENT_LINK' ? mintGreen : borderColor,
+                        width: _selectedPaymentMode == 'NSE_PAYMENT_LINK' ? 1.6 : 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: _selectedPaymentMode == 'NSE_PAYMENT_LINK'
+                                ? mintGreen.withValues(alpha: 0.15)
+                                : Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.account_balance_rounded,
+                            color: _selectedPaymentMode == 'NSE_PAYMENT_LINK' ? mintGreen : Colors.white60,
+                            size: 20,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Icons.check_circle_rounded,
-                        color: mintGreen,
-                        size: 20,
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    'NSE Exchange Gateway',
+                                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: mintGreen.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      'OFFICIAL',
+                                      style: TextStyle(color: mintGreen, fontSize: 9.5, fontWeight: FontWeight.w800),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Official NSE portal with UPI (GPay/PhonePe/Paytm), NetBanking, and Debit Cards directly to NSE Clearing Ltd.',
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 11.5, height: 1.3),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          _selectedPaymentMode == 'NSE_PAYMENT_LINK'
+                              ? Icons.radio_button_checked_rounded
+                              : Icons.radio_button_off_rounded,
+                          color: _selectedPaymentMode == 'NSE_PAYMENT_LINK' ? mintGreen : Colors.white38,
+                          size: 20,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 

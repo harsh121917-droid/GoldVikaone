@@ -380,85 +380,79 @@ Widget _buildHeroGainLossBadge({
 
   final Color textColor;
   final Color iconColor;
-  final Color borderColor;
-  final Color bgColor;
+  final Color labelColor = isDarkCard ? Colors.white70 : const Color(0xFF64748B);
 
   if (isDarkCard) {
     // For Gold (emerald green + gold banner) & Copper (bronze + copper banner)
     if (isZero) {
       textColor = const Color(0xFF94A3B8);
       iconColor = const Color(0xFF94A3B8);
-      borderColor = const Color(0xFF475569).withValues(alpha: 0.5);
-      bgColor = const Color(0xFF0F172A).withValues(alpha: 0.88);
     } else if (isUp) {
       textColor = const Color(0xFF34D399); // Luminous mint green
       iconColor = const Color(0xFF34D399);
-      borderColor = const Color(0xFF10B981).withValues(alpha: 0.65);
-      bgColor = const Color(0xFF042115).withValues(alpha: 0.90);
     } else {
       textColor = const Color(0xFFF87171); // Luminous coral red
       iconColor = const Color(0xFFF87171);
-      borderColor = const Color(0xFFEF4444).withValues(alpha: 0.65);
-      bgColor = const Color(0xFF260A0A).withValues(alpha: 0.90);
     }
   } else {
     // For Silver (light silvery/mint background + silver banner)
     if (isZero) {
       textColor = const Color(0xFF64748B);
       iconColor = const Color(0xFF64748B);
-      borderColor = const Color(0xFFCBD5E1);
-      bgColor = Colors.white.withValues(alpha: 0.95);
     } else if (isUp) {
       textColor = const Color(0xFF047857); // Deep crisp emerald green
       iconColor = const Color(0xFF047857);
-      borderColor = const Color(0xFF059669).withValues(alpha: 0.65);
-      bgColor = Colors.white.withValues(alpha: 0.95);
     } else {
       textColor = const Color(0xFFB91C1C); // Deep crisp ruby red
       iconColor = const Color(0xFFB91C1C);
-      borderColor = const Color(0xFFDC2626).withValues(alpha: 0.65);
-      bgColor = Colors.white.withValues(alpha: 0.95);
     }
   }
 
   final icon = isZero
       ? Icons.trending_flat_rounded
-      : (isUp ? Icons.trending_up_rounded : Icons.trending_down_rounded);
+      : (isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded);
 
   final sign = isZero ? '' : (isUp ? '+' : '-');
   final pctSign = isZero ? '' : (isUp ? '+' : '-');
 
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
-    decoration: BoxDecoration(
-      color: bgColor,
-      borderRadius: BorderRadius.circular(9),
-      border: Border.all(color: borderColor, width: 1.1),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: isDarkCard ? 0.35 : 0.08),
-          blurRadius: 6,
-          offset: const Offset(0, 2),
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        'gain_loss'.tr,
+        style: TextStyle(
+          color: labelColor,
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
         ),
-      ],
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Icon(icon, color: iconColor, size: 13.5),
-        const SizedBox(width: 4.5),
-        Text(
-          '$sign₹${gain.abs().toStringAsFixed(2)} ($pctSign${gainPct.abs().toStringAsFixed(2)}%)',
-          style: TextStyle(
-            color: textColor,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.2,
+      ),
+      const SizedBox(height: 1),
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, color: iconColor, size: 12),
+          const SizedBox(width: 2.5),
+          Text(
+            '$sign₹${gain.abs().toStringAsFixed(2)}',
+            style: TextStyle(
+              color: textColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
           ),
+        ],
+      ),
+      Text(
+        '($pctSign${gainPct.abs().toStringAsFixed(2)}%)',
+        style: TextStyle(
+          color: textColor,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
         ),
-      ],
-    ),
+      ),
+    ],
   );
 }
 
@@ -574,26 +568,38 @@ class _GoldHeroCard extends StatelessWidget {
               Container(height: 1, color: Colors.white24),
               const SizedBox(height: 10),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      Text(
+                        'current_value'.tr,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
                       Text(
                         '₹ ${value.toStringAsFixed(2)}',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 17,
+                          fontSize: 13,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      Text(
-                        'current_value'.tr,
-                        style: const TextStyle(color: Colors.white70, fontSize: 11),
-                      ),
                     ],
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
+                  Container(
+                    width: 1,
+                    height: 32,
+                    color: Colors.white24,
+                  ),
+                  const SizedBox(width: 14),
                   _buildHeroGainLossBadge(
                     gain: gain,
                     gainPct: gainPct,
@@ -802,26 +808,38 @@ class _SilverHeroCard extends StatelessWidget {
               Container(height: 1, color: Colors.black12),
               const SizedBox(height: 10),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      Text(
+                        'current_value'.tr,
+                        style: TextStyle(
+                          color: darkMuted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
                       Text(
                         '₹ ${value.toStringAsFixed(2)}',
                         style: const TextStyle(
                           color: darkInk,
-                          fontSize: 17,
+                          fontSize: 13,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      Text(
-                        'current_value'.tr,
-                        style: TextStyle(color: darkMuted, fontSize: 11),
-                      ),
                     ],
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
+                  Container(
+                    width: 1,
+                    height: 32,
+                    color: Colors.black12,
+                  ),
+                  const SizedBox(width: 14),
                   _buildHeroGainLossBadge(
                     gain: gain,
                     gainPct: gainPct,
@@ -1038,26 +1056,38 @@ class _CopperHeroCard extends StatelessWidget {
               Container(height: 1, color: Colors.white12),
               const SizedBox(height: 10),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      Text(
+                        'current_value'.tr,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
                       Text(
                         '₹ ${value.toStringAsFixed(2)}',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 17,
+                          fontSize: 13,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      Text(
-                        'current_value'.tr,
-                        style: const TextStyle(color: Colors.white70, fontSize: 11),
-                      ),
                     ],
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
+                  Container(
+                    width: 1,
+                    height: 32,
+                    color: Colors.white24,
+                  ),
+                  const SizedBox(width: 14),
                   _buildHeroGainLossBadge(
                     gain: gain,
                     gainPct: gainPct,
@@ -1682,10 +1712,37 @@ class _ContinuousLiveMarketTickerState extends State<_ContinuousLiveMarketTicker
   }
 }
 
-// ─── Promo banner: More ways to grow your wealth (Coming Soon) ───────────────
+// ─── Promo banner: Mutual Funds & Corporate Fixed Deposits (Modern UI) ────────
 class _PromoBanner extends StatelessWidget {
   const _PromoBanner({required this.t});
   final _T t;
+
+  Widget _buildFeatureChip(IconData icon, String label, Color accentColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+      decoration: BoxDecoration(
+        color: accentColor.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accentColor.withOpacity(0.28), width: 0.8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: accentColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.92),
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1698,255 +1755,361 @@ class _PromoBanner extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF031A14), Color(0xFF072920), Color(0xFF041812)],
+            colors: [
+              Color(0xFF0B1420),
+              Color(0xFF0F2228),
+              Color(0xFF0A181C),
+            ],
           ),
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: const Color(0xFF1FAE7A).withOpacity(0.3),
+            color: const Color(0xFF00D09C).withOpacity(0.32),
             width: 1.2,
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF041A14).withOpacity(0.4),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
+              color: const Color(0xFF04121A).withOpacity(0.55),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Stack(
           children: [
-            // Background subtle light accent
+            // Top-right glowing ambient aura
             Positioned(
-              top: -30,
+              top: -40,
               right: -30,
               child: Container(
-                width: 140,
-                height: 140,
+                width: 160,
+                height: 160,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF1FAE7A).withOpacity(0.08),
+                  color: const Color(0xFF00D09C).withOpacity(0.12),
                 ),
               ),
             ),
+            // Bottom-left subtle gold accent
+            Positioned(
+              bottom: -40,
+              left: -30,
+              child: Container(
+                width: 130,
+                height: 130,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFD4A017).withOpacity(0.08),
+                ),
+              ),
+            ),
+
             Padding(
               padding: const EdgeInsets.all(18),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Left Content
-                  Expanded(
-                    flex: 6,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // NOW LIVE Badge
-                        Row(
+                  // Top Header: Live Badge on Left + NSE & BSE Official Badges on Right
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Glowing Live Status Pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00D09C).withOpacity(0.14),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: const Color(0xFF00D09C).withOpacity(0.4),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              'LIVE NOW • NSE MFSS & IRIS',
+                            Container(
+                              width: 6.5,
+                              height: 6.5,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFF00D09C),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color(0xFF00D09C),
+                                    blurRadius: 5,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'LIVE ON EXCHANGES',
                               style: TextStyle(
                                 color: Color(0xFF00D09C),
-                                fontSize: 10.5,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w900,
-                                letterSpacing: 0.8,
+                                letterSpacing: 0.7,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Invest & Grow Wealth',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16.5,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.3,
-                            height: 1.2,
+                      ),
+
+                      // NSE and BSE Official Badges in Premium Crisp Capsule
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.28),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                          border: Border.all(
+                            color: const Color(0xFFE2E8F0),
+                            width: 0.9,
                           ),
                         ),
-                        const SizedBox(height: 5),
-                        Text(
-                          '1,000+ top Mutual Funds via NSE and AAA Corporate FDs up to 8.85% p.a.',
-                          style: TextStyle(
-                            color: Color(0xFF9FBDB2),
-                            fontSize: 11,
-                            height: 1.35,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            GestureDetector(
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                Get.toNamed(AppRoutes.mutualFunds);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6.5,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFFD4A017), Color(0xFF00D09C)],
-                                  ),
-                                  borderRadius: BorderRadius.circular(18),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF00D09C).withOpacity(0.35),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.show_chart_rounded,
-                                      color: Color(0xFF261800),
-                                      size: 13,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Text(
-                                      'Mutual Funds',
-                                      style: TextStyle(
-                                        color: Color(0xFF261800),
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                            Image.asset(
+                              'assets/images/Mutual_Funds/NSE.png',
+                              height: 16,
+                              fit: BoxFit.contain,
                             ),
-                            GestureDetector(
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                Get.toNamed(AppRoutes.fixedDeposits);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6.5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(
-                                    color: const Color(0xFFD4A017),
-                                    width: 1.3,
-                                  ),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Color(0x1AD4A017),
-                                      blurRadius: 6,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.account_balance_rounded,
-                                      color: Color(0xFFD4A017),
-                                      size: 13,
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Fixed Deposits',
-                                      style: TextStyle(
-                                        color: Color(0xFF1A2340),
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                            Container(
+                              height: 12,
+                              width: 1,
+                              margin: const EdgeInsets.symmetric(horizontal: 7),
+                              color: const Color(0xFFCBD5E1),
+                            ),
+                            Image.asset(
+                              'assets/images/Mutual_Funds/BSE.gif',
+                              height: 15,
+                              fit: BoxFit.contain,
                             ),
                           ],
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Main Headline
+                  const Text(
+                    'Invest & Grow Your Wealth',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17.5,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(height: 4),
 
-                  // Right Visual Graphic with NSE & BSE Official Badges
-                  Expanded(
-                    flex: 4,
-                    child: Container(
-                      height: 140,
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      decoration: BoxDecoration(
-                        gradient: RadialGradient(
-                          colors: [
-                            const Color(0xFF1FAE7A).withOpacity(0.18),
-                            Colors.transparent,
-                          ],
+                  // Subtitle
+                  Text(
+                    'Direct Mutual Funds via NSE MFSS & CRISIL AAA Corporate FDs up to 9.40% p.a.',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.72),
+                      fontSize: 11.5,
+                      height: 1.38,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Feature Trust Pills (Wrapped safely)
+                  Wrap(
+                    spacing: 7,
+                    runSpacing: 6,
+                    children: [
+                      _buildFeatureChip(Icons.bolt_rounded, '0% Brokerage', const Color(0xFF00D09C)),
+                      _buildFeatureChip(Icons.verified_user_rounded, 'CRISIL AAA', const Color(0xFFE5A61B)),
+                      _buildFeatureChip(Icons.lock_outline_rounded, 'SEBI Regulated', const Color(0xFF38BDF8)),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Two Modern Action Buttons
+                  Row(
+                    children: [
+                      // Button 1: Mutual Funds
+                      Expanded(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              Get.toNamed(AppRoutes.mutualFunds);
+                            },
+                            borderRadius: BorderRadius.circular(13),
+                            child: Ink(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF00D09C), Color(0xFF059669)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(13),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF00D09C).withOpacity(0.35),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.18),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.trending_up_rounded,
+                                      color: Colors.white,
+                                      size: 15,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Text(
+                                          'Mutual Funds',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w900,
+                                            height: 1.15,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          'SIP from ₹100',
+                                          style: TextStyle(
+                                            color: Color(0xFFD1FAE5),
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: Colors.white70,
+                                    size: 10,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // NSE Official Badge
-                          Container(
-                            width: 104,
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.35),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
+
+                      const SizedBox(width: 10),
+
+                      // Button 2: Fixed Deposits
+                      Expanded(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              Get.toNamed(AppRoutes.fixedDeposits);
+                            },
+                            borderRadius: BorderRadius.circular(13),
+                            child: Ink(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFE5A61B), Color(0xFFC47E0B)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                              ],
-                              border: Border.all(
-                                color: const Color(0xFFD4A017).withOpacity(0.5),
-                                width: 1.2,
+                                borderRadius: BorderRadius.circular(13),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFE5A61B).withOpacity(0.35),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.18),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.account_balance_rounded,
+                                      color: Colors.white,
+                                      size: 15,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Text(
+                                          'Fixed Deposits',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w900,
+                                            height: 1.15,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          'Up to 9.40% p.a.',
+                                          style: TextStyle(
+                                            color: Color(0xFFFEF3C7),
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: Colors.white70,
+                                    size: 10,
+                                  ),
+                                ],
                               ),
                             ),
-                            child: Image.asset(
-                              'assets/images/Mutual_Funds/NSE.png',
-                              height: 24,
-                              fit: BoxFit.contain,
-                            ),
                           ),
-                          const SizedBox(height: 10),
-                          // BSE Official Badge
-                          Container(
-                            width: 104,
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.35),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                              border: Border.all(
-                                color: const Color(0xFF1FAE7A).withOpacity(0.5),
-                                width: 1.2,
-                              ),
-                            ),
-                            child: Image.asset(
-                              'assets/images/Mutual_Funds/BSE.gif',
-                              height: 24,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),

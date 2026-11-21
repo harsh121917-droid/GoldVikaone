@@ -32,7 +32,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     try {
       _vpa = GetStorage().read('mf_saved_vpa')?.toString() ?? '';
     } catch (_) {}
-    _paymentMethod = 'NSE_GATEWAY';
+    _paymentMethod = 'UPI';
 
     final minAmount = widget.scheme.minPurchaseAmount ?? widget.scheme.minSipAmount ?? 500.0;
     _amountStr = minAmount.toInt().toString();
@@ -216,7 +216,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                             final val = vpaCtrl.text.trim();
                             setState(() {
                               _vpa = val;
-                              _paymentMethod = 'NSE_GATEWAY';
+                              _paymentMethod = 'UPI';
                             });
                             try {
                               GetStorage().write('mf_saved_vpa', val);
@@ -281,6 +281,48 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                 const SizedBox(height: 16),
                 Text('Select Payment Mode', style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
+
+                // Option 1: Direct UPI
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: mintGreen.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.bolt_rounded, color: mintGreen, size: 22),
+                  ),
+                  title: Row(
+                    children: [
+                      const Text('Direct UPI (Instant Collect)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: mintGreen.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('FASTEST', style: TextStyle(color: mintGreen, fontSize: 9, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                  subtitle: Text(
+                    _vpa.isNotEmpty ? 'UPI ID: $_vpa (Tap to edit)' : 'Google Pay, PhonePe, Paytm • No portal redirect',
+                    style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
+                  trailing: _paymentMethod == 'UPI' ? Icon(Icons.check_circle_rounded, color: mintGreen) : const Icon(Icons.radio_button_unchecked, color: Colors.white24),
+                  onTap: () {
+                    setState(() => _paymentMethod = 'UPI');
+                    Navigator.pop(context);
+                    if (_vpa.isEmpty) {
+                      _openVpaInputDialog();
+                    }
+                  },
+                ),
+                const Divider(color: Color(0xFF1E2535), height: 20),
+
+                // Option 2: Official NSE Gateway
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Container(
@@ -292,8 +334,8 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                     child: const Icon(Icons.account_balance_rounded, color: Color(0xFF3B82F6), size: 22),
                   ),
                   title: const Text('Official NSE Gateway', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Official NSE Clearing Limited payment portal • Pay via UPI (GPay/PhonePe/Paytm), NetBanking or NEFT', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 12, fontWeight: FontWeight.w500)),
-                  trailing: Icon(Icons.check_circle_rounded, color: mintGreen),
+                  subtitle: const Text('Official NSE Clearing Limited payment portal • Pay via NetBanking, NEFT or NSE portal', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 12, fontWeight: FontWeight.w500)),
+                  trailing: _paymentMethod == 'NSE_GATEWAY' ? Icon(Icons.check_circle_rounded, color: mintGreen) : const Icon(Icons.radio_button_unchecked, color: Colors.white24),
                   onTap: () {
                     setState(() => _paymentMethod = 'NSE_GATEWAY');
                     Navigator.pop(context);
@@ -330,11 +372,18 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
       return;
     }
 
+    final isUpi = _paymentMethod == 'UPI';
+    if (isUpi && (_vpa.isEmpty || !_vpa.contains('@') || _vpa.length < 4)) {
+      _openVpaInputDialog(thenSubmit: true);
+      return;
+    }
+
     final success = await controller.createPurchaseOrder(
       schemeCode: widget.scheme.schemeCode,
       schemeName: widget.scheme.schemeName,
       orderAmount: _amount,
-      paymentMode: 'NSE_GATEWAY',
+      paymentMode: isUpi ? 'UPI' : 'NSE_GATEWAY',
+      vpa: isUpi ? _vpa.trim() : null,
     );
     if (success) {
       if (!mounted) return;
@@ -497,14 +546,17 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
           // ── Payment Method Row (Above Keypad) ──
           Builder(
             builder: (_) {
-              const icon = Icons.account_balance_rounded;
-              const iconColor = Color(0xFF3B82F6);
-              const title = 'Official NSE Gateway';
-              const badgeText = 'NSE MFSS';
-              const subtitle = 'Direct payment via UPI (GPay/PhonePe), NetBanking & NEFT';
+              final isUpi = _paymentMethod == 'UPI';
+              final icon = isUpi ? Icons.bolt_rounded : Icons.account_balance_rounded;
+              final iconColor = isUpi ? mintGreen : const Color(0xFF3B82F6);
+              final title = isUpi ? 'Direct UPI' : 'Official NSE Gateway';
+              final badgeText = isUpi ? 'FASTEST' : 'NSE MFSS';
+              final subtitle = isUpi
+                  ? (_vpa.isNotEmpty ? 'UPI ID: $_vpa' : 'Tap to enter UPI ID (GPay / PhonePe)')
+                  : 'NetBanking, NEFT & official NSE portal';
 
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: const BoxDecoration(
                   color: Color(0xFF0F131D),
                   border: Border(top: BorderSide(color: Color(0xFF1A2230), width: 1)),
@@ -514,10 +566,10 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E2535),
+                        color: isUpi ? mintGreen.withValues(alpha: 0.15) : const Color(0xFF1E2535),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         icon,
                         color: iconColor,
                         size: 20,
@@ -527,7 +579,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                     Expanded(
                       child: GestureDetector(
                         onTap: () {
-                          if (_paymentMethod == 'UPI' && _vpa.isEmpty) {
+                          if (isUpi && _vpa.isEmpty) {
                             _openVpaInputDialog();
                           } else {
                             _openBankSelector(surface, textPrimary, mintGreen);
@@ -539,10 +591,10 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                           children: [
                             Row(
                               children: [
-                                const Flexible(
+                                Flexible(
                                   child: Text(
                                     title,
-                                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -551,13 +603,13 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                                   decoration: BoxDecoration(
-                                    color: mintGreen.withValues(alpha: 0.15),
+                                    color: (isUpi ? mintGreen : const Color(0xFF3B82F6)).withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     badgeText,
                                     style: TextStyle(
-                                      color: _paymentMethod == 'NSE_GATEWAY' ? const Color(0xFF3B82F6) : mintGreen,
+                                      color: isUpi ? mintGreen : const Color(0xFF3B82F6),
                                       fontSize: 9,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -566,9 +618,13 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                               ],
                             ),
                             const SizedBox(height: 2),
-                            const Text(
+                            Text(
                               subtitle,
-                              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                              style: TextStyle(
+                                color: isUpi && _vpa.isNotEmpty ? mintGreen : const Color(0xFF94A3B8),
+                                fontSize: 11,
+                                fontWeight: isUpi && _vpa.isNotEmpty ? FontWeight.w600 : FontWeight.normal,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -579,15 +635,24 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => _openBankSelector(surface, textPrimary, mintGreen),
-                      child: const Row(
-                        children: [
-                          Text(
-                            'NSE Gateway',
-                            style: TextStyle(color: Color(0xFF3B82F6), fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(width: 2),
-                          Icon(Icons.verified_rounded, color: Color(0xFF3B82F6), size: 18),
-                        ],
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Change',
+                              style: TextStyle(color: Colors.white70, fontSize: 11.5, fontWeight: FontWeight.w600),
+                            ),
+                            SizedBox(width: 2),
+                            Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white70, size: 16),
+                          ],
+                        ),
                       ),
                     ),
                   ],

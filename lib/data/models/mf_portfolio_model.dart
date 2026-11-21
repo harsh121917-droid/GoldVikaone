@@ -88,28 +88,39 @@ class MfHolding {
     final pRedUnits = (json['pendingRedemptionUnits'] as num?)?.toDouble() ?? 0.0;
     final aUnits = (json['availableUnits'] as num?)?.toDouble() ?? (tUnits - pRedUnits);
 
-    return MfHolding(
-      schemeCode: json['schemeCode']?.toString() ?? '',
-      schemeName: json['schemeName']?.toString() ?? '',
-      amcName: json['amcName']?.toString(),
-      category: json['category']?.toString(),
-      subCategory: json['subCategory']?.toString(),
-      totalUnits: tUnits,
-      availableUnits: aUnits > 0 ? aUnits : (tUnits > 0 ? tUnits : 0.0),
-      pendingRedemptionUnits: pRedUnits,
-      folioNo: json['folioNo']?.toString(),
-      isRedeemable: json['isRedeemable'] == true || (tUnits > 0 && aUnits > 0.0001),
-      investedAmount: (json['investedAmount'] as num?)?.toDouble() ?? 0.0,
-      averageNav: (json['averageNav'] as num?)?.toDouble(),
-      currentNav: (json['currentNav'] as num?)?.toDouble() ?? 0.0,
-      navDate: json['navDate'] != null ? DateTime.tryParse(json['navDate'].toString()) : null,
-      currentValue: (json['currentValue'] as num?)?.toDouble() ?? 0.0,
-      profitLoss: (json['profitLoss'] as num?)?.toDouble() ?? 0.0,
-      profitLossPct: (json['profitLossPct'] as num?)?.toDouble() ?? 0.0,
-      pendingUnits: (json['pendingUnits'] as num?)?.toDouble(),
-      day1ChangeAmount: (json['day1ChangeAmount'] as num?)?.toDouble() ?? (json['todayChangeAmount'] as num?)?.toDouble(),
-      day1ChangePct: (json['day1ChangePct'] as num?)?.toDouble() ?? (json['todayChangePct'] as num?)?.toDouble(),
-    );
+      final inv = (json['investedAmount'] as num?)?.toDouble() ?? 0.0;
+      final pl = (json['profitLoss'] as num?)?.toDouble() ?? 0.0;
+      double plPct = (json['profitLossPct'] as num?)?.toDouble()
+          ?? (json['returnPct'] as num?)?.toDouble()
+          ?? (json['profitLossPercentage'] as num?)?.toDouble()
+          ?? (json['unrealizedReturnPct'] as num?)?.toDouble()
+          ?? 0.0;
+      if (plPct == 0.0 && inv > 0 && pl != 0.0) {
+        plPct = (pl / inv) * 100.0;
+      }
+
+      return MfHolding(
+        schemeCode: json['schemeCode']?.toString() ?? '',
+        schemeName: json['schemeName']?.toString() ?? '',
+        amcName: json['amcName']?.toString(),
+        category: json['category']?.toString(),
+        subCategory: json['subCategory']?.toString(),
+        totalUnits: tUnits,
+        availableUnits: aUnits > 0 ? aUnits : (tUnits > 0 ? tUnits : 0.0),
+        pendingRedemptionUnits: pRedUnits,
+        folioNo: json['folioNo']?.toString(),
+        isRedeemable: json['isRedeemable'] == true || (tUnits > 0 && aUnits > 0.0001),
+        investedAmount: inv,
+        averageNav: (json['averageNav'] as num?)?.toDouble(),
+        currentNav: (json['currentNav'] as num?)?.toDouble() ?? 0.0,
+        navDate: json['navDate'] != null ? DateTime.tryParse(json['navDate'].toString()) : null,
+        currentValue: (json['currentValue'] as num?)?.toDouble() ?? 0.0,
+        profitLoss: pl,
+        profitLossPct: plPct,
+        pendingUnits: (json['pendingUnits'] as num?)?.toDouble(),
+        day1ChangeAmount: (json['day1ChangeAmount'] as num?)?.toDouble() ?? (json['todayChangeAmount'] as num?)?.toDouble(),
+        day1ChangePct: (json['day1ChangePct'] as num?)?.toDouble() ?? (json['todayChangePct'] as num?)?.toDouble(),
+      );
   }
 }
 

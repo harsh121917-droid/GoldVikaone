@@ -1893,25 +1893,20 @@ class MutualFundsController extends GetxController {
                             height: 48,
                             child: ElevatedButton.icon(
                               onPressed: () async {
-                                final cleanAmount = orderAmount.toStringAsFixed(2);
-                                final encodedPn = Uri.encodeComponent('NSE Clearing Limited');
-                                final encodedTn = Uri.encodeComponent('MF Order $orderId');
-                                final upiUri = Uri.parse(
-                                  'upi://pay?pa=nseclearing.nseinvest.cc@validhdfc&pn=$encodedPn&am=$cleanAmount&cu=INR&tn=$encodedTn&tr=${nseTrxnOrderId ?? orderId}',
-                                );
-                                try {
-                                  final launched = await launchUrl(upiUri, mode: LaunchMode.externalApplication);
-                                  if (!launched) {
-                                    await launchUrl(Uri.parse('upi://pay'), mode: LaunchMode.externalApplication);
-                                  }
-                                } catch (_) {
+                                if (paymentLink != null && paymentLink.isNotEmpty) {
+                                  await openNsePaymentGateway(
+                                    paymentLink,
+                                    title: 'NSE Clearing Gateway',
+                                    message: 'Official NSE portal opened. Select UPI (GPay/PhonePe/Paytm) or NetBanking to complete payment.',
+                                  );
+                                } else {
                                   try {
                                     await launchUrl(Uri.parse('upi://pay'), mode: LaunchMode.externalApplication);
                                   } catch (_) {}
                                 }
                               },
                               icon: const Icon(Icons.flash_on_rounded, color: Colors.black, size: 16),
-                              label: const Text('Pay via UPI App', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                              label: const Text('Open UPI / Pay Now', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: mintGreen,
                                 elevation: 0,
@@ -1937,7 +1932,7 @@ class MutualFundsController extends GetxController {
                           },
                           icon: const Icon(Icons.language_rounded, size: 16, color: mintGreen),
                           label: const Text(
-                            'Didn\'t get request? Pay via NSE Gateway',
+                            'Didn\'t get collect request? Pay via NSE Gateway',
                             style: TextStyle(color: mintGreen, fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                           style: OutlinedButton.styleFrom(

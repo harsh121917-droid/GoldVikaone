@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+
 import 'widgets/mf_support_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -1594,100 +1596,94 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Dashboard Recent Transactions Section (Success & In-Process Orders)
+  // Dashboard Transactions Section ("View Transactions" Action Button)
+  // Transaction details are hidden from main dashboard and accessible via button tap
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildDashboardTransactionsSection(List<MfOrderModel> txns, int totalCount) {
-    if (txns.isEmpty) return const SizedBox.shrink();
-
-    final inProcessCount = txns.where((o) => o.isProcessing || (o.orderStatus != 'COMPLETED' && o.allotmentStatus != 'ALLOTTED')).length;
+    if (totalCount <= 0 && txns.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: GrowwColors.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: GrowwColors.border, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.18),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              _showAllOrdersSheet(context);
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
                 children: [
                   Container(
-                    width: 8,
-                    height: 8,
+                    padding: const EdgeInsets.all(9),
                     decoration: BoxDecoration(
-                      color: inProcessCount > 0 ? const Color(0xFFF59E0B) : const Color(0xFF00D09C),
+                      color: GrowwColors.mintTeal.withOpacity(0.12),
                       shape: BoxShape.circle,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Recent Transactions',
-                    style: TextStyle(
-                      color: GrowwColors.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
+                    child: const Icon(
+                      Icons.receipt_long_rounded,
+                      color: GrowwColors.mintTeal,
+                      size: 18,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'View Transactions',
+                          style: TextStyle(
+                            color: GrowwColors.textPrimary,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$totalCount orders • Tap to view transaction history',
+                          style: const TextStyle(
+                            color: GrowwColors.textSecondary,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                    decoration: BoxDecoration(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
                       color: GrowwColors.cardElevated,
-                      borderRadius: BorderRadius.circular(10),
+                      shape: BoxShape.circle,
                     ),
-                    child: Text(
-                      '$totalCount',
-                      style: const TextStyle(
-                        color: GrowwColors.textSecondary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: GrowwColors.textSecondary,
+                      size: 12,
                     ),
                   ),
                 ],
               ),
-              TextButton(
-                onPressed: () => _showAllOrdersSheet(context),
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text(
-                  'View All',
-                  style: TextStyle(color: GrowwColors.mintTeal, fontSize: 12.5, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ...txns.map((order) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _buildInProgressOrderCard(order),
-              )),
-          const SizedBox(height: 4),
-          SizedBox(
-            width: double.infinity,
-            height: 42,
-            child: OutlinedButton.icon(
-              onPressed: () => _showAllOrdersSheet(context),
-              icon: const Icon(Icons.receipt_long_rounded, color: GrowwColors.mintTeal, size: 16),
-              label: Text(
-                'View All Transactions ($totalCount)',
-                style: const TextStyle(
-                  color: GrowwColors.mintTeal,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: GrowwColors.mintTeal, width: 1.2),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                backgroundColor: GrowwColors.mintTeal.withOpacity(0.06),
-              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -2244,7 +2240,10 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
     final day1Amount = item.day1ChangeAmount ?? 0.0;
     final day1Pct = item.day1ChangePct ?? 0.0;
     final pnl = item.profitLoss;
-    final pnlPct = item.profitLossPct;
+    double pnlPct = item.profitLossPct;
+    if (pnlPct == 0.0 && item.investedAmount > 0 && pnl != 0.0) {
+      pnlPct = (pnl / item.investedAmount) * 100.0;
+    }
 
     showModalBottomSheet(
       context: context,
@@ -2481,7 +2480,10 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
     final day1Amount = item.day1ChangeAmount ?? 0.0;
     final day1Pct = item.day1ChangePct ?? 0.0;
     final pnl = item.profitLoss;
-    final pnlPct = item.profitLossPct;
+    double pnlPct = item.profitLossPct;
+    if (pnlPct == 0.0 && item.investedAmount > 0 && pnl != 0.0) {
+      pnlPct = (pnl / item.investedAmount) * 100.0;
+    }
 
     final ucc = controller.userUcc.value;
     final String bankName = (ucc != null && ucc.bankName.isNotEmpty) ? ucc.bankName : 'Registered Bank';
