@@ -76,36 +76,44 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: GrowwColors.mintTeal.withOpacity(0.4), width: 1.5),
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: Image.asset(
-                                'assets/images/logo.png',
+                        Expanded(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
                                 width: 36,
                                 height: 36,
-                                fit: BoxFit.contain,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: GrowwColors.mintTeal.withValues(alpha: 0.4), width: 1.5),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: Image.asset(
+                                  'assets/images/logo.png',
+                                  width: 36,
+                                  height: 36,
+                                  fit: BoxFit.contain,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            Obx(() => Text(
-                              'mf_title'.tr,
-                              style: const TextStyle(
-                                color: GrowwColors.textPrimary,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: -0.3,
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  'mf_title'.tr,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: GrowwColors.textPrimary,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
                               ),
-                            )),
-                          ],
+                            ],
+                          ),
                         ),
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             // Language Switcher Pill
                             GestureDetector(
@@ -121,8 +129,8 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.translate_rounded, color: GrowwColors.mintTeal, size: 14),
-                                    const SizedBox(width: 4),
+                                    const Icon(Icons.translate_rounded, color: GrowwColors.mintTeal, size: 13),
+                                    const SizedBox(width: 3),
                                     Obx(() {
                                       final code = LocalizationService.to.currentLangCode.value;
                                       final label = switch (code) {
@@ -145,10 +153,12 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                               ),
                             ),
                             IconButton(
+                              padding: const EdgeInsets.all(5),
+                              constraints: const BoxConstraints(),
                               icon: const Icon(
                                 Icons.search_rounded,
                                 color: GrowwColors.textPrimary,
-                                size: 24,
+                                size: 22,
                               ),
                               onPressed: () {
                                 Get.to(() => const MfSearchView());
@@ -160,10 +170,12 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                                 clipBehavior: Clip.none,
                                 children: [
                                   IconButton(
+                                    padding: const EdgeInsets.all(5),
+                                    constraints: const BoxConstraints(),
                                     icon: const Icon(
                                       Icons.shopping_cart_outlined,
                                       color: GrowwColors.textPrimary,
-                                      size: 24,
+                                      size: 22,
                                     ),
                                     onPressed: () {
                                       Get.to(() => const MfCartView());
@@ -171,20 +183,20 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                                   ),
                                   if (count > 0)
                                     Positioned(
-                                      right: 6,
-                                      top: 6,
+                                      right: -2,
+                                      top: -2,
                                       child: Container(
-                                        padding: const EdgeInsets.all(4),
+                                        padding: const EdgeInsets.all(3),
                                         decoration: const BoxDecoration(
                                           color: GrowwColors.mintTeal,
                                           shape: BoxShape.circle,
                                         ),
-                                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                        constraints: const BoxConstraints(minWidth: 15, minHeight: 15),
                                         child: Text(
                                           '$count',
                                           style: const TextStyle(
                                             color: Colors.black,
-                                            fontSize: 10,
+                                            fontSize: 9,
                                             fontWeight: FontWeight.bold,
                                           ),
                                           textAlign: TextAlign.center,
@@ -195,33 +207,34 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                               );
                             }),
                             IconButton(
+                              padding: const EdgeInsets.all(5),
+                              constraints: const BoxConstraints(),
                               icon: const Icon(
                                 Icons.headset_mic_rounded,
                                 color: GrowwColors.textPrimary,
-                                size: 22,
+                                size: 21,
                               ),
                               tooltip: 'Mutual Fund Support',
                               onPressed: () {
                                 MfSupportBottomSheet.show(context);
                               },
                             ),
-                            const SizedBox(width: 2),
+                            const SizedBox(width: 4),
                             GestureDetector(
                               onTap: () {
                                 Get.to(() => const MfProfileView());
-
                               },
                               child: Stack(
                                 children: [
                                   Container(
-                                    width: 34,
-                                    height: 34,
+                                    width: 32,
+                                    height: 32,
                                     decoration: BoxDecoration(
                                       color: GrowwColors.cardElevated,
                                       shape: BoxShape.circle,
                                       border: Border.all(color: GrowwColors.border, width: 1.5),
                                     ),
-                                    child: const Icon(Icons.person_rounded, color: GrowwColors.textSecondary, size: 18),
+                                    child: const Icon(Icons.person_rounded, color: GrowwColors.textSecondary, size: 17),
                                   ),
                                   Positioned(
                                     right: 0,
