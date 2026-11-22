@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'widgets/mf_support_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../core/localization/localization_service.dart';
 import '../../../data/models/mf_scheme_model.dart';
 import '../controllers/mutual_funds_controller.dart';
 import 'mf_scheme_detail_view.dart';
@@ -93,19 +94,47 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                               ),
                             ),
                             const SizedBox(width: 10),
-                            const Text(
-                              'Mutual Funds',
-                              style: TextStyle(
+                            Obx(() => Text(
+                              'mf_title'.tr,
+                              style: const TextStyle(
                                 color: GrowwColors.textPrimary,
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: -0.3,
                               ),
-                            ),
+                            )),
                           ],
                         ),
                         Row(
                           children: [
+                            // Language Switcher Pill
+                            GestureDetector(
+                              onTap: () => LocalizationService.to.showLanguageBottomSheet(context),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                                margin: const EdgeInsets.only(right: 4),
+                                decoration: BoxDecoration(
+                                  color: GrowwColors.mintTeal.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: GrowwColors.mintTeal.withValues(alpha: 0.35)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.translate_rounded, color: GrowwColors.mintTeal, size: 14),
+                                    const SizedBox(width: 4),
+                                    Obx(() {
+                                      final code = LocalizationService.to.currentLangCode.value;
+                                      final label = code == 'mr' ? 'मराठी' : (code == 'hi' ? 'हिन्दी' : 'ENG');
+                                      return Text(
+                                        label,
+                                        style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 11, fontWeight: FontWeight.bold),
+                                      );
+                                    }),
+                                  ],
+                                ),
+                              ),
+                            ),
                             IconButton(
                               icon: const Icon(
                                 Icons.search_rounded,
@@ -270,11 +299,11 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                   labelPadding: const EdgeInsets.symmetric(horizontal: 16),
                   labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
-                  tabs: const [
-                    Tab(text: 'Explore'),
-                    Tab(text: 'Dashboard'),
-                    Tab(text: 'SIPs'),
-                    Tab(text: 'Watchlist'),
+                  tabs: [
+                    Tab(text: 'mf_explore'.tr),
+                    Tab(text: 'mf_dashboard'.tr),
+                    Tab(text: 'mf_tab_sips'.tr),
+                    Tab(text: 'mf_tab_watchlist'.tr),
                   ],
                 ),
               ),
@@ -327,9 +356,9 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
 
           // ── B. Recently Viewed ──
           if (recent.isNotEmpty) ...[
-            const Text(
-              'Recently viewed',
-              style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              'mf_recently_viewed'.tr,
+              style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -387,11 +416,11 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                 onTap: () {
                   Get.to(() => const MfPopularFundsView());
                 },
-                child: const Row(
+                child: Row(
                   children: [
-                    Text('View all', style: TextStyle(color: GrowwColors.mintTeal, fontSize: 13, fontWeight: FontWeight.bold)),
-                    SizedBox(width: 2),
-                    Icon(Icons.chevron_right_rounded, color: GrowwColors.mintTeal, size: 18),
+                    Text('mf_view_all'.tr, style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 13, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.chevron_right_rounded, color: GrowwColors.mintTeal, size: 18),
                   ],
                 ),
               ),
@@ -478,18 +507,18 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           const SizedBox(height: 28),
 
           // ── E. Products & Tools ──
-          const Text(
-            'Products & tools',
-            style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+          Text(
+            'mf_products_tools'.tr,
+            style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 14),
           _buildProductsAndTools(),
           const SizedBox(height: 28),
 
           // ── F. All Mutual Funds Header & Filter Chips ──
-          const Text(
-            'All Mutual Funds',
-            style: TextStyle(color: GrowwColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            'mf_all_funds'.tr,
+            style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           _buildFilterChipsRow(),
@@ -537,9 +566,9 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                 children: [
                   const Icon(Icons.search_off_rounded, color: GrowwColors.textSecondary, size: 48),
                   const SizedBox(height: 12),
-                  const Text(
-                    'No mutual funds found',
-                    style: TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                  Text(
+                    'mf_no_funds_found'.tr,
+                    style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
                   const Text(
@@ -558,7 +587,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                       side: const BorderSide(color: GrowwColors.mintTeal),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text('Clear Search', style: TextStyle(color: GrowwColors.mintTeal)),
+                    child: Text('mf_clear_search'.tr, style: const TextStyle(color: GrowwColors.mintTeal)),
                   ),
                 ],
               ),
@@ -587,10 +616,10 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.center,
-                      children: const [
+                      children: [
                         Text(
-                          'View more',
-                          style: TextStyle(
+                          'mf_view_more'.tr,
+                          style: const TextStyle(
                             color: GrowwColors.mintTeal,
                             fontSize: 14.5,
                             fontWeight: FontWeight.w600,
@@ -598,8 +627,8 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                             decorationColor: GrowwColors.mintTeal,
                           ),
                         ),
-                        SizedBox(width: 4),
-                        Icon(Icons.chevron_right_rounded, color: GrowwColors.mintTeal, size: 20),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right_rounded, color: GrowwColors.mintTeal, size: 20),
                       ],
                     ),
                   ),
@@ -621,22 +650,22 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
       final clientCode = controller.onboardingData['clientCode']?.toString() ?? controller.userUcc.value?.clientCode ?? 'VK143005';
       final isLoading = controller.isOnboardingLoading.value;
 
-      // ── Step 3: Fully Verified / SIP & Mandate Ready (Compact Reassurance Badge) ──
-      if (step == 3) {
+      // ── Step 2+: UCC Approved / Ready for Investment ──
+      if (step >= 2) {
         return Container(
           margin: const EdgeInsets.only(bottom: 4),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: const Color(0xFF0F1E1B),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: GrowwColors.mintTeal.withOpacity(0.35)),
+            border: Border.all(color: GrowwColors.mintTeal.withValues(alpha: 0.35)),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: GrowwColors.mintTeal.withOpacity(0.15),
+                  color: GrowwColors.mintTeal.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.verified_rounded, color: GrowwColors.mintTeal, size: 16),
@@ -648,15 +677,15 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                   children: [
                     Row(
                       children: [
-                        const Text(
-                          'SIP & Lump Sum Ready',
-                          style: TextStyle(color: GrowwColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                        Text(
+                          'mf_ready_to_invest'.tr,
+                          style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: GrowwColors.mintTeal.withOpacity(0.18),
+                            color: GrowwColors.mintTeal.withValues(alpha: 0.18),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -667,219 +696,23 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                       ],
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      'UCC approved • Bank AutoPay active for automated debits',
-                      style: TextStyle(color: GrowwColors.textSecondary, fontSize: 11),
+                    Text(
+                      'mf_ucc_approved_subtitle'.tr,
+                      style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11),
                     ),
                   ],
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.refresh_rounded, size: 16, color: GrowwColors.textSecondary),
+                icon: isLoading
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: GrowwColors.mintTeal),
+                      )
+                    : const Icon(Icons.refresh_rounded, size: 16, color: GrowwColors.textSecondary),
                 tooltip: 'Check Status',
                 onPressed: () => controller.fetchOnboardingStatus(),
-              ),
-            ],
-          ),
-        );
-      }
-
-      // ── Step 2: UCC Approved, Bank AutoPay Mandate Setup ──
-      if (step == 2) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 4),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF0D2224), Color(0xFF131722)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: GrowwColors.mintTeal.withOpacity(0.5), width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: GrowwColors.mintTeal.withOpacity(0.08),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Row: Icon + Title + Status Pill
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: GrowwColors.mintTeal.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.account_balance_rounded, color: GrowwColors.mintTeal, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Set Up AutoPay (Bank Mandate)',
-                          style: TextStyle(
-                            color: GrowwColors.textPrimary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 4,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.check_rounded, color: Color(0xFF10B981), size: 10),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    'UCC: $clientCode',
-                                    style: const TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.withOpacity(0.18),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'eNACH / NetBanking Mandate',
-                                style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: isLoading
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: GrowwColors.mintTeal),
-                          )
-                        : const Icon(Icons.refresh_rounded, size: 18, color: GrowwColors.textSecondary),
-                    tooltip: 'Refresh Status',
-                    onPressed: () => controller.fetchOnboardingStatus(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Clarifying Explanation
-              const Text(
-                'Authorize your bank mandate once (₹50,000 limit) to enable automated monthly SIP debits and seamless investments on NSE MFSS without manual approval each time.',
-                style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12, height: 1.4),
-              ),
-              const SizedBox(height: 14),
-
-              // Action Buttons Row
-              Row(
-                children: [
-                  Expanded(
-                    flex: 6,
-                    child: ElevatedButton.icon(
-                      onPressed: () => controller.initiateMandateSetup(context),
-                      icon: const Icon(Icons.flash_on_rounded, size: 16, color: Colors.black),
-                      label: const Text(
-                        'Set Up AutoPay Mandate',
-                        style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: GrowwColors.mintTeal,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 5,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showLumpSumInstantTipDialog(context),
-                      icon: const Icon(Icons.bolt_rounded, size: 15, color: GrowwColors.mintTeal),
-                      label: const Text(
-                        'Invest (No Mandate)',
-                        style: TextStyle(color: GrowwColors.mintTeal, fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        side: BorderSide(color: GrowwColors.mintTeal.withOpacity(0.6)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: () => controller.openMandateAuthWebView(context),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.account_balance_wallet_outlined, size: 13, color: GrowwColors.mintTeal),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Authorize Mandate In-App',
-                            style: TextStyle(
-                              color: GrowwColors.mintTeal.withOpacity(0.9),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    GestureDetector(
-                      onTap: () => controller.openUccAuthWebView(context, clientCode: clientCode),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.security_rounded, size: 13, color: GrowwColors.mintTeal),
-                          const SizedBox(width: 4),
-                          Text(
-                            '2FA UCC Status',
-                            style: TextStyle(
-                              color: GrowwColors.mintTeal.withOpacity(0.9),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
@@ -992,156 +825,6 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
         ),
       );
     });
-  }
-
-  void _showLumpSumInstantTipDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-          decoration: const BoxDecoration(
-            color: Color(0xFF131722),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border(top: BorderSide(color: Color(0xFF222938))),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: GrowwColors.mintTeal.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.bolt_rounded, color: GrowwColors.mintTeal, size: 24),
-                  ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Invest Instantly via Lump Sum',
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'No Bank Mandate authorization needed',
-                          style: TextStyle(color: GrowwColors.mintTeal, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF181E2C),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: GrowwColors.border),
-                ),
-                child: Column(
-                  children: [
-                    _buildInstantBenefitRow(
-                      icon: Icons.flash_on_rounded,
-                      title: 'Instant UPI / NetBanking Payment',
-                      desc: 'One-time investments are paid directly without waiting for bank mandate verification.',
-                    ),
-                    const Divider(color: GrowwColors.border, height: 20),
-                    _buildInstantBenefitRow(
-                      icon: Icons.timelapse_rounded,
-                      title: 'Same Day NAV Allocation',
-                      desc: 'Orders placed before cutoff receive same-day NAV on NSE MFSS.',
-                    ),
-                    const Divider(color: GrowwColors.border, height: 20),
-                    _buildInstantBenefitRow(
-                      icon: Icons.check_circle_outline_rounded,
-                      title: 'Your UCC Profile is Already Active',
-                      desc: 'Investor account VK143005 is ready for one-time orders right away.',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        controller.initiateMandateSetup(context);
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                        side: const BorderSide(color: GrowwColors.border),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text('Setup AutoPay', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        Get.to(() => const MfPopularFundsView());
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: GrowwColors.mintTeal,
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                      child: const Text('Explore Funds Now', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildInstantBenefitRow({required IconData icon, required String title, required String desc}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: GrowwColors.mintTeal, size: 18),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 2),
-              Text(desc, style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11, height: 1.3)),
-            ],
-          ),
-        ),
-      ],
-    );
   }
 
   // ── Hero SIP Banner ──
@@ -1686,15 +1369,15 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                           child: const Icon(Icons.hourglass_top_rounded, color: Color(0xFFF59E0B), size: 40),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Orders Awaiting Allotment',
-                          style: TextStyle(color: GrowwColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
+                        Text(
+                          'mf_orders_awaiting_allotment'.tr,
+                          style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Your mutual fund purchases have been submitted to NSE MFSS. Units will appear here once allotted by the AMC.',
+                        Text(
+                          'mf_orders_awaiting_subtitle'.tr,
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13, height: 1.4),
+                          style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 13, height: 1.4),
                         ),
                       ],
                     ),
@@ -1729,18 +1412,18 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                 ),
               ),
               const SizedBox(height: 16),
-              const Center(
+              Center(
                 child: Text(
-                  'No Mutual Fund Holdings Yet',
-                  style: TextStyle(color: GrowwColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
+                  'mf_no_holdings_yet'.tr,
+                  style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 17, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 8),
-              const Center(
+              Center(
                 child: Text(
-                  'Start systematic wealth accumulation in top Regular mutual funds with live NSE execution.',
+                  'mf_no_holdings_subtitle'.tr,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13, height: 1.4),
+                  style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 13, height: 1.4),
                 ),
               ),
               const SizedBox(height: 22),
@@ -1755,7 +1438,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                     elevation: 0,
                   ),
                   icon: const Icon(Icons.trending_up_rounded, size: 18),
-                  label: const Text('Explore Mutual Funds', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5)),
+                  label: Text('mf_explore_mutual_funds'.tr, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5)),
                   onPressed: () => _tabController.animateTo(0),
                 ),
               ),
@@ -2008,9 +1691,9 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                '1D returns',
-                style: TextStyle(
+              Text(
+                'mf_1d_returns'.tr,
+                style: const TextStyle(
                   color: GrowwColors.textSecondary,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -2034,9 +1717,9 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Total returns',
-                style: TextStyle(
+              Text(
+                'mf_total_returns'.tr,
+                style: const TextStyle(
                   color: GrowwColors.textSecondary,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -2060,9 +1743,9 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Invested',
-                style: TextStyle(
+              Text(
+                'mf_total_invested'.tr,
+                style: const TextStyle(
                   color: GrowwColors.textSecondary,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -4834,5 +4517,5 @@ class _GrowwTabBarDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(_GrowwTabBarDelegate oldDelegate) => false;
+  bool shouldRebuild(_GrowwTabBarDelegate oldDelegate) => true;
 }
