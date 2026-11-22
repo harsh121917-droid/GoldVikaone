@@ -187,26 +187,32 @@ class LocalizationService extends GetxService {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'select_language'.tr,
-                      style: TextStyle(
-                        color: ink,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'select_language'.tr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: ink,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'choose_preferred_language'.tr,
-                      style: TextStyle(
-                        color: inkMuted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                      Text(
+                        'choose_preferred_language'.tr,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: inkMuted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),

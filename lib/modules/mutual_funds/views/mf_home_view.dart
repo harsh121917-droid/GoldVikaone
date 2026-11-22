@@ -392,15 +392,21 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'mf_popular_funds'.tr,
-                style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+              Expanded(
+                child: Text(
+                  'mf_popular_funds'.tr,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: () {
                   Get.to(() => const MfPopularFundsView());
                 },
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('mf_view_all'.tr, style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 13, fontWeight: FontWeight.bold)),
                     const SizedBox(width: 2),
@@ -512,10 +518,17 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                controller.totalSchemesCount.value > 0 ? '${controller.totalSchemesCount.value} funds' : '${filtered.length} funds',
-                style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+              Expanded(
+                child: Text(
+                  controller.totalSchemesCount.value > 0
+                      ? '${controller.totalSchemesCount.value} ${'mf_funds_count'.tr}'
+                      : '${filtered.length} ${'mf_funds_count'.tr}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
               ),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: () {
                   final cur = controller.selectedReturnPeriod.value;
@@ -525,11 +538,12 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                   controller.fetchSchemes(page: 1, isRefresh: true);
                 },
                 child: Obx(() => Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.swap_horiz_rounded, color: GrowwColors.textSecondary, size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          '${controller.selectedReturnPeriod.value} Returns',
+                          '${controller.selectedReturnPeriod.value} ${'mf_returns_label'.tr}',
                           style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -661,9 +675,13 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                   children: [
                     Row(
                       children: [
-                        Text(
-                          'mf_ready_to_invest'.tr,
-                          style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                        Flexible(
+                          child: Text(
+                            'mf_ready_to_invest'.tr,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
                         ),
                         const SizedBox(width: 6),
                         Container(
@@ -928,7 +946,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        childAspectRatio: 0.95,
+        childAspectRatio: 0.90,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -968,14 +986,20 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                   )
                 else
                   const Icon(Icons.trending_up_rounded, color: GrowwColors.mintTeal, size: 28),
-                const SizedBox(height: 8),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: GrowwColors.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: GrowwColors.textPrimary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      height: 1.15,
+                    ),
                   ),
                 ),
               ],
