@@ -125,7 +125,16 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                                     const SizedBox(width: 4),
                                     Obx(() {
                                       final code = LocalizationService.to.currentLangCode.value;
-                                      final label = code == 'mr' ? 'मराठी' : (code == 'hi' ? 'हिन्दी' : 'ENG');
+                                      final label = switch (code) {
+                                        'mr' => 'मराठी',
+                                        'hi' => 'हिन्दी',
+                                        'gu' => 'ગુજરાતી',
+                                        'kn' => 'ಕನ್ನಡ',
+                                        'ta' => 'தமிழ்',
+                                        'bn' => 'বাংলা',
+                                        'pa' => 'ਪੰਜਾਬੀ',
+                                        _ => 'ENG',
+                                      };
                                       return Text(
                                         label,
                                         style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 11, fontWeight: FontWeight.bold),
