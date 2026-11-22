@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'widgets/mf_support_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../core/localization/localization_service.dart';
 import '../../../data/models/mf_scheme_model.dart';
 import '../controllers/mutual_funds_controller.dart';
 import 'mf_scheme_detail_view.dart';
@@ -115,43 +114,6 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Language Switcher Pill
-                            GestureDetector(
-                              onTap: () => LocalizationService.to.showLanguageBottomSheet(context),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                                margin: const EdgeInsets.only(right: 4),
-                                decoration: BoxDecoration(
-                                  color: GrowwColors.mintTeal.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: GrowwColors.mintTeal.withValues(alpha: 0.35)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.translate_rounded, color: GrowwColors.mintTeal, size: 13),
-                                    const SizedBox(width: 3),
-                                    Obx(() {
-                                      final code = LocalizationService.to.currentLangCode.value;
-                                      final label = switch (code) {
-                                        'mr' => 'मराठी',
-                                        'hi' => 'हिन्दी',
-                                        'gu' => 'ગુજરાતી',
-                                        'kn' => 'ಕನ್ನಡ',
-                                        'ta' => 'தமிழ்',
-                                        'bn' => 'বাংলা',
-                                        'pa' => 'ਪੰਜਾਬੀ',
-                                        _ => 'ENG',
-                                      };
-                                      return Text(
-                                        label,
-                                        style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 11, fontWeight: FontWeight.bold),
-                                      );
-                                    }),
-                                  ],
-                                ),
-                              ),
-                            ),
                             IconButton(
                               padding: const EdgeInsets.all(5),
                               constraints: const BoxConstraints(),

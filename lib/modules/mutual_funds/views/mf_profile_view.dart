@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../data/models/mf_profile_model.dart';
 import '../controllers/mutual_funds_controller.dart';
+import '../../../core/localization/localization_service.dart';
 import 'widgets/mf_groww_widgets.dart';
 
 class MfProfileView extends StatefulWidget {
@@ -47,6 +48,11 @@ class _MfProfileViewState extends State<MfProfileView> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.translate_rounded, color: GrowwColors.mintTeal),
+            tooltip: 'Change Language',
+            onPressed: () => LocalizationService.to.showLanguageBottomSheet(context),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: GrowwColors.textSecondary),
             onPressed: () => controller.fetchMfProfile(),
@@ -100,7 +106,12 @@ class _MfProfileViewState extends State<MfProfileView> {
               // ── 4. Orders History Section ──
               _buildOrdersSection(orders),
               const SizedBox(height: 20),
-              // ── 5. Mutual Fund Help & Support ──
+
+              // ── 5. App Language Section ──
+              _buildLanguageSection(),
+              const SizedBox(height: 20),
+
+              // ── 6. Mutual Fund Help & Support ──
               _buildSupportSection(),
               const SizedBox(height: 32),
             ],
@@ -1225,6 +1236,70 @@ class _MfProfileViewState extends State<MfProfileView> {
     );
   }
 
+
+  // ── Language Selection Section ──
+  Widget _buildLanguageSection() {
+    return Container(
+      decoration: BoxDecoration(
+        color: GrowwColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: GrowwColors.border),
+      ),
+      child: Obx(() {
+        final code = LocalizationService.to.currentLangCode.value;
+        final langName = switch (code) {
+          'mr' => 'मराठी (Marathi)',
+          'hi' => 'हिन्दी (Hindi)',
+          'gu' => 'ગુજરાતી (Gujarati)',
+          'kn' => 'ಕನ್ನಡ (Kannada)',
+          'ta' => 'தமிழ் (Tamil)',
+          'bn' => 'বাংলা (Bengali)',
+          'pa' => 'ਪੰਜਾਬੀ (Punjabi)',
+          _ => 'English',
+        };
+
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: GrowwColors.mintTeal.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.translate_rounded, color: GrowwColors.mintTeal, size: 22),
+          ),
+          title: const Text(
+            'App Language / भाषा',
+            style: TextStyle(color: Colors.white, fontSize: 14.5, fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text(
+            langName,
+            style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 12.5, fontWeight: FontWeight.w600),
+          ),
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: GrowwColors.cardElevated,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: GrowwColors.border),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Change',
+                  style: TextStyle(color: GrowwColors.mintTeal, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(width: 4),
+                Icon(Icons.keyboard_arrow_down_rounded, color: GrowwColors.mintTeal, size: 16),
+              ],
+            ),
+          ),
+          onTap: () => LocalizationService.to.showLanguageBottomSheet(context),
+        );
+      }),
+    );
+  }
 
   Widget _buildSupportSection() {
     return Container(
