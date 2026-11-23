@@ -2049,8 +2049,10 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
 
   Widget _buildPortfolioOrderCard(
       MfOrderModel order, Color surface, Color textPrimary, Color textSecondary, bool dark) {
-    final bool isAllotted = order.allotmentStatus == 'ALLOTTED';
-    final Color badgeColor = isAllotted ? const Color(0xFF00D09C) : const Color(0xFFF59E0B);
+    final bool isSettled = order.transactionType == 'R'
+        ? (order.orderStatus == 'COMPLETED' || order.payoutStatus == 'COMPLETED' || order.displayStatus.toLowerCase() == 'completed')
+        : (order.allotmentStatus == 'ALLOTTED');
+    final Color badgeColor = isSettled ? const Color(0xFF00D09C) : const Color(0xFFF59E0B);
     final String dateStr =
         '${order.createdAt.day.toString().padLeft(2, '0')}/${order.createdAt.month.toString().padLeft(2, '0')}/${order.createdAt.year}';
 
@@ -2161,14 +2163,14 @@ class _MfPortfolioViewState extends State<MfPortfolioView> with SingleTickerProv
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isAllotted ? Icons.check_circle_rounded : Icons.schedule_rounded,
+                      isSettled ? Icons.check_circle_rounded : Icons.schedule_rounded,
                       color: badgeColor,
                       size: 11,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      isAllotted
-                          ? 'Allotted'
+                      isSettled
+                          ? (order.transactionType == 'R' ? 'Payout Completed' : 'Allotted')
                           : (order.expectedAllotmentDate.isNotEmpty
                               ? '${order.subStatusLabel} • ${order.expectedAllotmentDate}'
                               : order.subStatusLabel),

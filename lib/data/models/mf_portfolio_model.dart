@@ -298,6 +298,7 @@ class MfOrderModel {
   final String? paymentLink;
   final String? nseTrxnOrderId;
   final String? nseStatus;
+  final String? payoutStatus;
   final DateTime createdAt;
   final String displayStatus;
   final String subStatus;
@@ -321,6 +322,7 @@ class MfOrderModel {
     this.paymentLink,
     this.nseTrxnOrderId,
     this.nseStatus,
+    this.payoutStatus,
     required this.createdAt,
     required this.displayStatus,
     this.subStatus = '',
@@ -328,16 +330,28 @@ class MfOrderModel {
     this.isPaymentDone = false,
   });
 
-  bool get isProcessing =>
-      allotmentStatus != 'ALLOTTED' &&
-      (paymentStatus == 'SUCCESS' ||
-          orderStatus == 'PROCESSING' ||
-          orderStatus == 'SUBMITTED' ||
-          orderStatus == 'PAYMENT_SUCCESS') &&
-      orderStatus != 'CANCELLED' &&
-      orderStatus != 'REJECTED' &&
-      orderStatus != 'FAILED' &&
-      orderStatus != 'PAYMENT_PENDING';
+  bool get isProcessing {
+    if (transactionType == 'R') {
+      return (orderStatus == 'PROCESSING' ||
+              orderStatus == 'SUBMITTED' ||
+              orderStatus == 'PAYMENT_SUCCESS' ||
+              displayStatus.toLowerCase().contains('in progress')) &&
+          orderStatus != 'CANCELLED' &&
+          orderStatus != 'REJECTED' &&
+          orderStatus != 'FAILED' &&
+          orderStatus != 'COMPLETED' &&
+          payoutStatus != 'COMPLETED';
+    }
+    return allotmentStatus != 'ALLOTTED' &&
+        (paymentStatus == 'SUCCESS' ||
+            orderStatus == 'PROCESSING' ||
+            orderStatus == 'SUBMITTED' ||
+            orderStatus == 'PAYMENT_SUCCESS') &&
+        orderStatus != 'CANCELLED' &&
+        orderStatus != 'REJECTED' &&
+        orderStatus != 'FAILED' &&
+        orderStatus != 'PAYMENT_PENDING';
+  }
 
   String get typeLabel {
     if (transactionType == 'R') return 'Redeem';
@@ -346,6 +360,15 @@ class MfOrderModel {
   }
 
   String get badgeLabel {
+    if (transactionType == 'R') {
+      if (orderStatus == 'COMPLETED' || payoutStatus == 'COMPLETED' || displayStatus.toLowerCase() == 'completed') {
+        return 'Completed';
+      }
+      if (orderStatus == 'CANCELLED' || orderStatus == 'REJECTED' || orderStatus == 'FAILED' || payoutStatus == 'FAILED') {
+        return 'Failed';
+      }
+      return 'In Progress';
+    }
     if (allotmentStatus == 'ALLOTTED') return 'Allotted';
     if (orderStatus == 'CANCELLED' || orderStatus == 'REJECTED' || orderStatus == 'FAILED') return 'Failed';
     if (orderStatus == 'PAYMENT_PENDING' || paymentStatus == 'PENDING') return 'Pending';
@@ -356,6 +379,16 @@ class MfOrderModel {
   }
 
   String get subStatusLabel {
+    if (transactionType == 'R') {
+      if (orderStatus == 'COMPLETED' || payoutStatus == 'COMPLETED' || displayStatus.toLowerCase() == 'completed') {
+        return 'Payout Completed • Credited to Bank';
+      }
+      if (orderStatus == 'CANCELLED' || orderStatus == 'REJECTED' || orderStatus == 'FAILED') {
+        return 'Redemption Rejected / Cancelled';
+      }
+      if (subStatus.isNotEmpty) return subStatus;
+      return 'Payout Pending from AMC';
+    }
     if (allotmentStatus == 'ALLOTTED') return 'Units Allotted • Available in Holdings';
     if (orderStatus == 'CANCELLED' || orderStatus == 'REJECTED' || orderStatus == 'FAILED') return 'Order Rejected / Expired';
     if (orderStatus == 'PAYMENT_PENDING' || paymentStatus == 'PENDING') return 'Awaiting Payment Authorization';
@@ -381,6 +414,7 @@ class MfOrderModel {
       paymentLink: json['paymentLink']?.toString(),
       nseTrxnOrderId: json['nseTrxnOrderId']?.toString(),
       nseStatus: json['nseStatus']?.toString(),
+      payoutStatus: json['payoutStatus']?.toString(),
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),

@@ -3797,8 +3797,10 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
   // ── In-Progress Order Tracking (Groww / Fisdom Style) ──
 
   Widget _buildInProgressOrderCard(MfOrderModel order) {
-    final bool isAllotted = order.allotmentStatus == 'ALLOTTED';
-    final Color badgeColor = isAllotted ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
+    final bool isSettled = order.transactionType == 'R'
+        ? (order.orderStatus == 'COMPLETED' || order.payoutStatus == 'COMPLETED' || order.displayStatus.toLowerCase() == 'completed')
+        : (order.allotmentStatus == 'ALLOTTED');
+    final Color badgeColor = isSettled ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
     final String dateStr = '${order.createdAt.day.toString().padLeft(2, '0')}/${order.createdAt.month.toString().padLeft(2, '0')}/${order.createdAt.year}';
 
     return GestureDetector(
@@ -3833,7 +3835,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
-                    isAllotted ? Icons.check_circle_rounded : Icons.sync_rounded,
+                    isSettled ? Icons.check_circle_rounded : Icons.sync_rounded,
                     color: badgeColor,
                     size: 16,
                   ),
@@ -3946,7 +3948,9 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                     const Icon(Icons.access_time_rounded, color: GrowwColors.textSecondary, size: 12),
                     const SizedBox(width: 4),
                     Text(
-                      'Allotment: ${order.expectedAllotmentDate}',
+                      order.transactionType == 'R'
+                          ? 'Payout: ${order.expectedAllotmentDate}'
+                          : 'Allotment: ${order.expectedAllotmentDate}',
                       style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 11),
                     ),
                   ],
@@ -3975,10 +3979,13 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
   }
 
   void _showOrderDetailSheet(MfOrderModel order) {
-    final bool isAllotted = order.allotmentStatus == 'ALLOTTED';
-    final Color badgeColor = isAllotted ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
+    final bool isSettled = order.transactionType == 'R'
+        ? (order.orderStatus == 'COMPLETED' || order.payoutStatus == 'COMPLETED' || order.displayStatus.toLowerCase() == 'completed')
+        : (order.allotmentStatus == 'ALLOTTED');
+    final Color badgeColor = isSettled ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
     final String dateStr = '${order.createdAt.day.toString().padLeft(2, '0')}/${order.createdAt.month.toString().padLeft(2, '0')}/${order.createdAt.year}';
     final String timeStr = '${order.createdAt.hour.toString().padLeft(2, '0')}:${order.createdAt.minute.toString().padLeft(2, '0')}';
+    final bool isRedeem = order.transactionType == 'R';
 
     showModalBottomSheet(
       context: context,
@@ -4087,7 +4094,10 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Amount Paid', style: TextStyle(color: GrowwColors.textSecondary, fontSize: 12)),
+                                  Text(
+                                    isRedeem ? 'Redemption Value' : 'Amount Paid',
+                                    style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12),
+                                  ),
                                   const SizedBox(height: 3),
                                   Text(
                                     '₹${order.orderAmount.toStringAsFixed(2)}',
@@ -4121,50 +4131,97 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                     ),
                     const SizedBox(height: 16),
 
-                    _buildTimelineStep(
-                      stepNumber: 1,
-                      title: 'Order Placed & Registered',
-                      subtitle: 'Order registered on NSE MFSS on $dateStr at $timeStr',
-                      isCompleted: true,
-                      isCurrent: false,
-                      isLast: false,
-                    ),
-                    _buildTimelineStep(
-                      stepNumber: 2,
-                      title: 'Payment Successful',
-                      subtitle: '₹${order.orderAmount.toStringAsFixed(0)} verified via NSE Gateway / Mandate',
-                      isCompleted: order.isPaymentDone,
-                      isCurrent: !order.isPaymentDone,
-                      isLast: false,
-                    ),
-                    _buildTimelineStep(
-                      stepNumber: 3,
-                      title: 'Sent to AMC / Fund House',
-                      subtitle: 'Order approved by exchange and submitted to the Mutual Fund house',
-                      isCompleted: order.orderStatus == 'PROCESSING' || isAllotted,
-                      isCurrent: order.orderStatus == 'PROCESSING' && !isAllotted,
-                      isLast: false,
-                    ),
-                    _buildTimelineStep(
-                      stepNumber: 4,
-                      title: 'NAV Calculation',
-                      subtitle: isAllotted
-                          ? 'Allotted at NAV ₹${order.allottedNav?.toStringAsFixed(2) ?? 'closing NAV'}'
-                          : 'Units will be allotted at today\'s market close NAV (calculated between 9 PM - 11 PM)',
-                      isCompleted: isAllotted,
-                      isCurrent: !isAllotted && (order.orderStatus == 'PROCESSING' || order.isPaymentDone),
-                      isLast: false,
-                    ),
-                    _buildTimelineStep(
-                      stepNumber: 5,
-                      title: 'Unit Allotment & Demat/Folio Credit',
-                      subtitle: isAllotted
-                          ? '${order.allottedUnits.toStringAsFixed(3)} units credited to your holdings'
-                          : 'Expected by ${order.expectedAllotmentDate} (T+1 business day)',
-                      isCompleted: isAllotted,
-                      isCurrent: false,
-                      isLast: true,
-                    ),
+                    if (isRedeem) ...[
+                      _buildTimelineStep(
+                        stepNumber: 1,
+                        title: 'Redemption Placed & Registered',
+                        subtitle: 'Order registered on NSE MFSS on $dateStr at $timeStr',
+                        isCompleted: true,
+                        isCurrent: false,
+                        isLast: false,
+                      ),
+                      _buildTimelineStep(
+                        stepNumber: 2,
+                        title: 'Exchange Verification & Approval',
+                        subtitle: 'Redemption request verified and approved by NSE MFSS',
+                        isCompleted: true,
+                        isCurrent: false,
+                        isLast: false,
+                      ),
+                      _buildTimelineStep(
+                        stepNumber: 3,
+                        title: 'Sent to AMC / Fund House',
+                        subtitle: 'Submitted to the Mutual Fund house for unit liquidation',
+                        isCompleted: order.orderStatus == 'PROCESSING' || isSettled,
+                        isCurrent: order.orderStatus == 'PROCESSING' && !isSettled,
+                        isLast: false,
+                      ),
+                      _buildTimelineStep(
+                        stepNumber: 4,
+                        title: 'NAV Calculation & Unit Debit',
+                        subtitle: isSettled
+                            ? 'Redeemed at NAV ₹${order.allottedNav?.toStringAsFixed(2) ?? order.navAtOrder?.toStringAsFixed(2) ?? 'closing NAV'}'
+                            : 'Units will be liquidated at applicable cutoff NAV',
+                        isCompleted: isSettled,
+                        isCurrent: !isSettled && (order.orderStatus == 'PROCESSING' || order.orderStatus == 'SUBMITTED'),
+                        isLast: false,
+                      ),
+                      _buildTimelineStep(
+                        stepNumber: 5,
+                        title: 'Direct Bank Payout',
+                        subtitle: isSettled
+                            ? 'Payout credited directly to your registered bank account'
+                            : 'Expected in bank account by ${order.expectedAllotmentDate} (T+1 to T+3 business days)',
+                        isCompleted: isSettled,
+                        isCurrent: false,
+                        isLast: true,
+                      ),
+                    ] else ...[
+                      _buildTimelineStep(
+                        stepNumber: 1,
+                        title: 'Order Placed & Registered',
+                        subtitle: 'Order registered on NSE MFSS on $dateStr at $timeStr',
+                        isCompleted: true,
+                        isCurrent: false,
+                        isLast: false,
+                      ),
+                      _buildTimelineStep(
+                        stepNumber: 2,
+                        title: 'Payment Successful',
+                        subtitle: '₹${order.orderAmount.toStringAsFixed(0)} verified via NSE Gateway / Mandate',
+                        isCompleted: order.isPaymentDone,
+                        isCurrent: !order.isPaymentDone,
+                        isLast: false,
+                      ),
+                      _buildTimelineStep(
+                        stepNumber: 3,
+                        title: 'Sent to AMC / Fund House',
+                        subtitle: 'Order approved by exchange and submitted to the Mutual Fund house',
+                        isCompleted: order.orderStatus == 'PROCESSING' || isSettled,
+                        isCurrent: order.orderStatus == 'PROCESSING' && !isSettled,
+                        isLast: false,
+                      ),
+                      _buildTimelineStep(
+                        stepNumber: 4,
+                        title: 'NAV Calculation',
+                        subtitle: isSettled
+                            ? 'Allotted at NAV ₹${order.allottedNav?.toStringAsFixed(2) ?? 'closing NAV'}'
+                            : 'Units will be allotted at today\'s market close NAV (calculated between 9 PM - 11 PM)',
+                        isCompleted: isSettled,
+                        isCurrent: !isSettled && (order.orderStatus == 'PROCESSING' || order.isPaymentDone),
+                        isLast: false,
+                      ),
+                      _buildTimelineStep(
+                        stepNumber: 5,
+                        title: 'Unit Allotment & Demat/Folio Credit',
+                        subtitle: isSettled
+                            ? '${order.allottedUnits.toStringAsFixed(3)} units credited to your holdings'
+                            : 'Expected by ${order.expectedAllotmentDate} (T+1 business day)',
+                        isCompleted: isSettled,
+                        isCurrent: false,
+                        isLast: true,
+                      ),
+                    ],
 
                     const SizedBox(height: 24),
 
@@ -4185,13 +4242,17 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'How Mutual Fund Allotment Works',
-                                  style: TextStyle(color: GrowwColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                                Text(
+                                  isRedeem
+                                      ? 'How Mutual Fund Redemption Works'
+                                      : 'How Mutual Fund Allotment Works',
+                                  style: const TextStyle(color: GrowwColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Unlike stocks, mutual fund NAV is declared by AMCs at the end of each business day. RTAs (CAMS/KFintech) allot units on T+1 working day. Your portfolio value and units will automatically update as soon as the AMC confirms allotment.',
+                                  isRedeem
+                                      ? 'When you redeem mutual funds, the AMC liquidates your units at the applicable NAV. The redemption payout is directly credited to your registered primary bank account within T+1 to T+3 working days as per SEBI regulations.'
+                                      : 'Unlike stocks, mutual fund NAV is declared by AMCs at the end of each business day. RTAs (CAMS/KFintech) allot units on T+1 working day. Your portfolio value and units will automatically update as soon as the AMC confirms allotment.',
                                   style: TextStyle(color: GrowwColors.textSecondary.withOpacity(0.9), fontSize: 12, height: 1.4),
                                 ),
                               ],
