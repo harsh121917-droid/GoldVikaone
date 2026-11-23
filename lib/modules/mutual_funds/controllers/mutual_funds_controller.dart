@@ -18,6 +18,7 @@ import '../../../data/models/mf_scheme_model.dart';
 import '../../../data/models/mf_portfolio_model.dart';
 import '../../../data/models/mf_cart_model.dart';
 import '../../../data/models/mf_profile_model.dart';
+import '../../../data/models/mf_amc_model.dart';
 
 class MutualFundsController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -76,6 +77,11 @@ class MutualFundsController extends GetxController {
   // ── Dedicated Popular Funds State ──
   final RxList<MfSchemeModel> popularSchemesList = <MfSchemeModel>[].obs;
   final RxBool isPopularLoading = false.obs;
+
+  // ── AMCs / Fund Houses (Manually Ranked by Admin) ──
+  final RxList<MfAmcModel> amcs = <MfAmcModel>[].obs;
+  final RxBool isAmcsLoading = false.obs;
+  final RxString allMfAmcCode = ''.obs;
 
   final RxList<MfSchemeModel> schemes = <MfSchemeModel>[].obs;
   final RxList<String> watchlistSchemeCodes = <String>[].obs;
@@ -191,6 +197,8 @@ class MutualFundsController extends GetxController {
     super.onInit();
     // Razorpay initialization removed for MF
     fetchSchemes();
+    fetchPublicAmcs();
+    fetchPopularSchemes();
     checkUserUcc();
     fetchOnboardingStatus();
     fetchPortfolio();
@@ -2950,6 +2958,7 @@ class MutualFundsController extends GetxController {
   int get activeFiltersCount {
     int count = 0;
     if (allMfSort.value != 'Popularity') count++;
+    if (allMfAmcCode.value.isNotEmpty) count++;
     count += allMfCategories.length;
     count += allMfSubCategories.length;
     count += allMfRisks.length;
@@ -2959,6 +2968,7 @@ class MutualFundsController extends GetxController {
 
   void resetAllFilters() {
     allMfSort.value = 'Popularity';
+    allMfAmcCode.value = '';
     allMfCategories.clear();
     allMfSubCategories.clear();
     allMfRisks.clear();
@@ -2996,6 +3006,9 @@ class MutualFundsController extends GetxController {
         queryParams['sort'] = 'rating';
       }
 
+      if (allMfAmcCode.value.isNotEmpty) {
+        queryParams['amcCode'] = allMfAmcCode.value;
+      }
       if (allMfCategories.isNotEmpty) {
         queryParams['categories'] = allMfCategories.join(',');
       }
@@ -3067,6 +3080,28 @@ class MutualFundsController extends GetxController {
       debugPrint('[MutualFundsController] fetchPopularSchemes error: $e');
     } finally {
       isPopularLoading.value = false;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ── AMCs / Fund Houses (Manually Ranked by Admin) ──
+  // ═══════════════════════════════════════════════════════════════════════════
+  Future<void> fetchPublicAmcs() async {
+    isAmcsLoading.value = true;
+    try {
+      final dio = ApiClient.instance;
+      final res = await dio.get('/mutual-funds/amcs');
+      if (res.statusCode == 200 && res.data['success'] == true) {
+        final list = (res.data['data'] as List<dynamic>?)
+                ?.map((e) => MfAmcModel.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [];
+        amcs.assignAll(list);
+      }
+    } catch (e) {
+      debugPrint('[MutualFundsController] fetchPublicAmcs error: $e');
+    } finally {
+      isAmcsLoading.value = false;
     }
   }
 

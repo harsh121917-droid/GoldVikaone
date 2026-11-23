@@ -487,6 +487,10 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
           ),
           const SizedBox(height: 28),
 
+          // ── Top Fund Houses (AMCs Ranked by Admin) ──
+          _buildTopFundHousesSection(),
+          const SizedBox(height: 28),
+
           // ── D. Collections 3D Grid ──
           Text(
             'mf_collections'.tr,
@@ -898,6 +902,156 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
         ],
       ),
     );
+  }
+
+  // ── Top Fund Houses (AMCs Ranked by Admin) ──
+  Widget _buildTopFundHousesSection() {
+    return Obx(() {
+      final amcs = controller.amcs;
+      if (amcs.isEmpty && controller.isAmcsLoading.value) {
+        return const SizedBox(
+          height: 110,
+          child: Center(child: CircularProgressIndicator(color: GrowwColors.mintTeal, strokeWidth: 2)),
+        );
+      }
+      if (amcs.isEmpty) return const SizedBox.shrink();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Top Fund Houses',
+                style: TextStyle(
+                  color: GrowwColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Get.to(() => const MfAllMutualFundsView(title: 'All Fund Houses'));
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('mf_view_all'.tr, style: const TextStyle(color: GrowwColors.mintTeal, fontSize: 13, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.chevron_right_rounded, color: GrowwColors.mintTeal, size: 18),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 124,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: amcs.length > 15 ? 15 : amcs.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final amc = amcs[index];
+                final isTop3 = index < 3;
+                return GestureDetector(
+                  onTap: () {
+                    Get.to(() => MfAllMutualFundsView(
+                          initialAmcCode: amc.amcCode,
+                          title: '${amc.displayName} Funds',
+                        ));
+                  },
+                  child: Container(
+                    width: 132,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: GrowwColors.card,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isTop3 ? const Color(0xFFF59E0B).withOpacity(0.4) : GrowwColors.border,
+                        width: isTop3 ? 1.2 : 1.0,
+                      ),
+                      boxShadow: isTop3
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFFF59E0B).withOpacity(0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              )
+                            ]
+                          : null,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            AmcBrandLogo(
+                              amcName: amc.amcName,
+                              schemeName: amc.displayName,
+                              size: 40,
+                              borderRadius: 10,
+                            ),
+                            if (amc.isRanked)
+                              Positioned(
+                                top: -6,
+                                right: -10,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFD97706)]),
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: [
+                                      BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    '#${amc.customRank}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          amc.displayName,
+                          style: const TextStyle(
+                            color: GrowwColors.textPrimary,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                            height: 1.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${amc.schemeCount} funds',
+                          style: const TextStyle(
+                            color: GrowwColors.textSecondary,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      );
+    });
   }
 
   // ── Collections 2x3 Grid ──

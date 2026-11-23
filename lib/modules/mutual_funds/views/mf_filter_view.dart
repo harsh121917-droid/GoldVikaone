@@ -16,10 +16,11 @@ class MfFilterView extends StatefulWidget {
 
 class _MfFilterViewState extends State<MfFilterView> {
   final MutualFundsController controller = Get.find<MutualFundsController>();
-  int _activeTabIndex = 0; // 0: Sort by, 1: Category, 2: Risk, 3: Ratings
+  int _activeTabIndex = 0; // 0: Sort by, 1: Category, 2: Fund House, 3: Risk, 4: Ratings
 
   // Local draft copies so changes apply only when user taps "Apply"
   late String _draftSort;
+  late String _draftAmcCode;
   late Set<String> _draftCategories;
   late Set<String> _draftSubCategories;
   late Set<String> _draftRisks;
@@ -76,6 +77,7 @@ class _MfFilterViewState extends State<MfFilterView> {
   void initState() {
     super.initState();
     _draftSort = controller.allMfSort.value;
+    _draftAmcCode = controller.allMfAmcCode.value;
     _draftCategories = Set<String>.from(controller.allMfCategories);
     _draftSubCategories = Set<String>.from(controller.allMfSubCategories);
     _draftRisks = Set<String>.from(controller.allMfRisks);
@@ -84,6 +86,7 @@ class _MfFilterViewState extends State<MfFilterView> {
 
   void _applyFilters() {
     controller.allMfSort.value = _draftSort;
+    controller.allMfAmcCode.value = _draftAmcCode;
     controller.allMfCategories.assignAll(_draftCategories);
     controller.allMfSubCategories.assignAll(_draftSubCategories);
     controller.allMfRisks.assignAll(_draftRisks);
@@ -95,6 +98,7 @@ class _MfFilterViewState extends State<MfFilterView> {
   void _clearAll() {
     setState(() {
       _draftSort = 'Popularity';
+      _draftAmcCode = '';
       _draftCategories.clear();
       _draftSubCategories.clear();
       _draftRisks.clear();
@@ -162,11 +166,16 @@ class _MfFilterViewState extends State<MfFilterView> {
                 ),
                 _buildLeftTab(
                   2,
+                  'Fund House',
+                  badge: _draftAmcCode.isNotEmpty ? '1' : null,
+                ),
+                _buildLeftTab(
+                  3,
                   'Risk',
                   badge: _draftRisks.isNotEmpty ? '${_draftRisks.length}' : null,
                 ),
                 _buildLeftTab(
-                  3,
+                  4,
                   'Ratings',
                   badge: _draftRatings.isNotEmpty ? '${_draftRatings.length}' : null,
                 ),
@@ -277,12 +286,89 @@ class _MfFilterViewState extends State<MfFilterView> {
       case 1:
         return _buildCategoryOptions();
       case 2:
-        return _buildRiskOptions();
+        return _buildAmcOptions();
       case 3:
+        return _buildRiskOptions();
+      case 4:
         return _buildRatingOptions();
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  // ── Fund House (AMCs Ranked by Admin) ──
+  Widget _buildAmcOptions() {
+    final amcs = controller.amcs;
+    if (amcs.isEmpty) {
+      return const Center(
+        child: Text(
+          'Loading fund houses...',
+          style: TextStyle(color: GrowwColors.textSecondary, fontSize: 13),
+        ),
+      );
+    }
+
+    return ListView(
+      children: [
+        RadioListTile<String>(
+          value: '',
+          groupValue: _draftAmcCode,
+          activeColor: GrowwColors.mintTeal,
+          contentPadding: EdgeInsets.zero,
+          title: const Text(
+            'All Fund Houses',
+            style: TextStyle(color: GrowwColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          onChanged: (val) {
+            setState(() => _draftAmcCode = val ?? '');
+          },
+        ),
+        ...amcs.map((amc) {
+          final isSelected = _draftAmcCode == amc.amcCode;
+          return RadioListTile<String>(
+            value: amc.amcCode,
+            groupValue: _draftAmcCode,
+            activeColor: GrowwColors.mintTeal,
+            contentPadding: EdgeInsets.zero,
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    amc.displayName,
+                    style: TextStyle(
+                      color: isSelected ? GrowwColors.mintTeal : GrowwColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    ),
+                  ),
+                ),
+                if (amc.isRanked) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFD97706)]),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '#${amc.customRank}',
+                      style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  '${amc.schemeCount}',
+                  style: const TextStyle(color: GrowwColors.textSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+            onChanged: (val) {
+              setState(() => _draftAmcCode = val ?? '');
+            },
+          );
+        }),
+      ],
+    );
   }
 
   // ── 1. Sort By Radio Options (Includes Popularity) ──

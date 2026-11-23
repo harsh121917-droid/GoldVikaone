@@ -11,11 +11,15 @@ import 'widgets/mf_skeleton_widgets.dart';
 class MfAllMutualFundsView extends StatefulWidget {
   final String? initialCategory;
   final String? initialSort;
+  final String? initialAmcCode;
+  final String? title;
 
   const MfAllMutualFundsView({
     Key? key,
     this.initialCategory,
     this.initialSort,
+    this.initialAmcCode,
+    this.title,
   }) : super(key: key);
 
   @override
@@ -32,6 +36,9 @@ class _MfAllMutualFundsViewState extends State<MfAllMutualFundsView> {
     if (widget.initialCategory != null && widget.initialCategory != 'All') {
       controller.allMfCategories.clear();
       controller.allMfCategories.add(widget.initialCategory!);
+    }
+    if (widget.initialAmcCode != null && widget.initialAmcCode!.isNotEmpty) {
+      controller.allMfAmcCode.value = widget.initialAmcCode!;
     }
     if (widget.initialSort != null) {
       controller.allMfSort.value = widget.initialSort!;
@@ -60,8 +67,7 @@ class _MfAllMutualFundsViewState extends State<MfAllMutualFundsView> {
       appBar: AppBar(
         backgroundColor: GrowwColors.cardElevated,
         elevation: 0,
-        title: const Text(
-          'All Mutual Funds',
+        title: Text(widget.title ?? 'All Mutual Funds',
           style: TextStyle(
             color: GrowwColors.textPrimary,
             fontSize: 18,
