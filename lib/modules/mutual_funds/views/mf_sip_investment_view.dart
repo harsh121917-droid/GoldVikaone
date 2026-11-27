@@ -32,7 +32,8 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
     try {
       _vpa = GetStorage().read('mf_saved_vpa')?.toString() ?? '';
     } catch (_) {}
-    _paymentMethod = 'UPI';
+    // ── TEMPORARILY DISABLED: UPI mode hidden for now; default to Official NSE Gateway ──
+    _paymentMethod = 'NSE_GATEWAY'; // /* _paymentMethod = 'UPI'; */
 
     final minAmount = widget.scheme.minPurchaseAmount ?? widget.scheme.minSipAmount ?? 500.0;
     _amountStr = minAmount.toInt().toString();
@@ -291,6 +292,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                 Text('Select Payment Mode', style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
 
+                /* ── TEMPORARILY DISABLED: UPI mode hidden for now ──
                 // Option 1: Direct UPI
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -359,6 +361,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                   },
                 ),
                 const Divider(color: Color(0xFF1E2535), height: 20),
+                */
 
                 // Option 2: Official NSE Gateway
                 ListTile(
@@ -506,7 +509,7 @@ class _MfSipInvestmentViewState extends State<MfSipInvestmentView> {
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Instant UPI / NetBanking • No Bank Mandate Required',
+                        'Official NSE Gateway • NetBanking / NEFT • No Bank Mandate Required', // /* TEMPORARILY DISABLED: 'Instant UPI / NetBanking • No Bank Mandate Required' */
                         style: TextStyle(color: mintGreen, fontSize: 11, fontWeight: FontWeight.w600),
                       ),
                     ],

@@ -764,7 +764,7 @@ class _MfHomeViewState extends State<MfHomeView> with SingleTickerProviderStateM
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Complete Investor Setup (Step 1 of 2)',
+                        'Complete Investor Setup', // /* TEMPORARILY DISABLED: '(Step 1 of 2)' */
                         style: TextStyle(color: GrowwColors.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 2),

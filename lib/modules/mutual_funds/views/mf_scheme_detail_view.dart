@@ -1253,6 +1253,7 @@ class _MfSchemeDetailViewState extends State<MfSchemeDetailView> {
                 ),
               ),
               const SizedBox(width: 12),
+              // ── Monthly SIP Button: Retained in UI, routes to one-time investment flow without mandate requirement ──
               Expanded(
                 child: SizedBox(
                   height: 48,

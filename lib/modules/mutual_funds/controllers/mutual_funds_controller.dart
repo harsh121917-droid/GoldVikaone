@@ -893,6 +893,10 @@ class MutualFundsController extends GetxController {
 
   // ── Initiate Bank AutoPay (eNACH Mandate) Setup ──
   Future<void> initiateMandateSetup(BuildContext context, {bool forceNew = false}) async {
+    // ── TEMPORARILY DISABLED: Mandate setup requirement bypassed for one-time investment mode ──
+    debugPrint('[MutualFundsController] initiateMandateSetup bypassed for one-time investment mode.');
+    return;
+    /*
     try {
       final dio = ApiClient.instance;
       Get.dialog(
@@ -956,6 +960,7 @@ class MutualFundsController extends GetxController {
         duration: const Duration(seconds: 5),
       );
     }
+    */
   }
 
   // ── Show Client Activation Bottom Sheet (When UCC is Pending NSE OTP) ──
@@ -1053,6 +1058,7 @@ class MutualFundsController extends GetxController {
               ),
               const SizedBox(height: 10),
             ],
+            /* TEMPORARILY DISABLED: Mandate setup bypassed for one-time investments
             SizedBox(
               width: double.infinity,
               height: 48,
@@ -1067,6 +1073,23 @@ class MutualFundsController extends GetxController {
                   elevation: 0,
                 ),
                 child: const Text('I Have Verified OTP → Continue AutoPay Setup', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13)),
+              ),
+            ),
+            */
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () {
+                  Get.back();
+                  fetchOnboardingStatus();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00D09C),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: const Text('I Have Verified OTP → Start Investing', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13)),
               ),
             ),
             const SizedBox(height: 8),
@@ -1329,6 +1352,11 @@ class MutualFundsController extends GetxController {
 
   // ── Show Mandate Required Alert Dialog ──
   void showMandateRequiredDialog(BuildContext context, {VoidCallback? onSwitchToLumpSum}) {
+    // If one-time switch is provided, automatically trigger it without showing mandate blocker
+    if (onSwitchToLumpSum != null) {
+      onSwitchToLumpSum();
+      return;
+    }
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),

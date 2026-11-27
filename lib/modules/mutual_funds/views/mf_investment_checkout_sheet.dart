@@ -33,7 +33,9 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
   final MutualFundsController controller = Get.find<MutualFundsController>();
   late final TextEditingController _amountController;
   final TextEditingController _vpaController = TextEditingController();
-  String _selectedPaymentMode = 'UPI'; // 'UPI' or 'NSE_GATEWAY'
+  // ── TEMPORARILY DISABLED: Default to NSE_GATEWAY (UPI hidden for now) ──
+  String _selectedPaymentMode = 'NSE_GATEWAY'; // /* String _selectedPaymentMode = 'UPI'; */
+  // ignore: unused_field
   final List<String> _upiHandles = ['@okaxis', '@okhdfcbank', '@ybl', '@paytm', '@ibl'];
 
   @override
@@ -51,6 +53,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
     } catch (_) {}
   }
 
+  // ignore: unused_element
   void _onHandleChipTap(String handle) {
     final current = _vpaController.text.trim();
     if (current.isEmpty) {
@@ -219,7 +222,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Instant UPI / NetBanking • Zero Mandate Required',
+                          'Official NSE Gateway • NetBanking • Zero Mandate Required', // /* TEMPORARILY DISABLED: 'Instant UPI / NetBanking • Zero Mandate Required' */
                           style: TextStyle(color: mintTeal, fontSize: 11, fontWeight: FontWeight.w600),
                         ),
                       ],
@@ -345,6 +348,7 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
             ),
             const SizedBox(height: 10),
 
+            /* ── TEMPORARILY DISABLED: UPI mode hidden for now ──
             // Option 1: Direct UPI Collect (Without NSE Portal)
             InkWell(
               onTap: () => setState(() => _selectedPaymentMode = 'UPI'),
@@ -534,8 +538,8 @@ class _MfInvestmentCheckoutSheetState extends State<MfInvestmentCheckoutSheet> {
                 ),
               ),
             ),
-
             const SizedBox(height: 10),
+            */
 
             // Option 2: Official NSE Gateway (As-is)
             InkWell(

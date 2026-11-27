@@ -28,8 +28,10 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
   // Map of custom amounts for each item ID
   late final RxMap<String, double> itemAmounts;
 
-  String _selectedPaymentMode = 'UPI'; // 'UPI' or 'NSE_PAYMENT_LINK'
+  // ── TEMPORARILY DISABLED: Default to NSE_PAYMENT_LINK (UPI hidden for now) ──
+  String _selectedPaymentMode = 'NSE_PAYMENT_LINK'; // /* String _selectedPaymentMode = 'UPI'; */
   final TextEditingController _vpaController = TextEditingController();
+  // ignore: unused_field
   final List<String> _upiHandles = ['@okaxis', '@okhdfcbank', '@ybl', '@paytm', '@ibl'];
   bool _isSubmitting = false;
 
@@ -50,6 +52,7 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
     controller.ensureInvestorReadiness();
   }
 
+  // ignore: unused_element
   void _onHandleChipTap(String handle) {
     final current = _vpaController.text.trim();
     if (current.isEmpty) {
@@ -478,6 +481,7 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
                 ),
                 const SizedBox(height: 10),
 
+                /* ── TEMPORARILY DISABLED: UPI mode hidden for now ──
                 // Option 1: Direct UPI Collect (Without NSE Portal)
                 InkWell(
                   onTap: () => setState(() => _selectedPaymentMode = 'UPI'),
@@ -639,8 +643,8 @@ class _MfCartCheckoutViewState extends State<MfCartCheckoutView> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 10),
+                */
 
                 // Option 2: Official NSE Gateway (As-is)
                 InkWell(

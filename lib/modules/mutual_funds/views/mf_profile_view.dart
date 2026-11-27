@@ -99,9 +99,9 @@ class _MfProfileViewState extends State<MfProfileView> {
               _buildBankAccountsSection(banks),
               const SizedBox(height: 20),
 
-              // ── 3b. Bank AutoPay & Mandate Section ──
-              _buildMandateSection(),
-              const SizedBox(height: 20),
+              // ── 3b. Bank AutoPay & Mandate Section (TEMPORARILY COMMENTED OUT FOR ONE-TIME MODE) ──
+              // _buildMandateSection(),
+              // const SizedBox(height: 20),
 
               // ── 4. Orders History Section ──
               _buildOrdersSection(orders),
@@ -570,6 +570,7 @@ class _MfProfileViewState extends State<MfProfileView> {
   }
 
   // ── AutoPay / Mandate Section ──
+  // ignore: unused_element
   Widget _buildMandateSection() {
     return Obx(() {
       final onboardingData = controller.onboardingData;
