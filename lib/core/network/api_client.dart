@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:get_storage/get_storage.dart';
 import '../constants/api_constants.dart';
 import '../constants/storage_keys.dart';
+import '../services/auth_service.dart';
+import '../services/lock_service.dart';
 
 class ApiClient {
   ApiClient._();
@@ -198,11 +201,141 @@ class ApiClient {
 }
 
 class _AuthInterceptor extends Interceptor {
-  final _box = GetStorage();
+  final _legacyBox = GetStorage();
+  final _authBox = GetStorage(StorageKeys.authContainer);
+
+  static final Dio _refreshDio = Dio(
+    BaseOptions(
+      baseUrl: ApiConstants.baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-app-source': 'goldvikaone',
+        'x-platform': 'GoldVikaone Mobile App',
+      },
+    ),
+  );
+
+  static Completer<String?>? _refreshCompleter;
+  static bool _isLoggingOut = false;
+
+  String? _readCurrentToken() {
+    if (Get.isRegistered<AuthService>()) {
+      final t = Get.find<AuthService>().token;
+      if (t != null && t.isNotEmpty) return t;
+    }
+    return _authBox.read<String>(StorageKeys.token) ??
+        _legacyBox.read<String>(StorageKeys.token);
+  }
+
+  String? _readRefreshToken() {
+    if (Get.isRegistered<AuthService>()) {
+      final rt = Get.find<AuthService>().refreshToken;
+      if (rt != null && rt.isNotEmpty) return rt;
+    }
+    return _authBox.read<String>(StorageKeys.refreshToken) ??
+        _legacyBox.read<String>(StorageKeys.refreshToken);
+  }
+
+  bool _isPublicAuthPath(String path) {
+    return path.contains('/auth/login') ||
+        path.contains('/auth/register') ||
+        path.contains('/auth/verify-credentials') ||
+        path.contains('/auth/refresh') ||
+        path.contains('/auth/reset-password') ||
+        path.contains('/auth/forgot-password') ||
+        path.contains('/otp/');
+  }
+
+  Future<String?> _performTokenRefresh() async {
+    if (_refreshCompleter != null) {
+      return _refreshCompleter!.future;
+    }
+
+    final completer = Completer<String?>();
+    _refreshCompleter = completer;
+
+    try {
+      final rt = _readRefreshToken();
+      if (rt == null || rt.isEmpty) {
+        completer.complete(null);
+        return null;
+      }
+
+      final res = await _refreshDio.post(
+        ApiConstants.refresh,
+        data: {'refreshToken': rt},
+      );
+
+      final data = res.data;
+      if (res.statusCode == 200 &&
+          data is Map &&
+          data['success'] == true &&
+          data['token'] is String &&
+          (data['token'] as String).trim().isNotEmpty) {
+        final newToken = (data['token'] as String).trim();
+        if (Get.isRegistered<AuthService>()) {
+          await Get.find<AuthService>().saveRefreshedSession(data);
+        } else {
+          await _authBox.write(StorageKeys.token, newToken);
+          if (data['refreshToken'] is String) {
+            await _authBox.write(StorageKeys.refreshToken, data['refreshToken']);
+          }
+          await _authBox.save();
+        }
+        completer.complete(newToken);
+        return newToken;
+      }
+
+      completer.complete(null);
+      return null;
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      // Only force logout when refresh token itself is explicitly rejected (401/403).
+      // Transient network timeouts or 5xx errors must NOT log the user out!
+      if (status == 401 || status == 403) {
+        await _forceLogout();
+      }
+      completer.complete(null);
+      return null;
+    } catch (_) {
+      completer.complete(null);
+      return null;
+    } finally {
+      _refreshCompleter = null;
+    }
+  }
+
+  Future<void> _forceLogout() async {
+    if (_isLoggingOut) return;
+    _isLoggingOut = true;
+    try {
+      if (Get.isRegistered<AuthService>()) {
+        await Get.find<AuthService>().logout();
+      } else {
+        await _authBox.remove(StorageKeys.token);
+        await _authBox.remove(StorageKeys.refreshToken);
+        await _authBox.remove(StorageKeys.user);
+        await _authBox.save();
+        await _legacyBox.remove(StorageKeys.token);
+        await _legacyBox.remove(StorageKeys.refreshToken);
+        await _legacyBox.remove(StorageKeys.user);
+      }
+      if (Get.isRegistered<LockService>()) {
+        LockService.to.disableLock();
+      }
+      if (Get.key.currentContext != null && Get.currentRoute != '/login') {
+        Get.offAllNamed('/login');
+      }
+    } finally {
+      _isLoggingOut = false;
+    }
+  }
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final token = _box.read<String>(StorageKeys.token);
+    final token = _readCurrentToken();
     options.headers['x-app-source'] = 'goldvikaone';
     options.headers['x-platform'] = 'GoldVikaone Mobile App';
     if (token != null && token.isNotEmpty) {
@@ -212,12 +345,54 @@ class _AuthInterceptor extends Interceptor {
   }
 
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    if (err.response?.statusCode == 401) {
-      GetStorage().remove(StorageKeys.token);
-      GetStorage().remove(StorageKeys.user);
-      Get.offAllNamed('/login');
+  Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
+    final statusCode = err.response?.statusCode;
+    final reqOptions = err.requestOptions;
+
+    if (statusCode != 401 ||
+        _isPublicAuthPath(reqOptions.path) ||
+        reqOptions.extra['_retried'] == true ||
+        reqOptions.headers['Authorization'] == null) {
+      handler.next(err);
+      return;
     }
+
+    // Extract Bearer token used by this failed request to avoid logging out a newer login
+    final sentAuth = reqOptions.headers['Authorization']?.toString() ?? '';
+    final sentToken = sentAuth.startsWith('Bearer ') ? sentAuth.substring(7).trim() : '';
+
+    final refreshedToken = await _performTokenRefresh();
+    if (refreshedToken != null && refreshedToken.isNotEmpty) {
+      try {
+        final retryOptions = reqOptions.copyWith(
+          headers: {
+            ...reqOptions.headers,
+            'Authorization': 'Bearer $refreshedToken',
+          },
+          extra: {
+            ...reqOptions.extra,
+            '_retried': true,
+          },
+        );
+        final retryResponse = await ApiClient.instance.fetch(retryOptions);
+        handler.resolve(retryResponse);
+        return;
+      } on DioException catch (retryErr) {
+        handler.next(retryErr);
+        return;
+      }
+    }
+
+    // No refresh token was present (legacy session) AND the failing token matches our active token:
+    final rt = _readRefreshToken();
+    final activeTok = _readCurrentToken();
+    if ((rt == null || rt.isEmpty) &&
+        activeTok != null &&
+        activeTok.isNotEmpty &&
+        sentToken == activeTok) {
+      await _forceLogout();
+    }
+
     handler.next(err);
   }
 }

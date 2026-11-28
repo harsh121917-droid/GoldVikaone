@@ -169,8 +169,8 @@ class AuthController extends GetxController {
     }
   }
 
-  void logout() {
-    _auth.logout();
+  Future<void> logout() async {
+    await _auth.logout();
     LockService.to.disableLock();
     
     // Clear user cached controller states to make home page reactive and prevent data leaks across sessions

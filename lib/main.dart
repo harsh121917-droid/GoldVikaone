@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'core/constants/storage_keys.dart';
 import 'core/localization/app_translations.dart';
 import 'core/localization/localization_service.dart';
 import 'core/services/auth_service.dart';
@@ -15,19 +16,24 @@ import 'routes/app_routes.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Local key-value storage — must be ready before anything reads/writes
-  // tokens, theme preference, passcode, etc.
+  // Local key-value storage — initialize general and isolated auth storage
+  // before anything reads/writes tokens, passcode, theme preference, etc.
   await GetStorage.init();
-  await NotificationService.init();
+  await GetStorage.init(StorageKeys.authContainer);
+
+  final authService = AuthService();
+  await authService.init();
 
   // App-wide singletons other controllers depend on via Get.find().
-  // These must exist before any screen builds, so register them here
-  // instead of inside a per-route Binding.
-  Get.put(AuthService(), permanent: true);
+  // Register AuthService BEFORE NotificationService.init() so startup FCM sync
+  // can read/refresh persisted tokens reliably without pre-mount 401 wipes.
+  Get.put(authService, permanent: true);
   Get.put(LockService(), permanent: true);
   Get.put(LocationService(), permanent: true);
   Get.put(ThemeController(), permanent: true);
   Get.put(LocalizationService(), permanent: true);
+
+  await NotificationService.init();
 
   runApp(const MainApp());
 }

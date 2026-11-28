@@ -1,4 +1,6 @@
+import '../core/constants/storage_keys.dart';
 import '../core/network/api_client.dart';
+import '../core/services/auth_service.dart';
 import '../routes/app_routes.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -280,8 +282,13 @@ class NotificationService {
 
   static Future<void> syncFcmTokenToBackend(String fcmToken) async {
     try {
-      final storage = GetStorage();
-      final userToken = storage.read<String>('bsqft_token');
+      String? userToken;
+      if (Get.isRegistered<AuthService>()) {
+        userToken = Get.find<AuthService>().token;
+      } else {
+        userToken = GetStorage(StorageKeys.authContainer).read<String>(StorageKeys.token) ??
+            GetStorage().read<String>(StorageKeys.token);
+      }
       if (userToken == null || userToken.isEmpty) return;
 
       await ApiClient.instance.post(

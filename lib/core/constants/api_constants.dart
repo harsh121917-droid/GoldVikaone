@@ -2,6 +2,7 @@ class ApiConstants {
   ApiConstants._();
   static const String baseUrl       = 'https://api.vikaone.com/api';
   static const String login         = '/auth/login';
+  static const String refresh       = '/auth/refresh';
   static const String register      = '/auth/register';
   static const String me            = '/auth/me';
   static const String properties    = '/properties';
